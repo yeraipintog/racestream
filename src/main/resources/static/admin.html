@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>RaceStream - Panel de administración</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #1f2937;
+        }
+
+        header {
+            background: #111827;
+            color: white;
+            padding: 20px 30px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        header p {
+            margin: 8px 0 0;
+            color: #d1d5db;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+            padding: 20px;
+        }
+
+        .card h2 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-size: 22px;
+        }
+
+        form {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input, button {
+            padding: 11px 12px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            font-size: 14px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+
+        button {
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th, td {
+            border-bottom: 1px solid #e5e7eb;
+            padding: 10px 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: #f9fafb;
+        }
+
+        .message {
+            margin: 0 0 14px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .success {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .error {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .section-note {
+            margin-top: 12px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        @media (max-width: 900px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>RaceStream - Panel de administración</h1>
+    <p>Gestión básica de campeonatos y circuitos</p>
+</header>
+
+<div class="container">
+    <div id="globalMessage" class="message"></div>
+
+    <div class="grid">
+        <section class="card">
+            <h2>CRUD de Campeonatos</h2>
+
+            <form id="championshipForm">
+                <input type="hidden" id="championshipId">
+                <input type="text" id="championshipName" placeholder="Nombre" required>
+                <input type="text" id="championshipCategory" placeholder="Categoría">
+                <input type="text" id="championshipCountry" placeholder="País">
+                <input type="number" id="championshipSeason" placeholder="Temporada" required>
+                <div class="actions">
+                    <button type="submit" class="btn-primary">Guardar campeonato</button>
+                    <button type="button" class="btn-secondary" onclick="resetChampionshipForm()">Limpiar</button>
+                </div>
+            </form>
+
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Categoría</th>
+                    <th>País</th>
+                    <th>Temporada</th>
+                    <th>Acciones</th>
+                </tr>
+                </thead>
+                <tbody id="championshipTableBody"></tbody>
+            </table>
+        </section>
+
+        <section class="card">
+            <h2>CRUD de Circuitos</h2>
+
+            <form id="circuitForm">
+                <input type="hidden" id="circuitId">
+                <input type="text" id="circuitName" placeholder="Nombre del circuito" required>
+                <input type="text" id="circuitLocation" placeholder="Ubicación">
+                <input type="number" step="0.001" id="circuitLengthKm" placeholder="Longitud en km" required>
+                <div class="actions">
+                    <button type="submit" class="btn-primary">Guardar circuito</button>
+                    <button type="button" class="btn-secondary" onclick="resetCircuitForm()">Limpiar</button>
+                </div>
+            </form>
+
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Ubicación</th>
+                    <th>Longitud</th>
+                    <th>Acciones</th>
+                </tr>
+                </thead>
+                <tbody id="circuitTableBody"></tbody>
+            </table>
+
+            <p class="section-note">
+                Un circuito ya no pertenece directamente a un campeonato. La relación se representa mediante la entidad Race.
+            </p>
+        </section>
+    </div>
+</div>
+
+<script>
+    const championshipApi = '/api/championships';
+    const circuitApi = '/api/circuits';
+
+    function showMessage(text, type = 'success') {
+        const box = document.getElementById('globalMessage');
+        box.textContent = text;
+        box.className = `message ${type}`;
+        box.style.display = 'block';
+
+        setTimeout(() => {
+            box.style.display = 'none';
+        }, 3500);
+    }
+
+    async function loadChampionships() {
+        const response = await fetch(championshipApi);
+        const data = await response.json();
+
+        const tbody = document.getElementById('championshipTableBody');
+        tbody.innerHTML = '';
+
+        data.forEach(ch => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${ch.id}</td>
+                <td>${ch.name ?? ''}</td>
+                <td>${ch.category ?? ''}</td>
+                <td>${ch.country ?? ''}</td>
+                <td>${ch.season ?? ''}</td>
+                <td>
+                    <div class="actions">
+                        <button class="btn-warning" onclick="editChampionship(${ch.id}, '${escapeQuotes(ch.name)}', '${escapeQuotes(ch.category ?? '')}', '${escapeQuotes(ch.country ?? '')}', ${ch.season ?? 'null'})">Editar</button>
+                        <button class="btn-danger" onclick="deleteChampionship(${ch.id})">Eliminar</button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    async function loadCircuits() {
+        const response = await fetch(circuitApi);
+        const data = await response.json();
+
+        const tbody = document.getElementById('circuitTableBody');
+        tbody.innerHTML = '';
+
+        data.forEach(circuit => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${circuit.id}</td>
+                <td>${circuit.name ?? ''}</td>
+                <td>${circuit.location ?? ''}</td>
+                <td>${circuit.lengthKm ?? ''} km</td>
+                <td>
+                    <div class="actions">
+                        <button class="btn-warning" onclick="editCircuit(${circuit.id}, '${escapeQuotes(circuit.name)}', '${escapeQuotes(circuit.location ?? '')}', ${circuit.lengthKm ?? 'null'})">Editar</button>
+                        <button class="btn-danger" onclick="deleteCircuit(${circuit.id})">Eliminar</button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    function escapeQuotes(value) {
+        return String(value).replace(/'/g, "\\'");
+    }
+
+    function editChampionship(id, name, category, country, season) {
+        document.getElementById('championshipId').value = id;
+        document.getElementById('championshipName').value = name;
+        document.getElementById('championshipCategory').value = category;
+        document.getElementById('championshipCountry').value = country;
+        document.getElementById('championshipSeason').value = season ?? '';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetChampionshipForm() {
+        document.getElementById('championshipForm').reset();
+        document.getElementById('championshipId').value = '';
+    }
+
+    function editCircuit(id, name, location, lengthKm) {
+        document.getElementById('circuitId').value = id;
+        document.getElementById('circuitName').value = name;
+        document.getElementById('circuitLocation').value = location;
+        document.getElementById('circuitLengthKm').value = lengthKm ?? '';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetCircuitForm() {
+        document.getElementById('circuitForm').reset();
+        document.getElementById('circuitId').value = '';
+    }
+
+    document.getElementById('championshipForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const id = document.getElementById('championshipId').value;
+        const payload = {
+            name: document.getElementById('championshipName').value,
+            category: document.getElementById('championshipCategory').value,
+            country: document.getElementById('championshipCountry').value,
+            season: parseInt(document.getElementById('championshipSeason').value)
+        };
+
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `${championshipApi}/${id}` : championshipApi;
+
+        const response = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            showMessage(id ? 'Campeonato actualizado correctamente' : 'Campeonato creado correctamente');
+            resetChampionshipForm();
+            loadChampionships();
+        } else {
+            const text = await response.text();
+            showMessage('Error al guardar campeonato: ' + text, 'error');
+        }
+    });
+
+    document.getElementById('circuitForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const id = document.getElementById('circuitId').value;
+        const payload = {
+            name: document.getElementById('circuitName').value,
+            location: document.getElementById('circuitLocation').value,
+            lengthKm: parseFloat(document.getElementById('circuitLengthKm').value)
+        };
+
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `${circuitApi}/${id}` : circuitApi;
+
+        const response = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            showMessage(id ? 'Circuito actualizado correctamente' : 'Circuito creado correctamente');
+            resetCircuitForm();
+            loadCircuits();
+        } else {
+            const text = await response.text();
+            showMessage('Error al guardar circuito: ' + text, 'error');
+        }
+    });
+
+    async function deleteChampionship(id) {
+        if (!confirm('¿Seguro que quieres eliminar este campeonato?')) return;
+
+        const response = await fetch(`${championshipApi}/${id}`, { method: 'DELETE' });
+
+        if (response.ok) {
+            showMessage('Campeonato eliminado correctamente');
+            loadChampionships();
+        } else {
+            const text = await response.text();
+            showMessage('No se pudo eliminar el campeonato: ' + text, 'error');
+        }
+    }
+
+    async function deleteCircuit(id) {
+        if (!confirm('¿Seguro que quieres eliminar este circuito?')) return;
+
+        const response = await fetch(`${circuitApi}/${id}`, { method: 'DELETE' });
+
+        if (response.ok) {
+            showMessage('Circuito eliminado correctamente');
+            loadCircuits();
+        } else {
+            const text = await response.text();
+            showMessage('No se pudo eliminar el circuito: ' + text, 'error');
+        }
+    }
+
+    loadChampionships();
+    loadCircuits();
+</script>
+</body>
+</html>

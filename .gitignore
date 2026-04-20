@@ -1,0 +1,24 @@
+HELP.md
+target/
+
+### Maven wrapper jar opcional según prefieras
+#.mvn/wrapper/maven-wrapper.jar
+
+### IDEs
+.vscode/
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+
+### Otros
+.sfdx/
+.DS_Store
+Thumbs.db
+*.log
+
+### Config local
+src/main/resources/application.properties
+.env
+.env.*
