@@ -1,0 +1,37 @@
+### Ayuda generada por Spring Initializr
+HELP.md
+
+### Build Maven
+target/
+
+### Maven wrapper jar opcional segun prefieras
+#.mvn/wrapper/maven-wrapper.jar
+
+### IDEs
+.vscode/
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+
+### Config local y secretos
+src/main/resources/application.properties
+src/main/resources/application-local.properties
+src/main/resources/application-dev.properties
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.jks
+secrets/
+**/secrets/**
+
+### Logs y temporales
+*.log
+*.tmp
+
+### Sistema operativo
+.DS_Store
+Thumbs.db

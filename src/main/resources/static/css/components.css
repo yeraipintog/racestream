@@ -1,0 +1,1277 @@
+/**
+ * @author Yerai Pinto
+ * @since 1.0
+ * @version 1.0.9
+ * @created 21-04-2026
+ * @modified 27-04-2026
+ * @description Estilos de componentes del calendario RaceStream con sesiones limpias y estado integrado
+ */
+
+/* =========================
+   NAVBAR
+========================= */
+.rs-navbar__link {
+    color: var(--rs-text-soft);
+    font-size: 14px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.rs-navbar__link:hover {
+    color: #fff;
+}
+
+.rs-navbar__icon-link {
+    color: #fff;
+    font-size: 18px;
+    text-decoration: none;
+    padding: 6px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.rs-navbar__icon-link--image img,
+.rs-profile-dropdown__trigger img,
+.rs-navbar__menu-trigger img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    display: block;
+}
+
+/* =========================
+   BOTONES
+========================= */
+.rs-button {
+    min-height: 40px;
+    padding: 0 16px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    text-align: center;
+    white-space: nowrap;
+    border: 1px solid rgba(255, 255, 255, .10);
+    background: rgba(255, 255, 255, .04);
+    color: #fff;
+    transition: .22s ease;
+}
+
+.rs-button:hover {
+    border-color: rgba(229, 57, 53, .35);
+    background: rgba(229, 57, 53, .10);
+}
+
+.rs-button--primary,
+.rs-button--login {
+    min-height: 44px;
+    padding: 0 20px;
+    border: 1px solid rgba(229, 57, 53, .38);
+    background: linear-gradient(135deg, rgba(229, 57, 53, .28), rgba(124, 58, 237, .18));
+    box-shadow: 0 10px 24px rgba(229, 57, 53, .18);
+    font-weight: 900;
+    line-height: 1;
+}
+
+/* =========================
+   DROPDOWN PERFIL
+========================= */
+.rs-profile-dropdown,
+.rs-navbar-mobile-menu {
+    position: relative;
+}
+
+.rs-profile-dropdown__trigger {
+    width: 34px;
+    height: 34px;
+    border: none;
+    background: transparent;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.rs-profile-dropdown__menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    min-width: 210px;
+    padding: 12px;
+    border: 1px solid var(--rs-border);
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(17, 24, 39, .98), rgba(12, 18, 30, .98));
+    box-shadow: 0 20px 40px rgba(0, 0, 0, .35);
+    z-index: 1300;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.rs-profile-dropdown--open .rs-profile-dropdown__menu {
+    display: flex;
+}
+
+.rs-profile-dropdown__button {
+    width: 100%;
+}
+
+.rs-profile-dropdown__button--secondary {
+    border-color: var(--rs-border);
+    background: rgba(255, 255, 255, .04);
+    color: var(--rs-text);
+}
+
+/* =========================
+   MENÚ HAMBURGUESA
+========================= */
+.rs-navbar-mobile-menu {
+    display: block;
+}
+
+.rs-navbar-mobile-menu__overflow-link {
+    display: none;
+}
+
+.rs-navbar__menu-trigger {
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.rs-navbar-mobile-menu__panel {
+    display: none;
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    min-width: 220px;
+    border: 1px solid var(--rs-border);
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(17, 24, 39, .98), rgba(12, 18, 30, .98));
+    box-shadow: 0 20px 40px rgba(0, 0, 0, .35);
+    overflow: hidden;
+    z-index: 1300;
+}
+
+.rs-navbar-mobile-menu--open .rs-navbar-mobile-menu__panel {
+    display: flex;
+    flex-direction: column;
+}
+
+.rs-navbar-mobile-menu__panel a {
+    padding: 12px 14px;
+    color: var(--rs-text-soft);
+    font-size: 14px;
+}
+
+.rs-navbar-mobile-menu__panel a:hover {
+    background: rgba(255, 255, 255, .04);
+    color: #fff;
+}
+
+/* =========================
+   FRANJA PRÓXIMO GP
+========================= */
+.rs-race-strip__side {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    text-align: right;
+}
+
+.rs-race-strip__clocks {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.rs-race-strip__clock-card {
+    min-width: 132px;
+    padding: 6px 10px;
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .03);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.rs-race-strip__clock-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.rs-race-strip__clock-label,
+.rs-race-strip__clock-subvalue {
+    color: #d7dfec;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.1;
+    white-space: nowrap;
+}
+
+.rs-race-strip__clock-value {
+    color: #fff;
+    font-size: 15px;
+    font-weight: 900;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.rs-race-strip__clock-track-value {
+    color: #d7dfec;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.rs-race-strip__clock-divider {
+    width: 100%;
+    height: 1px;
+    margin: 0;
+    background: rgba(255, 255, 255, .08);
+}
+
+.rs-race-strip__status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 0 11px;
+    border-radius: 999px;
+    background: rgba(229, 57, 53, .12);
+    color: #ffd5d5;
+    font-weight: 900;
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+/* =========================
+   TOPBAR CALENDARIO
+========================= */
+.rs-calendar-topbar {
+    margin-bottom: 18px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 18px;
+    align-items: center;
+}
+
+.rs-calendar-topbar__left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.rs-calendar-topbar__title {
+    margin: 0;
+    font-size: 34px;
+    font-weight: 900;
+    letter-spacing: -.03em;
+}
+
+.rs-calendar-topbar__controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.rs-select-wrap {
+    position: relative;
+}
+
+.rs-select-wrap::after {
+    content: "▾";
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--rs-text-muted);
+    pointer-events: none;
+    font-size: 12px;
+}
+
+.rs-select-wrap--inline select {
+    width: auto;
+    min-width: 120px;
+    padding: 10px 34px 10px 14px;
+    font-weight: 800;
+}
+
+.rs-field-group--hidden {
+    display: none;
+}
+
+.rs-calendar-topbar__selected {
+    min-height: 44px;
+    padding: 10px 16px;
+    border: 1px solid var(--rs-border);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .03);
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    color: #fff;
+    font-weight: 800;
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* =========================
+   TARJETAS GENERALES
+========================= */
+.rs-calendar-panel,
+.rs-circuit-card,
+.rs-info-card,
+.rs-session-row {
+    border: 1px solid var(--rs-border);
+    border-radius: 20px;
+    background: linear-gradient(180deg, rgba(17, 24, 39, .96), rgba(12, 18, 30, .96));
+    box-shadow: var(--rs-shadow-md);
+}
+
+.rs-calendar-panel,
+.rs-info-card,
+.rs-session-row {
+    padding: 18px;
+}
+
+/* =========================
+   CALENDARIO LATERAL
+========================= */
+.rs-calendar-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.rs-calendar-nav {
+    display: flex;
+    gap: 8px;
+}
+
+.rs-calendar-nav__button {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid var(--rs-border);
+    background: rgba(255, 255, 255, .03);
+    color: #fff;
+    font-weight: 900;
+    flex-shrink: 0;
+}
+
+.rs-calendar-month {
+    color: #fff;
+    font-weight: 900;
+    font-size: 18px;
+}
+
+.rs-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+}
+
+.rs-calendar-weekday {
+    padding: 8px 0;
+    color: var(--rs-text-muted);
+    font-weight: 900;
+    font-size: 12px;
+    text-align: center;
+}
+
+.rs-calendar-day {
+    min-height: 54px;
+    border-radius: 12px;
+    border: 1px solid var(--rs-border);
+    background: rgba(255, 255, 255, .02);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 4px;
+}
+
+.rs-calendar-day--empty {
+    border: 1px dashed rgba(148, 163, 184, .08);
+    background: transparent;
+}
+
+.rs-calendar-day--range-start,
+.rs-calendar-day--range-middle,
+.rs-calendar-day--range-end {
+    cursor: pointer;
+    border-color: rgba(56, 189, 248, .30);
+    background: rgba(56, 189, 248, .08);
+}
+
+.rs-calendar-day--active {
+    border-color: rgba(229, 57, 53, .55);
+    background: rgba(229, 57, 53, .10);
+}
+
+.rs-calendar-day__number {
+    color: #fff;
+    font-weight: 900;
+    font-size: 13px;
+}
+
+.rs-calendar-day__flag {
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    object-fit: cover;
+    border: 1px solid rgba(255, 255, 255, .18);
+}
+
+.rs-calendar-events {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.rs-calendar-events__item {
+    padding: 12px 14px;
+    border-radius: 16px;
+    border: 1px solid var(--rs-border);
+    background: rgba(255, 255, 255, .03);
+    cursor: pointer;
+}
+
+.rs-calendar-events__item:hover {
+    border-color: rgba(229, 57, 53, .45);
+}
+
+.rs-calendar-events__item--active {
+    border-left: 4px solid var(--rs-primary);
+    background: rgba(229, 57, 53, .08);
+}
+
+.rs-calendar-events__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+}
+
+.rs-calendar-events__title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.rs-calendar-events__title span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rs-calendar-events__date {
+    color: #fff;
+    font-size: 12px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.rs-flag-inline {
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    object-fit: cover;
+    border: 1px solid rgba(255, 255, 255, .16);
+    flex-shrink: 0;
+    align-self: center;
+}
+
+.rs-flag-inline--medium {
+    width: 20px;
+    height: 20px;
+}
+
+/* =========================
+   MAPA CIRCUITO
+========================= */
+.rs-circuit-card {
+    margin-top: 18px;
+    overflow: hidden;
+    padding: 0;
+}
+
+.rs-circuit-card__map-header {
+    padding: 14px 18px 0;
+}
+
+.rs-circuit-card__map-title {
+    margin: 0;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 900;
+}
+
+.rs-circuit-card__map-subtitle {
+    margin: 4px 0 0;
+    color: var(--rs-text-muted);
+    font-size: 13px;
+}
+
+.rs-circuit-card__image {
+    width: 100%;
+    height: 220px;
+    object-fit: contain;
+    background: linear-gradient(180deg, rgba(12, 18, 30, .96), rgba(8, 11, 18, .96));
+    display: block;
+    padding: 14px 18px 18px;
+}
+
+/* =========================
+   REFERENCIAS
+========================= */
+.rs-reference {
+    margin-top: 18px;
+    padding-top: 4px;
+}
+
+.rs-reference__title {
+    margin: 0 0 10px;
+    font-size: 18px;
+    font-weight: 900;
+    color: #fff;
+}
+
+.rs-reference__line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    align-items: center;
+}
+
+.rs-reference__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--rs-text-soft);
+    font-size: 14px;
+}
+
+.rs-reference__swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    flex-shrink: 0;
+}
+
+.rs-reference__swatch--practice {
+    background: #38bdf8;
+}
+
+.rs-reference__swatch--qualifying {
+    background: #f59e0b;
+}
+
+.rs-reference__swatch--race {
+    background: #ef4444;
+}
+
+/* =========================
+   DETALLE DEL GP
+========================= */
+.rs-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.rs-info-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.rs-info-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: linear-gradient(180deg, var(--rs-primary), #2563eb);
+}
+
+.rs-info-card__title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 900;
+}
+
+.rs-info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.rs-info-item {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .03);
+}
+
+.rs-info-item__label {
+    color: var(--rs-text-muted);
+    font-weight: 800;
+}
+
+.rs-info-item__value {
+    color: #fff;
+    flex: 1 1 160px;
+    font-weight: 900;
+    text-align: right;
+    min-width: 0;
+}
+
+.rs-info-item__value--compact {
+    white-space: nowrap;
+}
+
+.rs-info-item__value--with-flag {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    line-height: 1.1;
+}
+
+.rs-info-item__value--with-flag .rs-flag-inline {
+    display: inline-block;
+    align-self: center;
+    transform: translateY(0);
+}
+
+.rs-info-item__value--with-flag span {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1.1;
+}
+
+/* =========================
+   SESIONES GP
+========================= */
+.rs-session-list {
+    container-type: inline-size;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.rs-session-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(max-content, 1fr) max-content max-content;
+    grid-template-areas: "main start end";
+    align-items: center;
+    gap: 12px clamp(18px, 2.6vw, 34px);
+    padding: 14px 16px;
+    overflow: hidden;
+}
+
+.rs-session-row--has-action {
+    grid-template-columns: minmax(max-content, 1fr) max-content max-content max-content;
+    grid-template-areas: "main start end actions";
+}
+
+.rs-session-row::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 4px;
+    border-radius: 20px 0 0 20px;
+    background: linear-gradient(180deg, #38bdf8, #2563eb);
+}
+
+.rs-session-row--race::before {
+    background: linear-gradient(180deg, #ef4444, #dc2626);
+}
+
+.rs-session-row--qualifying::before {
+    background: linear-gradient(180deg, #f59e0b, #d97706);
+}
+
+.rs-session-row--practice::before {
+    background: linear-gradient(180deg, #38bdf8, #2563eb);
+}
+
+.rs-session-row__main {
+    grid-area: main;
+    display: grid;
+    grid-template-columns: 124px max-content;
+    grid-template-areas:
+        "title status"
+        "meta .";
+    align-items: start;
+    gap: 4px 10px;
+    min-width: 0;
+}
+
+.rs-session-row__title {
+    grid-area: title;
+    min-width: 0;
+}
+
+.rs-session-row__main h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 900;
+    line-height: 1.15;
+    min-width: 0;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.rs-session-row__meta {
+    grid-area: meta;
+    color: var(--rs-text-soft);
+    font-size: 14px;
+    min-width: 0;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.rs-session-row__time {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: max-content;
+}
+
+.rs-session-row__time--start {
+    grid-area: start;
+}
+
+.rs-session-row__time--end {
+    grid-area: end;
+}
+
+.rs-session-row__time-label {
+    color: var(--rs-text-muted);
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.rs-session-row__time-value {
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.35;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
+    word-break: normal;
+}
+
+.rs-session-row__time-value--client {
+    font-weight: 900;
+}
+
+.rs-session-row__time-value--circuit {
+    color: #d7dfec;
+}
+
+.rs-session-row__status-pill {
+    grid-area: status;
+    align-self: start;
+    min-height: 30px;
+    padding: 0 11px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 900;
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.rs-session-row__status-pill--completed {
+    border: 1px solid rgba(34, 197, 94, .26);
+    background: rgba(34, 197, 94, .10);
+    color: #bbf7d0;
+}
+
+.rs-session-row__status-pill--live {
+    border: 1px solid rgba(239, 68, 68, .35);
+    background: rgba(239, 68, 68, .14);
+    color: #fecaca;
+}
+
+.rs-session-row__status-pill--upcoming {
+    border: 1px solid rgba(56, 189, 248, .25);
+    background: rgba(56, 189, 248, .10);
+    color: #bae6fd;
+}
+
+.rs-session-row__actions {
+    grid-area: actions;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    justify-content: flex-start;
+    min-width: max-content;
+}
+
+.rs-link-chip {
+    min-height: 38px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(229, 57, 53, .22);
+    background: rgba(229, 57, 53, .10);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.rs-link-chip--live {
+    border-color: rgba(220, 38, 38, .35);
+    background: rgba(220, 38, 38, .16);
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 1100px) {
+    .rs-navbar__link--overflow,
+    .rs-navbar-mobile-menu__desktop-link {
+        display: none;
+    }
+
+    .rs-navbar-mobile-menu__overflow-link {
+        display: block;
+    }
+
+    .rs-calendar-topbar {
+        grid-template-columns: 1fr;
+        align-items: start;
+    }
+
+    .rs-calendar-topbar__selected {
+        justify-content: flex-start;
+        text-align: left;
+    }
+
+    .rs-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media (max-width: 820px) {
+    .rs-navbar__link {
+        font-size: 13px;
+    }
+
+    .rs-navbar__icon-link {
+        font-size: 16px;
+        padding: 4px;
+    }
+
+    .rs-navbar__icon-link--image img,
+    .rs-profile-dropdown__trigger img,
+    .rs-navbar__menu-trigger img {
+        width: 20px;
+        height: 20px;
+    }
+
+    .rs-race-strip__clock-card {
+        min-width: 150px;
+    }
+
+    .rs-race-strip__status {
+        min-height: 38px;
+        font-size: 11px;
+        padding: 0 12px;
+    }
+
+    .rs-calendar-topbar__title {
+        font-size: 28px;
+    }
+
+    .rs-calendar-panel,
+    .rs-info-card,
+    .rs-session-row {
+        padding: 16px;
+        border-radius: 18px;
+    }
+
+    .rs-calendar-events__row {
+        align-items: center;
+    }
+
+    .rs-calendar-events__date {
+        white-space: nowrap;
+    }
+
+    .rs-info-item {
+        gap: 8px 12px;
+    }
+
+    .rs-info-item__value,
+    .rs-info-item__value--with-flag {
+        text-align: right;
+        justify-content: flex-end;
+    }
+
+    .rs-info-item__value--compact {
+        white-space: nowrap;
+    }
+}
+
+@container (max-width: 760px) {
+    .rs-session-row--has-action {
+        grid-template-columns: minmax(max-content, 1fr) max-content max-content;
+        grid-template-areas:
+            "main start end"
+            "actions actions actions";
+        align-items: start;
+    }
+
+    .rs-session-row__actions {
+        justify-content: flex-start;
+    }
+}
+
+@container (max-width: 560px) {
+    .rs-session-row,
+    .rs-session-row--has-action {
+        grid-template-columns: repeat(2, minmax(max-content, 1fr));
+        grid-template-areas:
+            "main main"
+            "start end";
+        align-items: start;
+        gap: 12px clamp(12px, 4vw, 20px);
+        padding: 12px;
+    }
+
+    .rs-session-row--has-action {
+        grid-template-areas:
+            "main main"
+            "start end"
+            "actions actions";
+    }
+
+    .rs-session-row__main {
+        width: 100%;
+        grid-template-columns: minmax(0, 1fr) max-content;
+        grid-template-areas:
+            "title status"
+            "meta status";
+        gap: 4px 8px;
+    }
+
+    .rs-session-row__title {
+        padding-right: 0;
+    }
+
+    .rs-session-row__status-pill {
+        min-height: 28px;
+        padding: 0 10px;
+        font-size: 11px;
+    }
+
+    .rs-session-row__actions {
+        justify-content: flex-start;
+    }
+}
+
+@container (max-width: 330px) {
+    .rs-session-row,
+    .rs-session-row--has-action {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "main"
+            "start"
+            "end";
+    }
+
+    .rs-session-row--has-action {
+        grid-template-areas:
+            "main"
+            "start"
+            "end"
+            "actions";
+    }
+}
+
+@supports not (container-type: inline-size) {
+    @media (max-width: 760px) {
+        .rs-session-row--has-action {
+            grid-template-columns: minmax(max-content, 1fr) max-content max-content;
+            grid-template-areas:
+                "main start end"
+                "actions actions actions";
+            align-items: start;
+        }
+    }
+
+    @media (max-width: 560px) {
+        .rs-session-row,
+        .rs-session-row--has-action {
+            grid-template-columns: repeat(2, minmax(max-content, 1fr));
+            grid-template-areas:
+                "main main"
+                "start end";
+            align-items: start;
+            gap: 12px clamp(12px, 4vw, 20px);
+            padding: 12px;
+        }
+
+        .rs-session-row--has-action {
+            grid-template-areas:
+                "main main"
+                "start end"
+                "actions actions";
+        }
+
+        .rs-session-row__main {
+            width: 100%;
+            grid-template-columns: minmax(0, 1fr) max-content;
+            grid-template-areas:
+                "title status"
+                "meta status";
+            gap: 4px 8px;
+        }
+
+        .rs-session-row__title {
+            padding-right: 0;
+        }
+
+        .rs-session-row__status-pill {
+            min-height: 28px;
+            padding: 0 10px;
+            font-size: 11px;
+        }
+    }
+
+    @media (max-width: 330px) {
+        .rs-session-row,
+        .rs-session-row--has-action {
+            grid-template-columns: 1fr;
+            grid-template-areas:
+                "main"
+                "start"
+                "end";
+        }
+
+        .rs-session-row--has-action {
+            grid-template-areas:
+                "main"
+                "start"
+                "end"
+                "actions";
+        }
+    }
+}
+
+@media (max-width: 640px) {
+    .rs-race-strip .rs-container {
+        padding-inline: clamp(16px, 5vw, 22px);
+    }
+
+    .rs-race-strip__inner {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "label"
+            "main"
+            "side";
+        gap: 8px;
+        align-items: start;
+        padding: 8px 0;
+    }
+
+    .rs-race-strip__main {
+        width: 100%;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .rs-race-strip__title-row {
+        flex: 0 1 auto;
+        align-items: center;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .rs-race-strip__side {
+        width: 100%;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(112px, .85fr);
+        justify-content: space-between;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .rs-race-strip__label {
+        font-size: 11px;
+    }
+
+    .rs-race-strip__title {
+        flex: 1 1 auto;
+        min-width: 0;
+        font-size: 15px;
+        line-height: 1.15;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .rs-race-strip__meta {
+        flex: 0 0 auto;
+        font-size: 12px;
+        line-height: 1.15;
+        white-space: nowrap;
+        transform: translateY(1px);
+    }
+
+    .rs-race-strip__status {
+        width: 100%;
+        min-height: 30px;
+        text-align: center;
+        padding: 0 8px;
+        font-size: clamp(8px, 2.3vw, 10px);
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .rs-race-strip__clock-card {
+        min-width: 0;
+        width: 100%;
+        padding: 5px 7px;
+        border-radius: 12px;
+    }
+
+    .rs-race-strip__clock-row {
+        gap: 6px;
+    }
+
+    .rs-race-strip__clock-label,
+    .rs-race-strip__clock-subvalue {
+        font-size: clamp(8px, 2.2vw, 10px);
+    }
+
+    .rs-race-strip__clock-value {
+        font-size: clamp(12px, 3.6vw, 15px);
+    }
+
+    .rs-race-strip__clock-track-value {
+        font-size: clamp(11px, 3.2vw, 14px);
+    }
+}
+
+@media (max-width: 560px) {
+    .rs-navbar__actions {
+        gap: 8px;
+    }
+
+    .rs-profile-dropdown__menu,
+    .rs-navbar-mobile-menu__panel {
+        right: 0;
+        min-width: 210px;
+    }
+
+    .rs-calendar-topbar__left,
+    .rs-calendar-topbar__controls {
+        align-items: flex-start;
+    }
+
+    .rs-select-wrap--inline,
+    .rs-select-wrap--inline select {
+        width: 100%;
+    }
+
+    .rs-calendar-topbar__controls {
+        width: 100%;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .rs-calendar-topbar__selected {
+        width: 100%;
+        justify-content: flex-start;
+        white-space: normal;
+    }
+
+    .rs-calendar-grid {
+        gap: 4px;
+    }
+
+    .rs-calendar-day {
+        min-height: 46px;
+        padding: 4px 2px;
+    }
+
+    .rs-calendar-day__number {
+        font-size: 12px;
+    }
+
+    .rs-calendar-day__flag {
+        width: 14px;
+        height: 14px;
+    }
+
+    .rs-link-chip {
+        min-height: 36px;
+        font-size: 12px;
+        padding: 0 12px;
+    }
+
+    .rs-reference__line {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}

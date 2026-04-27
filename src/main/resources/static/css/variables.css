@@ -1,0 +1,71 @@
+/**
+ * @author Yerai Pinto
+ * @since 1.0
+ * @version 1.0.1
+ * @created 21-04-2026
+ * @modified 27-04-2026
+ * @description Variables globales del sistema visual Dark Premium de RaceStream documentadas por bloques
+ */
+
+/* =========================
+   TOKENS GLOBALES
+========================= */
+:root {
+    /* Fondos y superficies */
+    --rs-bg: #080b12;
+    --rs-bg-soft: #0f1724;
+    --rs-surface: #111827;
+    --rs-surface-2: #162133;
+    --rs-surface-3: #1b2a40;
+
+    /* Colores principales */
+    --rs-primary: #e53935;
+    --rs-primary-hover: #c62828;
+    --rs-primary-soft: rgba(229, 57, 53, 0.12);
+
+    --rs-secondary: #0f2747;
+    --rs-secondary-soft: rgba(32, 80, 148, 0.18);
+
+    /* Texto */
+    --rs-text: #f8fafc;
+    --rs-text-soft: #cbd5e1;
+    --rs-text-muted: #94a3b8;
+
+    /* Bordes */
+    --rs-border: rgba(148, 163, 184, 0.18);
+    --rs-border-strong: rgba(148, 163, 184, 0.32);
+
+    /* Estados */
+    --rs-success: #22c55e;
+    --rs-warning: #f59e0b;
+    --rs-danger: #ef4444;
+    --rs-info: #38bdf8;
+
+    /* Sombras */
+    --rs-shadow-sm: 0 6px 18px rgba(0, 0, 0, 0.16);
+    --rs-shadow-md: 0 12px 28px rgba(0, 0, 0, 0.22);
+    --rs-shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.28);
+
+    /* Radios */
+    --rs-radius-sm: 10px;
+    --rs-radius-md: 16px;
+    --rs-radius-lg: 22px;
+    --rs-radius-pill: 999px;
+
+    /* Espaciado */
+    --rs-space-1: 4px;
+    --rs-space-2: 8px;
+    --rs-space-3: 12px;
+    --rs-space-4: 16px;
+    --rs-space-5: 20px;
+    --rs-space-6: 24px;
+    --rs-space-7: 32px;
+    --rs-space-8: 40px;
+
+    --rs-max-width: 1400px;
+
+    /* Tipografia y movimiento */
+    --rs-font-family: "Inter", "Segoe UI", Arial, sans-serif;
+
+    --rs-transition: 0.2s ease;
+}
