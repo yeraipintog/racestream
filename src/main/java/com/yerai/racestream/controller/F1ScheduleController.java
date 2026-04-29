@@ -1,9 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0
+ * @version 1.0.1
  * @created 21-04-2026
- * @description Controlador de F1Schedule
+ * @modified 28-04-2026
+ * @description Controlador de F1Schedule con calendario enriquecido por Jolpica
  * @see https://openf1.org
  */
 package com.yerai.racestream.controller;
@@ -35,6 +36,34 @@ public class F1ScheduleController {
     @GetMapping("/meetings")
     public JsonNode getMeetings(@RequestParam(defaultValue = "2026") Integer year) {
         return f1ScheduleService.getMeetingsByYear(year);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0
+     * @created 28-04-2026
+     * @description Obtener meetings enriquecidos para la pagina Calendario
+     * @param year
+     * @return
+     */
+    @GetMapping("/calendar-meetings")
+    public JsonNode getCalendarMeetings(@RequestParam(defaultValue = "2026") Integer year) {
+        return f1ScheduleService.getCalendarMeetingsByYear(year);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0
+     * @created 28-04-2026
+     * @description Obtener imagen y descripcion del circuito bajo demanda
+     * @param url URL publica del circuito
+     * @return Datos visuales del circuito
+     */
+    @GetMapping("/circuit-summary")
+    public JsonNode getCircuitSummary(@RequestParam String url) {
+        return f1ScheduleService.getCircuitSummary(url);
     }
 
     /**

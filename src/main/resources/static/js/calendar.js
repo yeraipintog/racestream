@@ -1,25 +1,24 @@
-/**
+﻿/**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.7
+ * @version 1.1.8
  * @created 21-04-2026
- * @modified 27-04-2026
- * @description Lógica principal del calendario F1 RaceStream con estado integrado en cada sesion
+ * @modified 29-04-2026
+ * @description Logica principal del calendario F1 RaceStream con resumen de GP y sesiones compactas
  */
 class RaceStreamCalendarPage {
 
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.5
      * @created 21-04-2026
-     * @modified 22-04-2026
+     * @modified 28-04-2026
      * @description Constructor principal
      */
     constructor() {
-        this.meetingsApi = '/api/f1/schedule/meetings';
+        this.meetingsApi = '/api/f1/schedule/calendar-meetings';
         this.sessionsByMeetingApi = (meetingKey) => `/api/f1/schedule/meetings/${meetingKey}/sessions`;
-        this.currentOrNextMeetingApi = '/api/f1/schedule/current-or-next-meeting';
 
         this.monthNames = [
             'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -29,19 +28,25 @@ class RaceStreamCalendarPage {
         this.weekDays = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
         this.allMeetings = [];
-        this.filteredMeetings = [];
         this.selectedMeetingKey = null;
         this.currentMonthIndex = 0;
         this.lastValidTopMeeting = null;
         this.lastScrollY = window.scrollY;
         this.currentSeason = new Date().getFullYear();
         this.selectedYear = this.currentSeason;
-        this.lastManuallySelectedFilter = 'upcoming';
-        this.previousSeasonWasHistoric = false;
+        this.selectedSessions = [];
+        this.loadRequestId = 0;
+        this.selectionRequestId = 0;
 
         this.circuitImageOverrides = {
             Catalunya: '/assets/circuits/montmelo.png',
-            Madring: '/assets/circuits/madring.png'
+            Madring: '/assets/circuits/madring.png',
+            'Circuit de Monaco': '/assets/circuits/montecarlo.png',
+            'Monte Carlo': '/assets/circuits/montecarlo.png',
+            Monaco: '/assets/circuits/montecarlo.png',
+            Hungaroring: '/assets/circuits/hungaroring.png',
+            Budapest: '/assets/circuits/hungaroring.png',
+            Hungary: '/assets/circuits/hungaroring.png'
         };
 
         this.cacheDom();
@@ -52,25 +57,26 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 21-04-2026
-     * @modified 24-04-2026
+     * @modified 28-04-2026
      * @description Cachea el DOM necesario
      */
     cacheDom() {
         this.navbar = document.getElementById('mainNavbar');
         this.yearInput = document.getElementById('yearInput');
-        this.statusFilter = document.getElementById('statusFilter');
-        this.filterGroup = document.getElementById('filterGroup');
 
         this.topSelectedCircuit = document.getElementById('topSelectedCircuit');
 
         this.calendarMonthLabel = document.getElementById('calendarMonthLabel');
         this.calendarGrid = document.getElementById('calendarGrid');
         this.calendarEvents = document.getElementById('calendarEvents');
+        this.calendarInsight = document.getElementById('calendarInsight');
 
-        this.detailContent = document.getElementById('detailContent');
+        this.detailStatus = document.getElementById('detailStatus');
+        this.selectedGpTitle = document.getElementById('selectedGpTitle');
         this.selectedCircuitCard = document.getElementById('selectedCircuitCard');
+        this.sessionsContent = document.getElementById('sessionsContent');
 
         this.raceStripTitle = document.getElementById('raceStripTitle');
         this.raceStripMeta = document.getElementById('raceStripMeta');
@@ -100,11 +106,6 @@ class RaceStreamCalendarPage {
      */
     bindEvents() {
         this.yearInput.addEventListener('change', () => this.loadCalendar());
-
-        this.statusFilter.addEventListener('change', () => {
-            this.lastManuallySelectedFilter = this.statusFilter.value;
-            this.loadCalendar();
-        });
 
         this.prevMonthButton.addEventListener('click', () => this.changeMonth(-1));
         this.nextMonthButton.addEventListener('click', () => this.changeMonth(1));
@@ -147,7 +148,7 @@ class RaceStreamCalendarPage {
      * @version 1.0
      * @created 21-04-2026
      * @modified 22-04-2026
-     * @description Inicializa la página
+     * @description Inicializa la pagina
      */
     init() {
         this.updateNavbarOffset();
@@ -156,6 +157,25 @@ class RaceStreamCalendarPage {
             this.updateDynamicClocks();
             this.updateCountdown();
         }, 1000);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.1
+     * @created 28-04-2026
+     * @description Lee JSON de forma segura para que una peticion fallida no rompa toda la vista
+     * @param {string} url URL
+     * @param {*} fallback Valor por defecto
+     * @returns {Promise<*>} JSON o fallback
+     */
+    async fetchJson(url, fallback = null) {
+        try {
+            const response = await fetch(url, { cache: 'no-store' });
+            return response.ok ? response.json() : fallback;
+        } catch (error) {
+            return fallback;
+        }
     }
 
     updateNavbarOffset() {
@@ -257,19 +277,114 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
+     * @version 1.0.1
+     * @created 28-04-2026
+     * @modified 28-04-2026
+     * @description Devuelve rango horario compacto del cliente
+     * @param {string} startValue Fecha inicio
+     * @param {string} endValue Fecha fin
+     * @returns {string} Rango
+     */
+    formatClientDateTimeRange(startValue, endValue) {
+        return `${this.formatTimeOnly(startValue)} - ${this.formatTimeOnly(endValue)}`;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
      * @version 1.0
-     * @created 22-04-2026
-     * @modified 22-04-2026
-     * @description Devuelve fecha normalizada del circuito para pintar calendario
+     * @created 28-04-2026
+     * @description Devuelve fecha vertical de sesion en hora local del visitante
      * @param {string} value Fecha ISO
      * @param {string} gmtOffset Offset
-     * @returns {Date} Fecha
+     * @returns {{day: string, month: string, label: string}} Fecha
      */
-    getCircuitCalendarDate(value, gmtOffset) {
+    formatClientDateBadge(value) {
+        if (!value) {
+            return { day: '--', month: '---', label: 'Fecha no disponible' };
+        }
+
         const date = new Date(value);
-        const adjustedDate = new Date(date.getTime() + this.parseGmtOffsetToMinutes(gmtOffset) * 60000);
-        adjustedDate.setUTCHours(0, 0, 0, 0);
-        return adjustedDate;
+        const day = String(date.getDate());
+        const month = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+
+        return { day, month, label: `${day} ${month}` };
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0
+     * @created 28-04-2026
+     * @description Devuelve solo hora para construir rangos compactos
+     * @param {string} value Fecha ISO
+     * @param {string|null} gmtOffset Offset circuito
+     * @param {boolean} useCircuitTime Indica si se usa hora del circuito
+     * @returns {string} Hora
+     */
+    formatTimeOnly(value, gmtOffset = null, useCircuitTime = false) {
+        if (!value) {
+            return '-';
+        }
+
+        const date = new Date(value);
+        const adjustedDate = useCircuitTime
+            ? new Date(date.getTime() + this.parseGmtOffsetToMinutes(gmtOffset) * 60000)
+            : date;
+        const hours = useCircuitTime ? adjustedDate.getUTCHours() : adjustedDate.getHours();
+        const minutes = useCircuitTime ? adjustedDate.getUTCMinutes() : adjustedDate.getMinutes();
+
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0
+     * @created 28-04-2026
+     * @description Renderiza fecha compacta en hora del circuito
+     * @param {string} value Fecha ISO
+     * @param {string} gmtOffset Offset
+     * @returns {string} HTML
+     */
+    renderCircuitTimeValue(value, gmtOffset) {
+        return this.formatCircuitDateTime(value, gmtOffset);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0
+     * @created 28-04-2026
+     * @description Normaliza el tipo de circuito recibido desde APIs
+     * @param {string} circuitType Tipo original
+     * @returns {string} Tipo traducido
+     */
+    translateCircuitType(circuitType) {
+        const normalized = (circuitType || '').toLowerCase();
+        const map = {
+            permanent: 'Circuito Permanente',
+            'temporary - street': 'Circuito Urbano',
+            'temporary - road': 'Circuito Temporal',
+            'circuito urbano': 'Circuito Urbano',
+            'circuito permanente': 'Circuito Permanente',
+            'circuito temporal': 'Circuito Temporal'
+        };
+
+        if (map[normalized]) {
+            return map[normalized];
+        }
+        if (normalized.includes('street')) {
+            return 'Circuito Urbano';
+        }
+        if (normalized.includes('road')) {
+            return 'Circuito Temporal';
+        }
+        if (normalized.includes('permanent')) {
+            return 'Circuito Permanente';
+        }
+
+        return circuitType || '-';
     }
 
     /**
@@ -278,7 +393,24 @@ class RaceStreamCalendarPage {
      * @version 1.0
      * @created 22-04-2026
      * @modified 22-04-2026
-     * @description Devuelve rango oficial corto del GP
+     * @description Devuelve fecha normalizada del cliente para pintar calendario
+     * @param {string} value Fecha ISO
+     * @param {string} gmtOffset Offset
+     * @returns {Date} Fecha
+     */
+    getClientCalendarDate(value) {
+        const date = new Date(value);
+        date.setHours(0, 0, 0, 0);
+        return date;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.1
+     * @created 22-04-2026
+     * @modified 28-04-2026
+     * @description Devuelve rango oficial corto del GP en formato MAY 1-3
      * @param {Object} meeting GP
      * @returns {string} Rango
      */
@@ -287,14 +419,34 @@ class RaceStreamCalendarPage {
             return '-';
         }
 
-        const start = this.getCircuitCalendarDate(meeting.date_start, meeting.gmt_offset);
-        const end = this.getCircuitCalendarDate(meeting.date_end, meeting.gmt_offset);
-        const month = start.toLocaleDateString('en-US', {
-            month: 'short',
-            timeZone: 'UTC'
-        }).toUpperCase();
+        const start = this.getClientCalendarDate(meeting.date_start);
+        const end = this.getClientCalendarDate(meeting.date_end);
+        return this.formatDateRange(start, end);
+    }
 
-        return `${month} ${start.getUTCDate()}-${end.getUTCDate()}`;
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 29-04-2026
+     * @description Devuelve rangos sin ceros a la izquierda en formato MAY 1-3
+     * @param {Date} start Inicio
+     * @param {Date} end Fin
+     * @returns {string} Rango
+     */
+    formatDateRange(start, end) {
+        const startMonth = start.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+        const endMonth = end.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+        const startDay = start.getDate();
+        const endDay = end.getDate();
+
+        if (startMonth === endMonth && startDay === endDay) {
+            return `${startMonth} ${startDay}`;
+        }
+
+        return startMonth === endMonth
+            ? `${startMonth} ${startDay}-${endDay}`
+            : `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
     }
 
     /**
@@ -336,9 +488,9 @@ class RaceStreamCalendarPage {
      * @version 1.0
      * @created 22-04-2026
      * @modified 22-04-2026
-     * @description Cuenta atrás
+     * @description Cuenta atras
      * @param {string} startDate Fecha
-     * @returns {string} Cuenta atrás
+     * @returns {string} Cuenta atras
      */
     getCountdownToMeeting(startDate) {
         const diff = new Date(startDate).getTime() - Date.now();
@@ -413,15 +565,46 @@ class RaceStreamCalendarPage {
      * @author Yerai Pinto
      * @since 1.0
      * @version 1.0
-     * @created 22-04-2026
-     * @modified 22-04-2026
-     * @description Filtra por estado
-     * @param {Array} meetings Meetings
-     * @param {string} statusFilter Filtro
-     * @returns {Array} Meetings filtrados
+     * @created 28-04-2026
+     * @description Construye la etiqueta visual de estado de un GP
+     * @param {string} status Estado interno
+     * @returns {string} HTML
      */
-    applyStatusFilter(meetings, statusFilter) {
-        return meetings.filter(meeting => this.getMeetingStatus(meeting) === statusFilter);
+    getStatusPillHtml(status) {
+        return `<span class="rs-status-pill rs-status-pill--${status}">${this.getStatusLabel(status)}</span>`;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0
+     * @created 28-04-2026
+     * @description Actualiza el estado situado junto al titulo Detalle del GP
+     * @param {Object|null} meeting GP
+     */
+    renderDetailStatus(meeting) {
+        if (!this.detailStatus) {
+            return;
+        }
+        this.detailStatus.innerHTML = meeting
+            ? this.getStatusPillHtml(this.getMeetingStatus(meeting))
+            : '';
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0
+     * @created 28-04-2026
+     * @description Obtiene el GP actual o siguiente desde el calendario ya cargado
+     * @param {Array} meetings Calendario
+     * @returns {Object|null} GP
+     */
+    getCurrentOrNextFromMeetings(meetings) {
+        return meetings.find(meeting => {
+            const status = this.getMeetingStatus(meeting);
+            return status === 'live' || status === 'upcoming';
+        }) || null;
     }
 
     /**
@@ -430,9 +613,9 @@ class RaceStreamCalendarPage {
      * @version 1.0
      * @created 22-04-2026
      * @modified 22-04-2026
-     * @description Traduce nombre de sesión
+     * @description Traduce nombre de sesion
      * @param {string} sessionName Nombre
-     * @returns {string} Traducción
+     * @returns {string} Traduccion
      */
     translateSessionName(sessionName) {
         const map = {
@@ -460,9 +643,9 @@ class RaceStreamCalendarPage {
      * @version 1.0
      * @created 22-04-2026
      * @modified 22-04-2026
-     * @description Traduce tipo de sesión
+     * @description Traduce tipo de sesion
      * @param {string} sessionType Tipo
-     * @returns {string} Traducción
+     * @returns {string} Traduccion
      */
     translateSessionType(sessionType) {
         const normalized = (sessionType || '').toLowerCase();
@@ -495,7 +678,7 @@ class RaceStreamCalendarPage {
      * @version 1.0
      * @created 22-04-2026
      * @modified 22-04-2026
-     * @description Devuelve clase CSS de sesión
+     * @description Devuelve clase CSS de sesion
      * @param {string} sessionType Tipo
      * @returns {string} Clase CSS
      */
@@ -519,8 +702,8 @@ class RaceStreamCalendarPage {
      * @version 1.0
      * @created 22-04-2026
      * @modified 22-04-2026
-     * @description Indica si la sesión está en vivo
-     * @param {Object} session Sesión
+     * @description Indica si la sesion esta en vivo
+     * @param {Object} session Sesion
      * @returns {boolean} Resultado
      */
     isSessionLive(session) {
@@ -534,8 +717,8 @@ class RaceStreamCalendarPage {
      * @version 1.0
      * @created 22-04-2026
      * @modified 22-04-2026
-     * @description Indica si la sesión ha terminado
-     * @param {Object} session Sesión
+     * @description Indica si la sesion ha terminado
+     * @param {Object} session Sesion
      * @returns {boolean} Resultado
      */
     isSessionCompleted(session) {
@@ -545,14 +728,19 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.2
+     * @version 1.0.4
      * @created 27-04-2026
-     * @modified 27-04-2026
+     * @modified 28-04-2026
      * @description Devuelve estado visual de una sesion del GP
      * @param {Object} session Sesion
+     * @param {Object} meeting GP
      * @returns {string} Estado
      */
-    getSessionStatus(session) {
+    getSessionStatus(session, meeting = null) {
+        if (session?.is_cancelled || meeting?.is_cancelled) {
+            return 'cancelled';
+        }
+
         if (this.isSessionLive(session)) {
             return 'live';
         }
@@ -567,14 +755,18 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 27-04-2026
-     * @modified 27-04-2026
+     * @modified 28-04-2026
      * @description Traduce estado interno de sesion a etiqueta visible
      * @param {string} status Estado interno
      * @returns {string} Etiqueta
      */
     getSessionStatusLabel(status) {
+        if (status === 'cancelled') {
+            return 'Cancelado';
+        }
+
         if (status === 'live') {
             return 'En vivo';
         }
@@ -614,7 +806,7 @@ class RaceStreamCalendarPage {
      * @version 1.0
      * @created 22-04-2026
      * @modified 22-04-2026
-     * @description Actualiza relojes superiores con el próximo GP
+     * @description Actualiza relojes superiores con el proximo GP
      */
     updateDynamicClocks() {
         const topMeeting = this.lastValidTopMeeting;
@@ -646,7 +838,7 @@ class RaceStreamCalendarPage {
      * @version 1.0
      * @created 22-04-2026
      * @modified 22-04-2026
-     * @description Actualiza cuenta atrás del próximo GP
+     * @description Actualiza cuenta atras del proximo GP
      */
     updateCountdown() {
         if (!this.lastValidTopMeeting) {
@@ -670,8 +862,8 @@ class RaceStreamCalendarPage {
      * @version 1.0
      * @created 22-04-2026
      * @modified 22-04-2026
-     * @description Actualiza franja superior del próximo GP
-     * @param {Object} meeting Próximo GP
+     * @description Actualiza franja superior del proximo GP
+     * @param {Object} meeting Proximo GP
      */
     updateRaceStrip(meeting) {
         const referenceMeeting = meeting?.meeting_name ? meeting : this.lastValidTopMeeting;
@@ -712,68 +904,66 @@ class RaceStreamCalendarPage {
      * @version 1.0
      * @created 22-04-2026
      * @modified 22-04-2026
-     * @description Actualiza línea superior con circuito seleccionado
+     * @description Actualiza linea superior con circuito seleccionado
      * @param {Object|null} meeting Meeting actual
      */
     updateTopSelectedCircuit(meeting) {
         if (!meeting) {
             this.topSelectedCircuit.textContent = '-';
+            this.topSelectedCircuit.className = 'rs-calendar-topbar__selected';
+            if (this.selectedGpTitle) {
+                this.selectedGpTitle.textContent = 'Selecciona un Gran Premio';
+            }
             return;
         }
 
+        const status = this.getMeetingStatus(meeting);
+        this.topSelectedCircuit.className = `rs-calendar-topbar__selected rs-calendar-topbar__selected--${status}`;
         this.topSelectedCircuit.innerHTML = `
             ${meeting.country_flag ? `<img class="rs-flag-inline" src="${meeting.country_flag}" alt="Bandera de ${meeting.country_name ?? 'país'}">` : ''}
             <span>${meeting.circuit_short_name ?? meeting.location ?? '-'} · ${this.formatMeetingDateRangeForStrip(meeting)}</span>
         `;
+
+        if (this.selectedGpTitle) {
+            this.selectedGpTitle.textContent = meeting.meeting_official_name ?? meeting.meeting_name ?? 'Gran Premio';
+        }
     }
 
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.2
+     * @version 1.0.3
      * @created 22-04-2026
-     * @modified 27-04-2026
-     * @description Carga el calendario completo
+     * @modified 28-04-2026
+     * @description Carga el calendario completo reutilizando los datos para no duplicar llamadas externas
      */
     async loadCalendar() {
+        const requestId = ++this.loadRequestId;
+        this.selectionRequestId++;
         const year = parseInt(this.yearInput.value, 10);
         this.selectedYear = year;
-
-        const isHistoricSeason = year < this.currentSeason;
-        document.body.classList.toggle('rs-historic-season', isHistoricSeason);
-        this.filterGroup.classList.toggle('rs-field-group--hidden', isHistoricSeason);
-
-        if (isHistoricSeason) {
-            this.statusFilter.value = 'completed';
-        } else if (this.previousSeasonWasHistoric) {
-            this.statusFilter.value = this.lastManuallySelectedFilter || 'upcoming';
-        }
-
-        this.previousSeasonWasHistoric = isHistoricSeason;
-        const statusFilter = this.statusFilter.value;
+        this.selectedMeetingKey = null;
 
         this.calendarGrid.innerHTML = '<div class="loading-state">Cargando calendario...</div>';
         this.calendarEvents.innerHTML = '';
-        this.detailContent.innerHTML = '<div class="loading-state">Cargando información del GP...</div>';
+        this.renderCalendarInsight([]);
+        this.sessionsContent.innerHTML = '';
+        this.selectedCircuitCard.innerHTML = '';
+        this.renderDetailStatus(null);
         this.updateTopSelectedCircuit(null);
 
         try {
-            const [meetingsResponse, nextMeetingResponse] = await Promise.all([
-                fetch(`${this.meetingsApi}?year=${year}`),
-                fetch(`${this.currentOrNextMeetingApi}?year=${this.currentSeason}`)
-            ]);
-
-            const meetings = await meetingsResponse.json();
-            const nextMeeting = await nextMeetingResponse.json();
-
+            const meetings = await this.fetchJson(`${this.meetingsApi}?year=${year}`, []);
+            if (requestId !== this.loadRequestId) {
+                return;
+            }
             this.allMeetings = Array.isArray(meetings) ? meetings : [];
-            this.filteredMeetings = this.applyStatusFilter(this.allMeetings, statusFilter);
 
-            this.updateRaceStrip(nextMeeting);
+            this.updateRaceStrip(this.getCurrentOrNextFromMeetings(this.allMeetings));
 
             const meetingToSelect = this.selectInitialMeeting();
             this.currentMonthIndex = meetingToSelect
-                ? this.getCircuitCalendarDate(meetingToSelect.date_start, meetingToSelect.gmt_offset).getUTCMonth()
+                ? this.getClientCalendarDate(meetingToSelect.date_start).getMonth()
                 : 0;
 
             this.renderMiniCalendar();
@@ -782,16 +972,22 @@ class RaceStreamCalendarPage {
             if (meetingToSelect) {
                 await this.selectMeeting(meetingToSelect.meeting_key);
             } else {
-                this.detailContent.innerHTML = '<div class="empty-state">No hay sesiones disponibles para ese filtro.</div>';
+                this.sessionsContent.innerHTML = '';
                 this.selectedCircuitCard.innerHTML = '';
+                this.renderDetailStatus(null);
                 this.updateTopSelectedCircuit(null);
             }
         } catch (error) {
+            if (requestId !== this.loadRequestId) {
+                return;
+            }
             console.error('Error cargando calendario:', error);
             this.calendarGrid.innerHTML = '<div class="empty-state">No se pudo cargar el calendario.</div>';
             this.calendarEvents.innerHTML = '';
-            this.detailContent.innerHTML = '<div class="empty-state">Se produjo un error al cargar el detalle del GP.</div>';
+            this.renderCalendarInsight([]);
+            this.sessionsContent.innerHTML = '';
             this.selectedCircuitCard.innerHTML = '';
+            this.renderDetailStatus(null);
             this.updateTopSelectedCircuit(null);
         }
     }
@@ -799,15 +995,20 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
+     * @version 1.0.1
      * @created 22-04-2026
-     * @modified 22-04-2026
-     * @description Selecciona el primer GP visible
+     * @modified 28-04-2026
+     * @description Selecciona el GP actual, siguiente o ultimo disponible
      * @returns {Object|null} Meeting
      */
     selectInitialMeeting() {
-        const existing = this.filteredMeetings.find(meeting => meeting.meeting_key === this.selectedMeetingKey);
-        return existing || this.filteredMeetings[0] || null;
+        const existing = this.allMeetings.find(meeting => meeting.meeting_key === this.selectedMeetingKey);
+        if (existing) {
+            return existing;
+        }
+
+        const currentOrNext = this.getCurrentOrNextFromMeetings(this.allMeetings);
+        return currentOrNext || this.allMeetings[this.allMeetings.length - 1] || null;
     }
 
     /**
@@ -817,7 +1018,7 @@ class RaceStreamCalendarPage {
      * @created 22-04-2026
      * @modified 22-04-2026
      * @description Cambia mes del mini calendario
-     * @param {number} direction Dirección
+     * @param {number} direction Direccion
      */
     changeMonth(direction) {
         this.currentMonthIndex += direction;
@@ -836,17 +1037,17 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
+     * @version 1.0.1
      * @created 22-04-2026
-     * @modified 22-04-2026
-     * @description Devuelve el GP de un día usando hora de circuito
+     * @modified 28-04-2026
+     * @description Devuelve el GP de un dia usando hora de circuito
      * @param {Date} currentDate Fecha
      * @returns {Object|null} Meeting
      */
     getMeetingForCalendarDay(currentDate) {
-        return this.filteredMeetings.find(meeting => {
-            const start = this.getCircuitCalendarDate(meeting.date_start, meeting.gmt_offset);
-            const end = this.getCircuitCalendarDate(meeting.date_end, meeting.gmt_offset);
+        return this.allMeetings.find(meeting => {
+            const start = this.getClientCalendarDate(meeting.date_start);
+            const end = this.getClientCalendarDate(meeting.date_end);
             return currentDate >= start && currentDate <= end;
         }) || null;
     }
@@ -854,19 +1055,19 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
+     * @version 1.0.1
      * @created 22-04-2026
-     * @modified 22-04-2026
+     * @modified 28-04-2026
      * @description Renderiza mini calendario
      */
     renderMiniCalendar() {
         const year = parseInt(this.yearInput.value, 10);
         this.calendarMonthLabel.textContent = `${this.monthNames[this.currentMonthIndex]} ${year}`;
 
-        const firstDay = new Date(Date.UTC(year, this.currentMonthIndex, 1));
-        const lastDay = new Date(Date.UTC(year, this.currentMonthIndex + 1, 0));
-        const totalDays = lastDay.getUTCDate();
-        const startOffset = (firstDay.getUTCDay() + 6) % 7;
+        const firstDay = new Date(year, this.currentMonthIndex, 1);
+        const lastDay = new Date(year, this.currentMonthIndex + 1, 0);
+        const totalDays = lastDay.getDate();
+        const startOffset = (firstDay.getDay() + 6) % 7;
 
         let html = '';
 
@@ -879,7 +1080,7 @@ class RaceStreamCalendarPage {
         }
 
         for (let day = 1; day <= totalDays; day++) {
-            const currentDate = new Date(Date.UTC(year, this.currentMonthIndex, day));
+            const currentDate = new Date(year, this.currentMonthIndex, day);
             const meeting = this.getMeetingForCalendarDay(currentDate);
 
             if (!meeting) {
@@ -891,24 +1092,27 @@ class RaceStreamCalendarPage {
                 continue;
             }
 
-            const start = this.getCircuitCalendarDate(meeting.date_start, meeting.gmt_offset);
-            const end = this.getCircuitCalendarDate(meeting.date_end, meeting.gmt_offset);
+            const start = this.getClientCalendarDate(meeting.date_start);
+            const end = this.getClientCalendarDate(meeting.date_end);
+            const monthStart = new Date(year, this.currentMonthIndex, 1);
+            const monthEnd = new Date(year, this.currentMonthIndex, totalDays);
+            const visibleStart = start < monthStart ? monthStart : start;
+            const visibleEnd = end > monthEnd ? monthEnd : end;
 
-            let rangeClass = 'rs-calendar-day--range-middle';
-            if (currentDate.getTime() === start.getTime()) {
-                rangeClass = 'rs-calendar-day--range-start';
-            } else if (currentDate.getTime() === end.getTime()) {
-                rangeClass = 'rs-calendar-day--range-end';
+            if (currentDate.getTime() !== visibleStart.getTime()) {
+                continue;
             }
 
+            const status = this.getMeetingStatus(meeting);
             const isActive = this.selectedMeetingKey === meeting.meeting_key ? 'rs-calendar-day--active' : '';
-
+            const spanDays = Math.max(1, Math.round((visibleEnd - visibleStart) / 86400000) + 1);
             html += `
-                <div class="rs-calendar-day ${rangeClass} ${isActive}" onclick="window.raceStreamCalendarPage.selectMeeting(${meeting.meeting_key})">
-                    <span class="rs-calendar-day__number">${day}</span>
+                <div class="rs-calendar-day rs-calendar-day--range rs-calendar-day--${status} ${isActive}" style="grid-column: span ${spanDays};" title="${meeting.meeting_name ?? ''} - ${this.getStatusLabel(status)}" onclick="window.raceStreamCalendarPage.selectMeeting(${meeting.meeting_key})">
+                    <span class="rs-calendar-day__number">${start.getDate()}-${end.getDate()}</span>
                     ${meeting.country_flag ? `<img class="rs-calendar-day__flag" src="${meeting.country_flag}" alt="Bandera de ${meeting.country_name ?? 'país'}">` : ''}
                 </div>
             `;
+            day += spanDays - 1;
         }
 
         this.calendarGrid.innerHTML = html;
@@ -920,50 +1124,69 @@ class RaceStreamCalendarPage {
      * @version 1.0
      * @created 22-04-2026
      * @modified 22-04-2026
-     * @description Rango corto del GP
+     * @description Rango corto del GP en formato MAY 1-3
      * @param {Object} meeting GP
      * @returns {string} Texto
      */
     formatGpDateRange(meeting) {
-        const start = this.getCircuitCalendarDate(meeting.date_start, meeting.gmt_offset);
-        const end = this.getCircuitCalendarDate(meeting.date_end, meeting.gmt_offset);
-        const month = start.toLocaleDateString('en-US', {
-            month: 'short',
-            timeZone: 'UTC'
-        }).toUpperCase();
-
-        return `${start.getUTCDate()}-${end.getUTCDate()} ${month}`;
+        const start = this.getClientCalendarDate(meeting.date_start);
+        const end = this.getClientCalendarDate(meeting.date_end);
+        return this.formatDateRange(start, end);
     }
 
     /**
      * @author Yerai Pinto
      * @since 1.0
      * @version 1.0
+     * @created 28-04-2026
+     * @description Renderiza un resumen visual del mes seleccionado
+     * @param {Array} meetingsOfMonth GPs del mes
+     */
+    renderCalendarInsight() {
+        if (!this.calendarInsight) {
+            return;
+        }
+        this.calendarInsight.innerHTML = '';
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.2
      * @created 22-04-2026
-     * @modified 22-04-2026
-     * @description Renderiza lista de eventos del mes
+     * @modified 28-04-2026
+     * @description Renderiza lista de eventos del mes y actualiza su resumen
      */
     renderMonthEvents() {
-        const meetingsOfMonth = this.filteredMeetings.filter(meeting =>
-            this.getCircuitCalendarDate(meeting.date_start, meeting.gmt_offset).getUTCMonth() === this.currentMonthIndex
-        );
+        const year = parseInt(this.yearInput.value, 10);
+        const monthStart = new Date(year, this.currentMonthIndex, 1);
+        const monthEnd = new Date(year, this.currentMonthIndex + 1, 0);
+        const meetingsOfMonth = this.allMeetings.filter(meeting => {
+            const start = this.getClientCalendarDate(meeting.date_start);
+            const end = this.getClientCalendarDate(meeting.date_end);
+            return start <= monthEnd && end >= monthStart;
+        });
+        this.renderCalendarInsight(meetingsOfMonth);
 
         if (!meetingsOfMonth.length) {
-            this.calendarEvents.innerHTML = '<div class="empty-state">No hay GP en este mes con el filtro actual.</div>';
+            this.calendarEvents.innerHTML = '<div class="empty-state">No hay GP en este mes.</div>';
             return;
         }
 
         this.calendarEvents.innerHTML = meetingsOfMonth.map(meeting => {
+            const status = this.getMeetingStatus(meeting);
             const activeClass = this.selectedMeetingKey === meeting.meeting_key ? 'rs-calendar-events__item--active' : '';
 
             return `
-                <div class="rs-calendar-events__item ${activeClass}" onclick="window.raceStreamCalendarPage.selectMeeting(${meeting.meeting_key})">
+                <div class="rs-calendar-events__item rs-calendar-events__item--${status} ${activeClass}" onclick="window.raceStreamCalendarPage.selectMeeting(${meeting.meeting_key})">
                     <div class="rs-calendar-events__row">
                         <h5 class="rs-calendar-events__title">
                             ${meeting.country_flag ? `<img class="rs-flag-inline" src="${meeting.country_flag}" alt="Bandera de ${meeting.country_name ?? 'país'}">` : ''}
                             <span>${meeting.meeting_name ?? '-'}</span>
                         </h5>
-                        <span class="rs-calendar-events__date">${this.formatGpDateRange(meeting)}</span>
+                        <div class="rs-calendar-events__side">
+                            <span class="rs-calendar-events__date">${this.formatGpDateRange(meeting)}</span>
+                        </div>
                     </div>
                 </div>
             `;
@@ -973,10 +1196,10 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
+     * @version 1.0.1
      * @created 22-04-2026
-     * @modified 22-04-2026
-     * @description Devuelve imagen del circuito
+     * @modified 28-04-2026
+     * @description Devuelve imagen anterior o corregida del circuito
      * @param {Object} meeting GP
      * @returns {string|null} Ruta
      */
@@ -985,15 +1208,18 @@ class RaceStreamCalendarPage {
             return null;
         }
 
-        const shortName = meeting.circuit_short_name || '';
-        const location = meeting.location || '';
+        const overrideKeys = [
+            meeting.circuit_short_name,
+            meeting.location,
+            meeting.jolpica_circuit_name,
+            meeting.country_name,
+            meeting.jolpica_country
+        ];
 
-        if (this.circuitImageOverrides[shortName]) {
-            return this.circuitImageOverrides[shortName];
-        }
-
-        if (this.circuitImageOverrides[location]) {
-            return this.circuitImageOverrides[location];
+        for (const key of overrideKeys) {
+            if (this.circuitImageOverrides[key]) {
+                return this.circuitImageOverrides[key];
+            }
         }
 
         return meeting.circuit_image || null;
@@ -1002,65 +1228,24 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
-     * @created 22-04-2026
-     * @modified 22-04-2026
-     * @description Renderiza tarjeta del mapa del circuito
+     * @version 1.0.0
+     * @created 29-04-2026
+     * @description Devuelve datos de circuito con fallback visible
      * @param {Object} meeting GP
+     * @param {string} field Campo
+     * @returns {string} Valor
      */
-    renderSelectedCircuitCard(meeting) {
-        const imageUrl = this.getCircuitImage(meeting);
-
-        if (!meeting || !imageUrl) {
-            this.selectedCircuitCard.innerHTML = '';
-            return;
-        }
-
-        this.selectedCircuitCard.innerHTML = `
-            <div class="rs-circuit-card__map-header">
-                <h4 class="rs-circuit-card__map-title">Mapa del circuito de ${meeting.circuit_short_name ?? '-'}</h4>
-                <p class="rs-circuit-card__map-subtitle">${meeting.location ?? '-'} · ${meeting.country_name ?? '-'}</p>
-            </div>
-
-            <img class="rs-circuit-card__image" src="${imageUrl}" alt="Mapa del circuito ${meeting.circuit_short_name ?? ''}" onerror="this.style.display='none';">
-        `;
-    }
-
-    /**
-     * @author Yerai Pinto
-     * @since 1.0
-     * @version 1.0
-     * @created 22-04-2026
-     * @modified 22-04-2026
-     * @description Selecciona un GP y carga sus sesiones
-     * @param {number} meetingKey Clave del meeting
-     */
-    async selectMeeting(meetingKey) {
-        this.selectedMeetingKey = meetingKey;
-        this.renderMiniCalendar();
-        this.renderMonthEvents();
-
-        const selectedMeeting = this.filteredMeetings.find(meeting => meeting.meeting_key === meetingKey)
-            || this.allMeetings.find(meeting => meeting.meeting_key === meetingKey);
-
-        if (!selectedMeeting) {
-            this.detailContent.innerHTML = '<div class="empty-state">No se encontró el Gran Premio seleccionado.</div>';
-            this.updateTopSelectedCircuit(null);
-            return;
-        }
-
-        this.updateTopSelectedCircuit(selectedMeeting);
-        this.renderSelectedCircuitCard(selectedMeeting);
-        this.detailContent.innerHTML = '<div class="loading-state">Cargando sesiones del GP...</div>';
-
-        try {
-            const response = await fetch(this.sessionsByMeetingApi(meetingKey));
-            const sessions = await response.json();
-            this.renderMeetingDetail(selectedMeeting, Array.isArray(sessions) ? sessions : []);
-        } catch (error) {
-            console.error('Error cargando sesiones:', error);
-            this.detailContent.innerHTML = '<div class="empty-state">No se pudieron cargar las sesiones del GP.</div>';
-        }
+    getCircuitFact(meeting, field) {
+        const keys = [
+            meeting?.circuit_short_name,
+            meeting?.location,
+            meeting?.jolpica_circuit_name,
+            meeting?.country_name,
+            meeting?.jolpica_country
+        ];
+        const apiValue = meeting?.[field];
+        const value = apiValue == null || `${apiValue}`.trim() === '' || apiValue === '-' ? null : apiValue;
+        return value == null || `${value}`.trim() === '' || value === '-' ? 'Por definir' : value;
     }
 
     /**
@@ -1068,122 +1253,196 @@ class RaceStreamCalendarPage {
      * @since 1.0
      * @version 1.0.1
      * @created 22-04-2026
-     * @modified 27-04-2026
-     * @description Renderiza detalle del GP con estado integrado en el titulo de cada sesion
+     * @modified 28-04-2026
+     * @description Renderiza tarjeta del mapa del circuito con datos tecnicos
      * @param {Object} meeting GP
-     * @param {Array} sessions Sesiones
      */
-    renderMeetingDetail(meeting, sessions) {
-        const status = this.getMeetingStatus(meeting);
+    renderSelectedCircuitCard(meeting) {
+        const imageUrl = this.getCircuitImage(meeting);
 
-        this.detailContent.innerHTML = `
-            <div class="rs-detail-grid">
-                <div class="rs-info-card">
-                    <h3 class="rs-info-card__title">Información General</h3>
+        if (!meeting) {
+            this.selectedCircuitCard.innerHTML = '';
+            return;
+        }
 
-                    <div class="rs-info-list">
-                        <div class="rs-info-item">
-                            <span class="rs-info-item__label">GP</span>
-                            <span class="rs-info-item__value rs-info-item__value--with-flag">
-                                ${meeting.country_flag ? `<img class="rs-flag-inline" src="${meeting.country_flag}" alt="Bandera de ${meeting.country_name ?? 'país'}">` : ''}
-                                <span>${meeting.meeting_name ?? '-'}</span>
-                            </span>
-                        </div>
+        const title = `${meeting.location ?? meeting.jolpica_locality ?? '-'} - ${meeting.country_name ?? meeting.jolpica_country ?? '-'}`;
+        const circuitName = meeting.jolpica_circuit_name ?? meeting.circuit_short_name ?? 'circuito';
+        const facts = [
+            ['Curvas', this.getCircuitFact(meeting, 'circuit_corners')],
+            ['Vueltas', this.getCircuitFact(meeting, 'total_laps')],
+            ['Longitud circuito', this.getCircuitFact(meeting, 'circuit_length')],
+            ['Distancia carrera', this.getCircuitFact(meeting, 'race_distance')]
+        ].map(([label, value]) => `
+            <div class="rs-circuit-card__fact">
+                <span class="rs-circuit-card__fact-label">${label}</span>
+                <strong class="rs-circuit-card__fact-value">${value ?? '-'}</strong>
+            </div>
+        `).join('');
 
-                        <div class="rs-info-item">
-                            <span class="rs-info-item__label">Estado</span>
-                            <span class="rs-info-item__value">${this.getStatusLabel(status)}</span>
-                        </div>
+        this.selectedCircuitCard.innerHTML = `
+            <div class="rs-circuit-card__inner">
+                    <div class="rs-circuit-card__stats">
+                        <div class="rs-circuit-card__lap-record">
+                            <span class="rs-circuit-card__fact-label">Vuelta rápida</span>
+                        <strong class="rs-circuit-card__lap-record-value">${this.getCircuitFact(meeting, 'circuit_lap_record')}</strong>
+                    </div>
 
-                        <div class="rs-info-item">
-                            <span class="rs-info-item__label">Circuito</span>
-                            <span class="rs-info-item__value">${meeting.circuit_short_name ?? '-'}</span>
-                        </div>
-
-                        <div class="rs-info-item">
-                            <span class="rs-info-item__label">País</span>
-                            <span class="rs-info-item__value rs-info-item__value--with-flag">
-                                <span>${meeting.country_name ?? '-'}</span>
-                            </span>
-                        </div>
+                    <div class="rs-circuit-card__facts">
+                        ${facts}
                     </div>
                 </div>
 
-                <div class="rs-info-card">
-                    <h3 class="rs-info-card__title">Fechas y Localización</h3>
+                <div class="rs-circuit-card__visual">
+                    <div class="rs-circuit-card__map-header">
+                        <h4 class="rs-circuit-card__map-title">${circuitName}</h4>
+                        <span class="rs-circuit-card__map-subtitle">${title}</span>
+                    </div>
 
-                    <div class="rs-info-list">
-                        <div class="rs-info-item">
-                            <span class="rs-info-item__label">Inicio</span>
-                            <span class="rs-info-item__value rs-info-item__value--compact">${this.formatCircuitDateTime(meeting.date_start, meeting.gmt_offset)}</span>
-                        </div>
-
-                        <div class="rs-info-item">
-                            <span class="rs-info-item__label">Fin</span>
-                            <span class="rs-info-item__value rs-info-item__value--compact">${this.formatCircuitDateTime(meeting.date_end, meeting.gmt_offset)}</span>
-                        </div>
-
-                        <div class="rs-info-item">
-                            <span class="rs-info-item__label">Ubicación</span>
-                            <span class="rs-info-item__value">${meeting.location ?? '-'}</span>
-                        </div>
-
-                        <div class="rs-info-item">
-                            <span class="rs-info-item__label">Circuito</span>
-                            <span class="rs-info-item__value">${meeting.circuit_type ?? '-'}</span>
+                    <div class="rs-circuit-card__image-wrap">
+                        ${imageUrl ? `<img class="rs-circuit-card__image" src="${imageUrl}" alt="Mapa del circuito ${circuitName}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">` : ''}
+                        <div class="rs-circuit-card__fallback" style="${imageUrl ? 'display:none;' : ''}">
+                            <span>Mapa no disponible</span>
+                            <strong>${circuitName}</strong>
                         </div>
                     </div>
                 </div>
             </div>
+        `;
+    }
+/**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.1
+     * @created 22-04-2026
+     * @modified 28-04-2026
+     * @description Selecciona un GP y carga sus sesiones
+     * @param {number} meetingKey Clave del meeting
+     */
+    async selectMeeting(meetingKey) {
+        const requestId = ++this.selectionRequestId;
+        this.selectedMeetingKey = meetingKey;
+        this.renderMiniCalendar();
+        this.renderMonthEvents();
 
-            <div>
-                <h3 class="rs-section-heading">Sesiones del GP</h3>
+        const selectedMeeting = this.allMeetings.find(meeting => meeting.meeting_key === meetingKey);
 
-                <div class="rs-session-list">
-                    ${sessions.length ? sessions.map(session => {
-                        const sessionStatus = this.getSessionStatus(session);
-                        const sessionAction = this.getSessionActionButton(sessionStatus);
+        if (!selectedMeeting) {
+            this.sessionsContent.innerHTML = '';
+            this.selectedCircuitCard.innerHTML = '';
+            this.renderDetailStatus(null);
+            this.updateTopSelectedCircuit(null);
+            return;
+        }
 
-                        return `
-                        <div class="${this.getSessionTypeClass(session.session_type)} ${sessionAction ? 'rs-session-row--has-action' : ''}">
-                            <div class="rs-session-row__main">
-                                <div class="rs-session-row__title">
-                                    <h4>${this.translateSessionName(session.session_name)}</h4>
-                                </div>
-                                <span class="rs-session-row__status-pill rs-session-row__status-pill--${sessionStatus}">${this.getSessionStatusLabel(sessionStatus)}</span>
-                                <div class="rs-session-row__meta">${this.translateSessionType(session.session_type)}</div>
-                            </div>
+        this.updateTopSelectedCircuit(selectedMeeting);
+        this.renderSelectedCircuitCard(selectedMeeting);
+        this.sessionsContent.innerHTML = '<div class="loading-state">Cargando sesiones del GP...</div>';
 
-                            <div class="rs-session-row__time rs-session-row__time--start">
-                                <span class="rs-session-row__time-label">Inicio</span>
-                                <span class="rs-session-row__time-value rs-session-row__time-value--client">Cliente ${this.formatClientDateTime(session.date_start)}</span>
-                                <span class="rs-session-row__time-value rs-session-row__time-value--circuit">Circuito ${this.formatCircuitDateTime(session.date_start, meeting.gmt_offset)}</span>
-                            </div>
+        if (selectedMeeting.is_cancelled && Array.isArray(selectedMeeting.cancelled_sessions)) {
+            this.selectedSessions = selectedMeeting.cancelled_sessions;
+            await this.renderMeetingDetail(selectedMeeting, selectedMeeting.cancelled_sessions);
+            return;
+        }
 
-                            <div class="rs-session-row__time rs-session-row__time--end">
-                                <span class="rs-session-row__time-label">Fin</span>
-                                <span class="rs-session-row__time-value rs-session-row__time-value--client">Cliente ${this.formatClientDateTime(session.date_end)}</span>
-                                <span class="rs-session-row__time-value rs-session-row__time-value--circuit">Circuito ${this.formatCircuitDateTime(session.date_end, meeting.gmt_offset)}</span>
-                            </div>
+        try {
+            const sessions = await this.fetchJson(this.sessionsByMeetingApi(meetingKey), []);
+            if (requestId !== this.selectionRequestId || this.selectedMeetingKey !== meetingKey) {
+                return;
+            }
+            const safeSessions = Array.isArray(sessions) ? sessions : [];
+            this.selectedSessions = safeSessions;
+            await this.renderMeetingDetail(selectedMeeting, safeSessions);
+        } catch (error) {
+            if (requestId !== this.selectionRequestId || this.selectedMeetingKey !== meetingKey) {
+                return;
+            }
+            console.error('Error cargando sesiones:', error);
+            this.sessionsContent.innerHTML = '<div class="empty-state">No se pudieron cargar las sesiones del GP.</div>';
+        }
+    }
 
-                            ${sessionAction ? `<div class="rs-session-row__actions">${sessionAction}</div>` : ''}
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.1.1
+     * @created 22-04-2026
+     * @modified 28-04-2026
+     * @description Renderiza el detalle definitivo del GP con datos de circuito y sesiones compactas
+     * @param {Object} meeting GP
+     * @param {Array} sessions Sesiones
+     */
+    renderMeetingDetail(meeting, sessions) {
+        if (this.selectedMeetingKey !== meeting.meeting_key) {
+            return;
+        }
+        this.renderDetailStatus(meeting);
+        this.renderSelectedCircuitCard(meeting);
+        this.renderSessions(meeting, sessions);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 29-04-2026
+     * @description Renderiza las sesiones cuando ya se han cargado sus datos definitivos
+     * @param {Object} meeting GP
+     * @param {Array} sessions Sesiones
+     */
+    renderSessions(meeting, sessions) {
+        const rows = sessions.map(session => {
+            const sessionStatus = this.getSessionStatus(session, meeting);
+            const sessionAction = this.getSessionActionButton(sessionStatus);
+            const sessionDate = this.formatClientDateBadge(session.date_start);
+
+            return `
+                <div class="${this.getSessionTypeClass(session.session_type)} ${sessionAction ? 'rs-session-row--has-action' : ''}">
+                    <div class="rs-session-row__date" aria-label="${sessionDate.label}">
+                        <strong>${sessionDate.day}</strong>
+                        <span>${sessionDate.month}</span>
+                    </div>
+
+                    <div class="rs-session-row__main">
+                        <div class="rs-session-row__title">
+                            <h4>${this.translateSessionName(session.session_name)}</h4>
                         </div>
-                    `;
-                    }).join('') : '<div class="empty-state">No hay sesiones disponibles para este GP.</div>'}
+                        <span class="rs-session-row__status-pill rs-session-row__status-pill--${sessionStatus}">${this.getSessionStatusLabel(sessionStatus)}</span>
+                        <div class="rs-session-row__meta">${this.translateSessionType(session.session_type)}</div>
+                    </div>
+
+                    <div class="rs-session-row__time rs-session-row__time--schedule">
+                        <span class="rs-session-row__time-label">Horario</span>
+                        <span class="rs-session-row__time-value rs-session-row__time-value--client">Cliente ${this.formatClientDateTimeRange(session.date_start, session.date_end)}</span>
+                        <span class="rs-session-row__time-value">Circuito ${this.formatTimeOnly(session.date_start, meeting.gmt_offset, true)} - ${this.formatTimeOnly(session.date_end, meeting.gmt_offset, true)}</span>
+                    </div>
+
+                    ${sessionAction ? `<div class="rs-session-row__actions">${sessionAction}</div>` : ''}
+                </div>
+            `;
+        }).join('');
+
+        this.sessionsContent.innerHTML = `
+            <div class="rs-sessions-block">
+                <h3 class="rs-section-heading">Sesiones del GP</h3>
+                <div class="rs-session-list">
+                    ${rows || '<div class="empty-state">No hay sesiones disponibles para este GP.</div>'}
                 </div>
             </div>
         `;
     }
 }
-
 /**
  * @author Yerai Pinto
  * @since 1.0
  * @version 1.0
  * @created 21-04-2026
  * @modified 22-04-2026
- * @description Inicializa la página
+ * @description Inicializa la pagina
  */
 document.addEventListener('DOMContentLoaded', () => {
     window.raceStreamCalendarPage = new RaceStreamCalendarPage();
 });
+
+
+
+

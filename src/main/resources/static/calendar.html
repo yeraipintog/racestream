@@ -98,14 +98,6 @@
                                 <option value="2026" selected>2026</option>
                             </select>
                         </div>
-
-                        <div id="filterGroup" class="rs-select-wrap rs-select-wrap--inline">
-                            <select id="statusFilter" aria-label="Seleccionar filtro">
-                                <option value="upcoming" selected>Próximos</option>
-                                <option value="live">En vivo</option>
-                                <option value="completed">Completado</option>
-                            </select>
-                        </div>
                     </div>
                 </div>
 
@@ -119,8 +111,8 @@
                             <div id="calendarMonthLabel" class="rs-calendar-month">-</div>
 
                             <div class="rs-calendar-nav">
-                                <button id="prevMonthButton" class="rs-calendar-nav__button" type="button">‹</button>
-                                <button id="nextMonthButton" class="rs-calendar-nav__button" type="button">›</button>
+                                <button id="prevMonthButton" class="rs-calendar-nav__button" type="button">&lsaquo;</button>
+                                <button id="nextMonthButton" class="rs-calendar-nav__button" type="button">&rsaquo;</button>
                             </div>
                         </div>
 
@@ -128,39 +120,19 @@
                         <div id="calendarEvents" class="rs-calendar-events"></div>
                     </div>
 
-                    <div id="selectedCircuitCard" class="rs-circuit-card"></div>
+                    <div id="calendarInsight" class="rs-calendar-insight"></div>
                 </aside>
 
                 <section>
-                    <h2 class="rs-section-heading">Detalle del GP</h2>
+                    <h2 id="selectedGpTitle" class="rs-selected-gp-title">Selecciona un Gran Premio</h2>
 
-                    <div id="detailContent">
-                        <div class="empty-state">Selecciona un Gran Premio para ver su información.</div>
+                    <div class="rs-gp-detail-grid">
+                        <div id="selectedCircuitCard" class="rs-circuit-card"></div>
                     </div>
 
-                    <div id="referenceInfo" class="rs-reference">
-                        <h3 class="rs-reference__title">Referencias</h3>
-
-                        <div class="rs-reference__line">
-                            <span class="rs-reference__item">
-                                <span class="rs-reference__swatch rs-reference__swatch--practice"></span>
-                                <strong>Azul:</strong> Libres / Práctica
-                            </span>
-
-                            <span class="rs-reference__item">
-                                <span class="rs-reference__swatch rs-reference__swatch--qualifying"></span>
-                                <strong>Naranja:</strong> Clasificación / Clasificación Sprint
-                            </span>
-
-                            <span class="rs-reference__item">
-                                <span class="rs-reference__swatch rs-reference__swatch--race"></span>
-                                <strong>Rojo:</strong> Carrera / Sprint
-                            </span>
-                        </div>
-                    </div>
+                    <div id="sessionsContent"></div>
                 </section>
             </section>
-
         </div>
     </main>
 

@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.1
+ * @version 1.0.2
  * @created 17-04-2026
- * @modified 27-04-2026
- * @description Servicio para obtener datos de OpenF1
+ * @modified 28-04-2026
+ * @description Servicio para obtener datos de OpenF1 de forma tolerante a errores externos
  * @see https://openf1.org
  */
 package com.yerai.racestream.service;
@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClientException;
 
 @Service
 public class OpenF1Service {
@@ -24,7 +25,7 @@ public class OpenF1Service {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    @Value("${openf1.api.base-url}")
+    @Value("${openf1.api.base-url:https://api.openf1.org/v1}")
     private String openF1BaseUrl;
 
     public OpenF1Service(RestTemplate restTemplate, ObjectMapper objectMapper) {
@@ -425,11 +426,12 @@ public class OpenF1Service {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
+     * @version 1.0.1
      * @created 21-04-2026
-     * @description Obtener datos del coche
-     * @param url
-     * @return
+     * @modified 28-04-2026
+     * @description Obtener array JSON evitando que una caida externa rompa los endpoints internos
+     * @param url URL completa de OpenF1
+     * @return Array JSON
      */
     private ArrayNode fetchArray(String url) {
         try {
@@ -441,6 +443,8 @@ public class OpenF1Service {
 
             return objectMapper.createArrayNode();
         } catch (HttpClientErrorException.NotFound ex) {
+            return objectMapper.createArrayNode();
+        } catch (RestClientException ex) {
             return objectMapper.createArrayNode();
         }
     }
