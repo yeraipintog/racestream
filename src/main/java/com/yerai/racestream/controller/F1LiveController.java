@@ -1,3 +1,12 @@
+/**
+ * @author Yerai Pinto
+ * @since 1.0
+ * @version 1.0.2
+ * @created 21-04-2026
+ * @modified 30-04-2026
+ * @description Controlador REST para exponer datos del Live Center de Formula 1
+ *              desde OpenF1
+ */
 package com.yerai.racestream.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -8,14 +17,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * @author Yerai Pinto
- * @since 1.0
- * @version 1.0.1
- * @created 21-04-2026
- * @modified 27-04-2026
- * @description Controlador REST para exponer datos del Live Center de Formula 1 desde OpenF1
- */
 @RestController
 @RequestMapping("/api/f1/live")
 @CrossOrigin(origins = "*")
@@ -207,7 +208,8 @@ public class F1LiveController {
      * @version 1.0.1
      * @created 21-04-2026
      * @modified 27-04-2026
-     * @description Devuelve clasificacion de pilotos si OpenF1 la expone para la sesion
+     * @description Devuelve clasificacion de pilotos si OpenF1 la expone para la
+     *              sesion
      * @param sessionKey Clave de sesion OpenF1
      * @return Datos de clasificacion de pilotos
      */
@@ -222,7 +224,8 @@ public class F1LiveController {
      * @version 1.0.1
      * @created 21-04-2026
      * @modified 27-04-2026
-     * @description Devuelve clasificacion de constructores si OpenF1 la expone para la sesion
+     * @description Devuelve clasificacion de constructores si OpenF1 la expone para
+     *              la sesion
      * @param sessionKey Clave de sesion OpenF1
      * @return Datos de clasificacion de escuderias
      */
@@ -237,8 +240,9 @@ public class F1LiveController {
      * @version 1.0.1
      * @created 21-04-2026
      * @modified 27-04-2026
-     * @description Devuelve telemetria del coche para toda la sesion o un piloto concreto
-     * @param sessionKey Clave de sesion OpenF1
+     * @description Devuelve telemetria del coche para toda la sesion o un piloto
+     *              concreto
+     * @param sessionKey   Clave de sesion OpenF1
      * @param driverNumber Numero del piloto opcional
      * @return Datos de car data
      */
@@ -254,8 +258,9 @@ public class F1LiveController {
      * @version 1.0.1
      * @created 21-04-2026
      * @modified 27-04-2026
-     * @description Devuelve ubicacion en pista para toda la sesion o un piloto concreto
-     * @param sessionKey Clave de sesion OpenF1
+     * @description Devuelve ubicacion en pista para toda la sesion o un piloto
+     *              concreto
+     * @param sessionKey   Clave de sesion OpenF1
      * @param driverNumber Numero del piloto opcional
      * @return Datos de location
      */

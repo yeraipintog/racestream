@@ -1,3 +1,12 @@
+/**
+ * @author Yerai Pinto
+ * @since 1.0
+ * @version 1.0.1
+ * @created 21-04-2026
+ * @modified 27-04-2026
+ * @description Servicio del Live Center que agrupa y delega datos en vivo de
+ *              OpenF1
+ */
 package com.yerai.racestream.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -5,14 +14,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.stereotype.Service;
 
-/**
- * @author Yerai Pinto
- * @since 1.0
- * @version 1.0.1
- * @created 21-04-2026
- * @modified 27-04-2026
- * @description Servicio del Live Center que agrupa y delega datos en vivo de OpenF1
- */
 @Service
 public class F1LiveService {
 
@@ -25,9 +26,10 @@ public class F1LiveService {
      * @version 1.0.1
      * @created 21-04-2026
      * @modified 27-04-2026
-     * @description Constructor con dependencias necesarias para consultar OpenF1 y construir respuestas JSON
+     * @description Constructor con dependencias necesarias para consultar OpenF1 y
+     *              construir respuestas JSON
      * @param openF1Service Servicio base de OpenF1
-     * @param objectMapper Mapper para construir respuestas agregadas
+     * @param objectMapper  Mapper para construir respuestas agregadas
      */
     public F1LiveService(OpenF1Service openF1Service, ObjectMapper objectMapper) {
         this.openF1Service = openF1Service;
@@ -209,7 +211,7 @@ public class F1LiveService {
      * @created 21-04-2026
      * @modified 27-04-2026
      * @description Obtiene telemetria del coche
-     * @param sessionKey Clave de sesion OpenF1
+     * @param sessionKey   Clave de sesion OpenF1
      * @param driverNumber Numero de piloto opcional
      * @return Datos de car data
      */
@@ -224,7 +226,7 @@ public class F1LiveService {
      * @created 21-04-2026
      * @modified 27-04-2026
      * @description Obtiene posicion del coche en pista
-     * @param sessionKey Clave de sesion OpenF1
+     * @param sessionKey   Clave de sesion OpenF1
      * @param driverNumber Numero de piloto opcional
      * @return Datos de location
      */
@@ -235,10 +237,11 @@ public class F1LiveService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 21-04-2026
-     * @modified 27-04-2026
-     * @description Construye una respuesta agregada para cargar el Live Center con una sola peticion
+     * @modified 03-05-2026
+     * @description Construye una respuesta agregada para cargar el Live Center con
+     *              una sola peticion
      * @param sessionKey Clave de sesion OpenF1
      * @return Datos live agrupados por seccion
      */
@@ -254,8 +257,11 @@ public class F1LiveService {
         response.set("intervals", openF1Service.getIntervals(sessionKey));
         response.set("laps", openF1Service.getLaps(sessionKey));
         response.set("overtakes", openF1Service.getOvertakes(sessionKey));
+        response.set("startingGrid", openF1Service.getStartingGrid(sessionKey));
         response.set("championshipDrivers", openF1Service.getChampionshipDrivers(sessionKey));
         response.set("championshipTeams", openF1Service.getChampionshipTeams(sessionKey));
+        response.set("carData", openF1Service.getCarData(sessionKey, null));
+        response.set("location", openF1Service.getLocation(sessionKey, null));
 
         return response;
     }

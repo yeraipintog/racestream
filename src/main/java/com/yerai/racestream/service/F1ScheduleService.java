@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.0
+ * @version 1.1.6
  * @created 21-04-2026
- * @modified 29-04-2026
+ * @modified 04-05-2026
  * @description Servicio para obtener calendario F1 con fallback Jolpica, cache y tolerancia a fallos externos
  */
 package com.yerai.racestream.service;
@@ -34,7 +34,6 @@ public class F1ScheduleService {
     private final OpenF1Service openF1Service;
     private final JolpicaService jolpicaService;
     private final F1DbService f1DbService;
-    private final WikipediaService wikipediaService;
     private final ObjectMapper objectMapper;
     private final Map<Integer, ArrayNode> calendarMeetingsCache = new ConcurrentHashMap<>();
 
@@ -42,13 +41,11 @@ public class F1ScheduleService {
             OpenF1Service openF1Service,
             JolpicaService jolpicaService,
             F1DbService f1DbService,
-            WikipediaService wikipediaService,
             ObjectMapper objectMapper
     ) {
         this.openF1Service = openF1Service;
         this.jolpicaService = jolpicaService;
         this.f1DbService = f1DbService;
-        this.wikipediaService = wikipediaService;
         this.objectMapper = objectMapper;
     }
 
@@ -100,8 +97,9 @@ public class F1ScheduleService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
+     * @version 1.0.1
      * @created 28-04-2026
+     * @modified 04-05-2026
      * @description Construye el calendario enriquecido con APIs externas en paralelo
      * @param selectedYear Temporada
      * @return Meetings enriquecidos
@@ -119,10 +117,14 @@ public class F1ScheduleService {
         List<JsonNode> enrichedMeetings = new ArrayList<>();
 
         for (JsonNode meeting : openMeetings) {
+            if (isTestingMeeting(meeting)) {
+                continue;
+            }
             ObjectNode enrichedMeeting = meeting.isObject()
                     ? ((ObjectNode) meeting).deepCopy()
                     : objectMapper.createObjectNode();
 
+            normalizeOpenF1MeetingState(enrichedMeeting);
             enrichMeeting(enrichedMeeting, jolpicaRaces, f1DbCircuits);
             enrichedMeetings.add(enrichedMeeting);
         }
@@ -165,10 +167,10 @@ public class F1ScheduleService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.3
+     * @version 1.0.5
      * @created 21-04-2026
-     * @modified 29-04-2026
-     * @description Obtener sesiones de OpenF1 con fallback Jolpica para meetings futuros o incompletos
+     * @modified 04-05-2026
+     * @description Obtener sesiones de OpenF1 completadas con Jolpica cuando falta alguna sesion oficial
      * @param meetingKey Clave del meeting
      * @return Sesiones
      */
@@ -176,15 +178,116 @@ public class F1ScheduleService {
         if (meetingKey != null && meetingKey.equals(CANCELLED_IMOLA_2023_KEY)) {
             return buildCancelledSessions(LocalDate.of(2023, 5, 21));
         }
+        if (meetingKey == null) {
+            return objectMapper.createArrayNode();
+        }
 
         if (isSyntheticJolpicaMeetingKey(meetingKey)) {
             return getSyntheticSessionsByMeetingKey(meetingKey);
         }
 
+        JsonNode meeting = getMeetingByKey(meetingKey);
+        if (isCancelledMeeting(meeting)) {
+            LocalDate raceDate = getLocalDate(meeting, "date_end");
+            return buildCancelledSessions(raceDate == null ? LocalDate.of(2023, 5, 21) : raceDate);
+        }
+
         ArrayNode openSessions = (ArrayNode) openF1Service.getSessions(meetingKey);
-        return openSessions.isEmpty()
-                ? getJolpicaSessionsByOpenF1Meeting(meetingKey)
-                : openSessions;
+        ArrayNode jolpicaSessions = getJolpicaSessionsByOpenF1Meeting(meetingKey);
+        return mergeSessions(openSessions, jolpicaSessions);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 03-05-2026
+     * @description Fusiona OpenF1 y Jolpica conservando session_key real y completando sesiones ausentes
+     * @param openSessions Sesiones OpenF1
+     * @param jolpicaSessions Sesiones Jolpica
+     * @return Sesiones ordenadas y sin duplicados
+     */
+    private ArrayNode mergeSessions(ArrayNode openSessions, ArrayNode jolpicaSessions) {
+        List<ObjectNode> merged = new ArrayList<>();
+
+        for (JsonNode session : openSessions) {
+            if (session.isObject()) {
+                merged.add(((ObjectNode) session).deepCopy());
+            }
+        }
+
+        for (JsonNode jolpicaSession : jolpicaSessions) {
+            if (jolpicaSession.isObject() && !containsEquivalentSession(merged, jolpicaSession)) {
+                merged.add(((ObjectNode) jolpicaSession).deepCopy());
+            }
+        }
+
+        merged.sort(Comparator.comparing(session -> parseDate(getText(session, "date_start")),
+                Comparator.nullsLast(Comparator.naturalOrder())));
+
+        ArrayNode response = objectMapper.createArrayNode();
+        merged.forEach(response::add);
+        return response;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 03-05-2026
+     * @description Detecta duplicados por identidad deportiva o por misma hora oficial
+     * @param sessions Sesiones ya fusionadas
+     * @param candidate Sesion candidata
+     * @return Resultado
+     */
+    private boolean containsEquivalentSession(List<ObjectNode> sessions, JsonNode candidate) {
+        String candidateIdentity = getSessionIdentity(candidate);
+        OffsetDateTime candidateStart = parseDate(getText(candidate, "date_start"));
+
+        return sessions.stream().anyMatch(session -> {
+            OffsetDateTime sessionStart = parseDate(getText(session, "date_start"));
+            return candidateIdentity.equals(getSessionIdentity(session))
+                    || (candidateStart != null && sessionStart != null
+                    && candidateStart.toInstant().equals(sessionStart.toInstant()));
+        });
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 03-05-2026
+     * @description Normaliza nombres de sesiones entre OpenF1 y Jolpica
+     * @param session Sesion
+     * @return Identidad normalizada
+     */
+    private String getSessionIdentity(JsonNode session) {
+        String name = normalize(getText(session, "session_name"));
+        String type = normalize(getText(session, "session_type"));
+
+        if (name.contains("practice 1") || name.contains("free practice 1")) {
+            return "practice-1";
+        }
+        if (name.contains("practice 2") || name.contains("free practice 2")) {
+            return "practice-2";
+        }
+        if (name.contains("practice 3") || name.contains("free practice 3")) {
+            return "practice-3";
+        }
+        if (name.contains("sprint qualifying") || name.contains("sprint shootout")) {
+            return "sprint-qualifying";
+        }
+        if ("sprint".equals(name)) {
+            return "sprint";
+        }
+        if ("qualifying".equals(name)) {
+            return "qualifying";
+        }
+        if ("race".equals(name)) {
+            return "race";
+        }
+
+        return type + "-" + name;
     }
 
     /**
@@ -345,7 +448,7 @@ public class F1ScheduleService {
      * @param f1DbCircuits Circuitos F1DB
      */
     private void enrichMeeting(ObjectNode meeting, ArrayNode jolpicaRaces, ArrayNode f1DbCircuits) {
-        JsonNode jolpicaRace = findMatchingJolpicaRace(meeting, jolpicaRaces);
+        JsonNode jolpicaRace = isTestingMeeting(meeting) ? null : findMatchingJolpicaRace(meeting, jolpicaRaces);
 
         if (jolpicaRace != null) {
             JsonNode circuit = jolpicaRace.path("Circuit");
@@ -375,6 +478,7 @@ public class F1ScheduleService {
             putIfMissing(meeting, "circuit_lap_record", formatLapRecord(f1DbCircuit));
             putIfMissing(meeting, "race_distance", formatCircuitLength(f1DbCircuit.get("raceDistance")));
             putIfMissing(meeting, "total_laps", firstText(f1DbCircuit, "numberOfLaps", "laps"));
+            applyKnownRaceFacts(meeting, f1DbCircuit);
         }
 
         putIfMissing(meeting, "circuit_type", inferCircuitTypeFromText(
@@ -774,6 +878,10 @@ public class F1ScheduleService {
                     && (circuitSource.contains("bahrain") || circuitSource.contains("sakhir"))) {
                 score += 10;
             }
+            if ((source.contains("jeddah") || source.contains("saudi"))
+                    && (circuitSource.contains("jeddah") || circuitSource.contains("saudi"))) {
+                score += 10;
+            }
 
             if (score > bestScore) {
                 bestScore = score;
@@ -1021,54 +1129,9 @@ public class F1ScheduleService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
+     * @version 1.0.1
      * @created 28-04-2026
-     * @description Obtiene imagen y tipo del circuito solo cuando el usuario selecciona un GP
-     * @param circuitUrl URL publica del circuito
-     * @return Datos visuales del circuito
-     */
-    public ObjectNode getCircuitSummary(String circuitUrl) {
-        ObjectNode wikipediaSummary = wikipediaService.getPageSummary(circuitUrl);
-        ObjectNode response = objectMapper.createObjectNode();
-        putIfText(response, "circuit_image", getWikipediaImage(wikipediaSummary));
-        putIfText(response, "circuit_type", inferCircuitType(wikipediaSummary));
-        return response;
-    }
-
-    /**
-     * @author Yerai Pinto
-     * @since 1.0
-     * @version 1.0
-     * @created 28-04-2026
-     * @description Devuelve imagen principal desde Wikipedia
-     * @param summary Resumen Wikipedia
-     * @return URL de imagen
-     */
-    private String getWikipediaImage(ObjectNode summary) {
-        String original = getText(summary.path("originalimage"), "source");
-        return original != null && !original.isBlank()
-                ? original
-                : getText(summary.path("thumbnail"), "source");
-    }
-
-    /**
-     * @author Yerai Pinto
-     * @since 1.0
-     * @version 1.0
-     * @created 28-04-2026
-     * @description Infiera tipo de circuito desde descripcion publica de Wikipedia
-     * @param summary Resumen Wikipedia
-     * @return Tipo de circuito
-     */
-    private String inferCircuitType(ObjectNode summary) {
-        return inferCircuitTypeFromText(getText(summary, "description") + " " + getText(summary, "extract"));
-    }
-
-    /**
-     * @author Yerai Pinto
-     * @since 1.0
-     * @version 1.0
-     * @created 28-04-2026
+     * @modified 30-04-2026
      * @description Infiere tipo de circuito a partir de texto publico de APIs
      * @param source Texto de entrada
      * @return Tipo de circuito
@@ -1076,13 +1139,14 @@ public class F1ScheduleService {
     private String inferCircuitTypeFromText(String source) {
         String text = normalize(source);
 
-        if (text.contains("street circuit") || text.contains("city street") || text.contains("streets of")) {
+        if (text.contains("street") || text.contains("urban") || text.contains("city")) {
             return "Circuito Urbano";
         }
-        if (text.contains("temporary")) {
+        if (text.contains("temporary") || text.contains("temporal")) {
             return "Circuito Temporal";
         }
-        if (text.contains("permanent") || text.contains("race track") || text.contains("racing circuit")) {
+        if (text.contains("permanent") || text.contains("road") || text.contains("race track")
+                || text.contains("racing circuit")) {
             return "Circuito Permanente";
         }
 
@@ -1117,14 +1181,19 @@ public class F1ScheduleService {
      * @return Vuelta rapida
      */
     private String formatLapRecord(JsonNode circuit) {
+        if (isBahrainCircuit(circuit)) {
+            return "1:31.447 - Pedro de la Rosa (2005)";
+        }
+
         String lapRecord = getText(circuit, "lapRecord");
 
         if (lapRecord == null || lapRecord.isBlank()) {
             return null;
         }
 
+        int firstColon = lapRecord.indexOf(':');
         int lastColon = lapRecord.lastIndexOf(':');
-        if (lastColon > 0) {
+        if (lastColon > firstColon) {
             lapRecord = lapRecord.substring(0, lastColon) + "." + lapRecord.substring(lastColon + 1);
         }
 
@@ -1138,6 +1207,102 @@ public class F1ScheduleService {
         return lapRecord
                 + (driver == null ? "" : " - " + driver)
                 + (year == null ? "" : " (" + year + ")");
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 30-04-2026
+     * @description Detecta test de pretemporada para no mezclarlo con datos de carrera de Bahrain GP
+     * @param meeting Meeting
+     * @return Resultado
+     */
+    private boolean isTestingMeeting(JsonNode meeting) {
+        String name = normalize(getText(meeting, "meeting_name") + " " + getText(meeting, "meeting_official_name"));
+        return name.contains("pre season") || name.contains("testing") || name.contains("test");
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 04-05-2026
+     * @description Marca meetings cancelados que OpenF1 devuelve solo en el nombre oficial
+     * @param meeting Meeting editable
+     */
+    private void normalizeOpenF1MeetingState(ObjectNode meeting) {
+        if (isCancelledMeeting(meeting)) {
+            meeting.put("is_cancelled", true);
+            putIfMissing(meeting, "cancelled_reason", "Cancelado oficialmente.");
+        }
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 04-05-2026
+     * @description Detecta meetings cancelados en datos historicos de OpenF1
+     * @param meeting Meeting
+     * @return Resultado
+     */
+    private boolean isCancelledMeeting(JsonNode meeting) {
+        String name = normalize(getText(meeting, "meeting_name") + " " + getText(meeting, "meeting_official_name"));
+        return (meeting != null && meeting.path("is_cancelled").asBoolean(false))
+                || name.contains("called off") || name.contains("cancelled") || name.contains("canceled");
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 30-04-2026
+     * @description Detecta el circuito de Bahrain para corregir la vuelta rapida oficial de carrera
+     * @param circuit Circuito F1DB
+     * @return Resultado
+     */
+    private boolean isBahrainCircuit(JsonNode circuit) {
+        String text = normalize(getText(circuit, "circuitId") + " " + getText(circuit, "circuitName") + " "
+                + getText(circuit, "grandPrixId") + " " + getText(circuit, "city") + " " + getText(circuit, "country"));
+        return text.contains("bahrain") || text.contains("sakhir");
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 03-05-2026
+     * @description Detecta Jeddah para completar datos cuando la temporada actual viene incompleta
+     * @param circuit Circuito F1DB
+     * @return Resultado
+     */
+    private boolean isJeddahCircuit(JsonNode circuit) {
+        String text = normalize(getText(circuit, "circuitId") + " " + getText(circuit, "circuitName") + " "
+                + getText(circuit, "grandPrixId") + " " + getText(circuit, "city") + " " + getText(circuit, "country"));
+        return text.contains("jeddah") || text.contains("saudi");
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 30-04-2026
+     * @description Completa datos oficiales conocidos cuando F1DB no los devuelve en temporadas futuras
+     * @param meeting Meeting editable
+     * @param circuit Circuito F1DB
+     */
+    private void applyKnownRaceFacts(ObjectNode meeting, JsonNode circuit) {
+        if (isBahrainCircuit(circuit)) {
+            putIfMissing(meeting, "circuit_lap_record", "1:31.447 - Pedro de la Rosa (2005)");
+            putIfMissing(meeting, "total_laps", "57");
+            putIfMissing(meeting, "race_distance", "308,238 km");
+        }
+        if (isJeddahCircuit(circuit)) {
+            putIfMissing(meeting, "circuit_lap_record", "1:30.734 - Lewis Hamilton (2021)");
+            putIfMissing(meeting, "total_laps", "50");
+            putIfMissing(meeting, "race_distance", "308,450 km");
+        }
     }
 
     /**

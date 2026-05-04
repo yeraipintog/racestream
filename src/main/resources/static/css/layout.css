@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.2
+ * @version 1.0.3
  * @created 21-04-2026
- * @modified 27-04-2026
- * @description Layout global responsive de RaceStream con footer mas amplio y estructura documentada
+ * @modified 03-05-2026
+ * @description Layout global responsive de RaceStream con footer amplio, navbar consistente y estructura documentada
  */
 
 /* =========================
@@ -166,7 +166,7 @@
 ========================= */
 .rs-main {
     flex: 1;
-    padding: 18px 0 36px;
+    padding: 28px 0 36px;
 }
 
 .rs-layout-2 {
@@ -310,7 +310,7 @@
     }
 
     .rs-main {
-        padding: 14px 0 28px;
+        padding: 24px 0 28px;
     }
 
     .rs-navbar__inner {

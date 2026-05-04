@@ -16,6 +16,15 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.1
+     * @created 09-03-2026
+     * @modified 30-04-2026
+     * @description Configuración de seguridad abierta para desarrollo local del TFG
+     * @see https://spring.io/guides/gs/securing-web
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http

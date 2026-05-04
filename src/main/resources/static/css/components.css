@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.4
+ * @version 1.1.9
  * @created 21-04-2026
- * @modified 28-04-2026
- * @description Estilos de componentes del calendario RaceStream con seleccion visible, insight mensual y sesiones compactas
+ * @modified 04-05-2026
+ * @description Estilos de componentes RaceStream con navbar activo, titulos compartidos e interfaz responsive
  */
 
 /* =========================
@@ -18,6 +18,10 @@
 }
 
 .rs-navbar__link:hover {
+    color: #fff;
+}
+
+.rs-navbar__link--active {
     color: #fff;
 }
 
@@ -64,6 +68,8 @@
 .rs-button:hover {
     border-color: rgba(229, 57, 53, .35);
     background: rgba(229, 57, 53, .10);
+    box-shadow: 0 8px 18px rgba(229, 57, 53, .12);
+    transform: translateY(-1px);
 }
 
 .rs-button--primary,
@@ -95,6 +101,19 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    transition: .22s ease;
+}
+
+.rs-profile-dropdown__trigger:hover,
+.rs-navbar__menu-trigger:hover,
+.rs-navbar__icon-link:hover,
+.rs-calendar-nav__button:hover,
+.rs-link-chip:hover,
+button:hover {
+    border-color: rgba(226, 232, 240, .34);
+    background-color: rgba(255, 255, 255, .08);
+    filter: brightness(1.08);
+    transform: translateY(-1px);
 }
 
 .rs-profile-dropdown__menu {
@@ -149,6 +168,7 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    transition: .22s ease;
 }
 
 .rs-navbar-mobile-menu__panel {
@@ -267,6 +287,8 @@
 ========================= */
 .rs-calendar-topbar {
     margin-bottom: 18px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, .12);
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 18px;
@@ -281,11 +303,16 @@
     min-width: 0;
 }
 
-.rs-calendar-topbar__title {
+.rs-calendar-topbar__title,
+.rs-live-hero h1,
+.rs-news-head h1 {
     margin: 0;
-    font-size: 34px;
+    font-size: clamp(21px, 6vw, 34px);
+    font-family: var(--rs-font-family);
     font-weight: 900;
-    letter-spacing: -.03em;
+    letter-spacing: 0;
+    line-height: 1.05;
+    white-space: nowrap;
 }
 
 .rs-calendar-topbar__controls {
@@ -377,6 +404,7 @@
     color: #fff;
     font-weight: 900;
     flex-shrink: 0;
+    transition: .22s ease;
 }
 
 .rs-calendar-month {
@@ -518,7 +546,8 @@
 }
 
 .rs-calendar-events__item:hover {
-    border-color: rgba(167, 139, 250, .45);
+    border-color: rgba(226, 232, 240, .44);
+    box-shadow: none;
 }
 
 .rs-calendar-events__item--active {
@@ -642,8 +671,6 @@
 
 .rs-selected-gp-title {
     margin: 0 0 18px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, .12);
     color: #fff;
     font-size: clamp(20px, 2.4vw, 30px);
     font-weight: 900;
@@ -653,15 +680,15 @@
 
 .rs-circuit-card__inner {
     display: grid;
-    grid-template-columns: minmax(300px, 1.08fr) minmax(280px, .92fr);
+    grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr);
     min-height: 100%;
-    gap: clamp(24px, 4vw, 54px);
+    gap: clamp(18px, 3vw, 34px);
     align-items: stretch;
 }
 
 .rs-circuit-card__stats {
     min-height: 280px;
-    padding: 18px 0;
+    padding: 10px clamp(18px, 2.4vw, 26px) 10px 0;
     border-right: 1px solid rgba(255, 255, 255, .14);
     display: flex;
     flex-direction: column;
@@ -671,6 +698,7 @@
 .rs-circuit-card__visual {
     min-height: 280px;
     background: transparent;
+    min-width: 0;
     overflow: visible;
 }
 
@@ -687,7 +715,8 @@
 
 .rs-circuit-card__image {
     width: 100%;
-    height: 250px;
+    height: min(260px, 30vw);
+    min-height: 220px;
     object-fit: contain;
     background: transparent;
     display: block;
@@ -743,7 +772,7 @@
     padding: 0;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px clamp(22px, 3vw, 38px);
+    gap: 16px clamp(18px, 2.5vw, 28px);
 }
 
 .rs-circuit-card__fact {
@@ -1250,6 +1279,13 @@
     font-size: 13px;
     font-weight: 900;
     white-space: nowrap;
+    transition: .22s ease;
+}
+
+.rs-link-chip:hover {
+    border-color: rgba(229, 57, 53, .42);
+    background: rgba(229, 57, 53, .18);
+    box-shadow: 0 8px 18px rgba(229, 57, 53, .12);
 }
 
 .rs-link-chip--live {
@@ -1288,6 +1324,7 @@
         border-right: 0;
         border-bottom: 1px solid rgba(255, 255, 255, .08);
         min-height: auto;
+        padding: 0 0 18px;
     }
 
 }
@@ -1319,9 +1356,7 @@
         padding: 0 12px;
     }
 
-    .rs-calendar-topbar__title {
-        font-size: 28px;
-    }
+    .rs-calendar-topbar__title { font-size: clamp(21px, 6vw, 34px); }
 
     .rs-calendar-panel,
     .rs-info-card,

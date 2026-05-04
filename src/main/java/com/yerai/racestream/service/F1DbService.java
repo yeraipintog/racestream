@@ -1,8 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.0
+ * @version 1.0.3
  * @created 29-04-2026
+ * @modified 30-04-2026
  * @description Servicio para obtener datos tecnicos de circuitos desde F1DB sin introducir datos manuales
  * @see https://github.com/f1db/f1db
  */

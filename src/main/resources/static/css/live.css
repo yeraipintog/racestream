@@ -1,0 +1,184 @@
+/**
+ * @author Yerai Pinto
+ * @since 1.0
+ * @version 1.0.5
+ * @created 03-05-2026
+ * @modified 04-05-2026
+ * @description Estilos responsive de Fórmula 1 En Vivo con estado claro, horarios dobles y tarjetas OpenF1
+ */
+.rs-live-hero {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+
+.rs-live-hero__heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    min-width: 0;
+}
+
+.rs-live-hero__heading h1 {
+    flex: 1 1 auto;
+    min-width: min(100%, 250px);
+}
+
+.rs-live-title-status {
+    display: inline-flex;
+    justify-content: flex-end;
+    margin-left: auto;
+    min-width: max-content;
+}
+
+.rs-live-card__head span {
+    color: #ffcdcd;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+.rs-live-hero p {
+    max-width: 820px;
+    margin: 0;
+    text-align: justify;
+}
+.rs-live-card {
+    border: 1px solid rgba(255, 255, 255, .10);
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(17, 24, 39, .96), rgba(12, 18, 30, .96));
+    box-shadow: var(--rs-shadow-md);
+}
+.rs-live-hero__status {
+    min-width: 0;
+}
+.rs-live-grid {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+.rs-live-card { padding: 16px; min-width: 0; }
+.rs-live-card--wide { grid-column: 1 / -1; }
+.rs-live-card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.rs-live-card h2 {
+    margin: 0;
+    font-size: 20px;
+}
+.rs-live-table-wrap { overflow-x: auto; }
+.rs-live-table { min-width: 760px; }
+.rs-live-table th,
+.rs-live-table td { white-space: nowrap; }
+.rs-live-driver {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 900;
+}
+.rs-live-driver img {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    object-fit: cover;
+    background: rgba(255, 255, 255, .06);
+}
+.rs-live-list { display: grid; gap: 8px; }
+.rs-live-item {
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .035);
+    color: var(--rs-text-soft);
+    text-align: justify;
+}
+.rs-live-item strong { color: #fff; }
+.rs-live-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.rs-live-status-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: stretch;
+}
+
+.rs-live-metric {
+    min-width: 0;
+    padding: 0 18px 0 0;
+    border-right: 1px solid rgba(255, 255, 255, .10);
+}
+
+.rs-live-status-grid .rs-live-metric:last-child {
+    padding-right: 0;
+    border-right: 0;
+}
+.rs-live-metric > span:not(.rs-status-pill),
+.rs-live-metric__label {
+    display: block;
+    color: var(--rs-text-muted);
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+.rs-live-metric strong {
+    display: block;
+    margin-top: 6px;
+    color: #fff;
+    font-size: 18px;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+}
+.rs-live-metric strong.rs-live-metric__flag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.rs-live-metric__time {
+    display: grid;
+    gap: 3px;
+}
+.rs-live-metric__time small {
+    color: var(--rs-text-soft);
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.25;
+}
+@media (max-width: 860px) {
+    .rs-live-grid { grid-template-columns: 1fr; }
+
+    .rs-live-status-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .rs-live-status-grid .rs-live-metric:nth-child(2n) {
+        padding-right: 0;
+        border-right: 0;
+    }
+}
+
+@media (max-width: 520px) {
+    .rs-live-status-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .rs-live-metric {
+        padding: 0 0 10px;
+        border-right: 0;
+        border-bottom: 1px solid rgba(255, 255, 255, .08);
+    }
+
+    .rs-live-status-grid .rs-live-metric:last-child {
+        padding-bottom: 0;
+        border-bottom: 0;
+    }
+}

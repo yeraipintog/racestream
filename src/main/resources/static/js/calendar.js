@@ -1,19 +1,19 @@
 ﻿/**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.8
+ * @version 1.2.6
  * @created 21-04-2026
- * @modified 29-04-2026
- * @description Logica principal del calendario F1 RaceStream con resumen de GP y sesiones compactas
+ * @modified 04-05-2026
+ * @description Lógica principal del calendario F1 RaceStream con resumen de GP, sesiones compactas y carga reforzada
  */
 class RaceStreamCalendarPage {
 
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.5
+     * @version 1.0.9
      * @created 21-04-2026
-     * @modified 28-04-2026
+     * @modified 30-04-2026
      * @description Constructor principal
      */
     constructor() {
@@ -35,19 +35,15 @@ class RaceStreamCalendarPage {
         this.currentSeason = new Date().getFullYear();
         this.selectedYear = this.currentSeason;
         this.selectedSessions = [];
+        this.topMeetingSessions = [];
         this.loadRequestId = 0;
         this.selectionRequestId = 0;
-
-        this.circuitImageOverrides = {
-            Catalunya: '/assets/circuits/montmelo.png',
-            Madring: '/assets/circuits/madring.png',
-            'Circuit de Monaco': '/assets/circuits/montecarlo.png',
-            'Monte Carlo': '/assets/circuits/montecarlo.png',
-            Monaco: '/assets/circuits/montecarlo.png',
-            Hungaroring: '/assets/circuits/hungaroring.png',
-            Budapest: '/assets/circuits/hungaroring.png',
-            Hungary: '/assets/circuits/hungaroring.png'
-        };
+        this.circuitImages = [
+            [['madring', 'madrid'], '/assets/circuits/madring.png'],
+            [['montmelo', 'catalunya', 'barcelona'], '/assets/circuits/montmelo.png'],
+            [['montecarlo', 'monte carlo', 'monaco'], '/assets/circuits/montecarlo.png'],
+            [['hungaroring', 'hungary', 'budapest'], '/assets/circuits/hungaroring.png']
+        ];
 
         this.cacheDom();
         this.bindEvents();
@@ -162,20 +158,38 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 28-04-2026
-     * @description Lee JSON de forma segura para que una peticion fallida no rompa toda la vista
+     * @modified 03-05-2026
+     * @description Lee JSON de forma segura sin guardar arrays vacíos como respuesta definitiva
      * @param {string} url URL
      * @param {*} fallback Valor por defecto
      * @returns {Promise<*>} JSON o fallback
      */
     async fetchJson(url, fallback = null) {
-        try {
-            const response = await fetch(url, { cache: 'no-store' });
-            return response.ok ? response.json() : fallback;
-        } catch (error) {
-            return fallback;
+        const cacheKey = `rs-cache:${url}`;
+        for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+                const response = await fetch(url, { cache: 'no-store' });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (!(Array.isArray(data) && !data.length)) {
+                        localStorage.setItem(cacheKey, JSON.stringify(data));
+                    }
+                    return data;
+                }
+            } catch (error) {
+                await new Promise((resolve) => setTimeout(resolve, 180 * (attempt + 1)));
+            }
         }
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+            const parsed = JSON.parse(cached);
+            if (!(Array.isArray(parsed) && !parsed.length)) {
+                return parsed;
+            }
+        }
+        return fallback;
     }
 
     updateNavbarOffset() {
@@ -277,7 +291,7 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 28-04-2026
      * @modified 28-04-2026
      * @description Devuelve rango horario compacto del cliente
@@ -505,7 +519,7 @@ class RaceStreamCalendarPage {
         const minutes = Math.floor((totalSeconds % 3600) / 60);
         const seconds = totalSeconds % 60;
 
-        return `Empieza en ${days}d ${hours}h ${minutes}m ${seconds}s`;
+        return `${days}d ${hours}h ${minutes}m ${seconds}s`;
     }
 
     /**
@@ -737,7 +751,7 @@ class RaceStreamCalendarPage {
      * @returns {string} Estado
      */
     getSessionStatus(session, meeting = null) {
-        if (session?.is_cancelled || meeting?.is_cancelled) {
+        if (meeting?.is_cancelled || (session?.is_cancelled && new Date(session.date_end).getTime() < Date.now())) {
             return 'cancelled';
         }
 
@@ -783,18 +797,25 @@ class RaceStreamCalendarPage {
      * @since 1.0
      * @version 1.0.1
      * @created 27-04-2026
-     * @modified 27-04-2026
+     * @modified 04-05-2026
      * @description Devuelve boton de accion segun el estado de la sesion
      * @param {string} status Estado interno
+     * @param {Object} session Sesion
+     * @param {Object} meeting GP
      * @returns {string} HTML del boton
      */
-    getSessionActionButton(status) {
+    getSessionActionButton(status, session = null, meeting = null, sessionIndex = 0) {
         if (status === 'completed') {
-            return '<a class="rs-link-chip" href="/sessions.html">Ver resultados</a>';
+            const params = new URLSearchParams();
+            params.set('year', this.selectedYear || this.yearInput.value);
+            if (meeting?.meeting_key) params.set('meetingKey', meeting.meeting_key);
+            if (session?.session_key) params.set('sessionKey', session.session_key);
+            params.set('sessionIndex', sessionIndex);
+            return `<a class="rs-link-chip" href="/sessions.html?${params.toString()}">Ver resultados</a>`;
         }
 
         if (status === 'live') {
-            return '<a class="rs-link-chip rs-link-chip--live" href="/live.html">Ver en vivo</a>';
+            return '<a class="rs-link-chip rs-link-chip--live" href="/live.html">Ver En Vivo</a>';
         }
 
         return '';
@@ -835,33 +856,89 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
+     * @version 1.0.1
      * @created 22-04-2026
-     * @modified 22-04-2026
-     * @description Actualiza cuenta atras del proximo GP
+     * @modified 30-04-2026
+     * @description Actualiza accion y cuenta atras segun la siguiente sesion del GP
      */
     updateCountdown() {
         if (!this.lastValidTopMeeting) {
             return;
         }
 
-        const meetingStatus = this.getMeetingStatus(this.lastValidTopMeeting);
-        if (meetingStatus === 'live') {
-            return;
-        }
-
-        const countdownNode = document.getElementById('raceStripCountdown');
-        if (countdownNode) {
-            countdownNode.textContent = this.getCountdownToMeeting(this.lastValidTopMeeting.date_start);
-        }
+        this.renderRaceStripAction();
     }
 
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
+     * @version 1.0.0
+     * @created 30-04-2026
+     * @description Carga sesiones del GP superior para sincronizar sus contadores
+     * @param {Object} meeting GP superior
+     */
+    async loadTopMeetingSessions(meeting) {
+        if (!meeting?.meeting_key) {
+            return;
+        }
+
+        const meetingKey = meeting.meeting_key;
+        const sessions = meeting.is_cancelled && Array.isArray(meeting.cancelled_sessions)
+            ? meeting.cancelled_sessions
+            : await this.fetchJson(this.sessionsByMeetingApi(meetingKey), []);
+
+        if (this.lastValidTopMeeting?.meeting_key !== meetingKey) {
+            return;
+        }
+
+        this.topMeetingSessions = (Array.isArray(sessions) ? sessions : [])
+            .sort((left, right) => new Date(left.date_start).getTime() - new Date(right.date_start).getTime());
+        this.renderRaceStripAction();
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 30-04-2026
+     * @description Devuelve la sesion activa o la siguiente del GP superior
+     * @returns {Object|null} Sesion
+     */
+    getActiveOrNextTopSession() {
+        const now = Date.now();
+        return this.topMeetingSessions.find(session => new Date(session.date_end).getTime() >= now) || null;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 30-04-2026
+     * @description Pinta boton En Vivo o cuenta atras de la siguiente sesion
+     */
+    renderRaceStripAction() {
+        if (!this.lastValidTopMeeting) {
+            return;
+        }
+
+        const session = this.getActiveOrNextTopSession();
+        const now = Date.now();
+        const isSessionLive = session
+            && now >= new Date(session.date_start).getTime()
+            && now <= new Date(session.date_end).getTime();
+
+        const label = this.translateSessionName(session?.session_name || 'Sesión');
+        this.raceStripAction.innerHTML = isSessionLive
+            ? '<a class="rs-button rs-button--primary" href="/live.html">En Vivo</a>'
+            : `<span id="raceStripCountdown" class="rs-race-strip__status">${label} en ${this.getCountdownToMeeting(session?.date_start || this.lastValidTopMeeting.date_start)}</span>`;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.1
      * @created 22-04-2026
-     * @modified 22-04-2026
+     * @modified 30-04-2026
      * @description Actualiza franja superior del proximo GP
      * @param {Object} meeting Proximo GP
      */
@@ -879,8 +956,6 @@ class RaceStreamCalendarPage {
 
         this.lastValidTopMeeting = referenceMeeting;
 
-        const meetingStatus = this.getMeetingStatus(referenceMeeting);
-
         this.raceStripTitle.textContent = referenceMeeting.meeting_name;
         this.raceStripMeta.textContent = this.formatMeetingDateRangeForStrip(referenceMeeting);
 
@@ -891,10 +966,8 @@ class RaceStreamCalendarPage {
             this.raceStripFlag.style.display = 'none';
         }
 
-        this.raceStripAction.innerHTML = meetingStatus === 'live'
-            ? '<a class="rs-button rs-button--primary" href="/live.html">En vivo</a>'
-            : `<span id="raceStripCountdown" class="rs-race-strip__status">${this.getCountdownToMeeting(referenceMeeting.date_start)}</span>`;
-
+        this.renderRaceStripAction();
+        this.loadTopMeetingSessions(referenceMeeting);
         this.updateDynamicClocks();
     }
 
@@ -1196,33 +1269,44 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.5
      * @created 22-04-2026
-     * @modified 28-04-2026
-     * @description Devuelve imagen anterior o corregida del circuito
+     * @modified 30-04-2026
+     * @description Devuelve imagen local del circuito segun datos del GP
      * @param {Object} meeting GP
      * @returns {string|null} Ruta
      */
     getCircuitImage(meeting) {
-        if (!meeting) {
-            return null;
-        }
+        const text = this.normalizeCircuitText([
+            meeting?.f1db_circuit_id,
+            meeting?.f1db_grand_prix_id,
+            meeting?.circuit_short_name,
+            meeting?.jolpica_circuit_name,
+            meeting?.location,
+            meeting?.country_name,
+            meeting?.jolpica_country
+        ].filter(Boolean).join(' '));
 
-        const overrideKeys = [
-            meeting.circuit_short_name,
-            meeting.location,
-            meeting.jolpica_circuit_name,
-            meeting.country_name,
-            meeting.jolpica_country
-        ];
+        return this.circuitImages.find(([keys]) => keys.some(key => text.includes(key)))?.[1]
+            ?? meeting?.circuit_image
+            ?? null;
+    }
 
-        for (const key of overrideKeys) {
-            if (this.circuitImageOverrides[key]) {
-                return this.circuitImageOverrides[key];
-            }
-        }
-
-        return meeting.circuit_image || null;
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 30-04-2026
+     * @description Normaliza nombres de circuito para resolver imagenes locales aunque vengan con acentos o guiones
+     * @param {string} value Texto original
+     * @returns {string} Texto normalizado
+     */
+    normalizeCircuitText(value) {
+        return (value || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[-_]/g, ' ');
     }
 
     /**
@@ -1236,13 +1320,6 @@ class RaceStreamCalendarPage {
      * @returns {string} Valor
      */
     getCircuitFact(meeting, field) {
-        const keys = [
-            meeting?.circuit_short_name,
-            meeting?.location,
-            meeting?.jolpica_circuit_name,
-            meeting?.country_name,
-            meeting?.jolpica_country
-        ];
         const apiValue = meeting?.[field];
         const value = apiValue == null || `${apiValue}`.trim() === '' || apiValue === '-' ? null : apiValue;
         return value == null || `${value}`.trim() === '' || value === '-' ? 'Por definir' : value;
@@ -1251,9 +1328,9 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.3
      * @created 22-04-2026
-     * @modified 28-04-2026
+     * @modified 30-04-2026
      * @description Renderiza tarjeta del mapa del circuito con datos tecnicos
      * @param {Object} meeting GP
      */
@@ -1309,13 +1386,14 @@ class RaceStreamCalendarPage {
             </div>
         `;
     }
-/**
+
+    /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 22-04-2026
-     * @modified 28-04-2026
-     * @description Selecciona un GP y carga sus sesiones
+     * @modified 03-05-2026
+     * @description Selecciona un GP y espera sus sesiones definitivas antes de renderizar
      * @param {number} meetingKey Clave del meeting
      */
     async selectMeeting(meetingKey) {
@@ -1345,7 +1423,7 @@ class RaceStreamCalendarPage {
         }
 
         try {
-            const sessions = await this.fetchJson(this.sessionsByMeetingApi(meetingKey), []);
+            const sessions = await this.fetchSessionsWithRetry(meetingKey);
             if (requestId !== this.selectionRequestId || this.selectedMeetingKey !== meetingKey) {
                 return;
             }
@@ -1359,6 +1437,41 @@ class RaceStreamCalendarPage {
             console.error('Error cargando sesiones:', error);
             this.sessionsContent.innerHTML = '<div class="empty-state">No se pudieron cargar las sesiones del GP.</div>';
         }
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 03-05-2026
+     * @description Reintenta la carga de sesiones para evitar pintar un GP vacío por una respuesta temporal
+     * @param {number} meetingKey Clave del meeting
+     * @returns {Promise<Array>} Sesiones confirmadas o array vacío final
+     */
+    async fetchSessionsWithRetry(meetingKey) {
+        let lastSessions = [];
+        for (let attempt = 0; attempt < 5; attempt++) {
+            const sessions = await this.fetchJson(this.sessionsByMeetingApi(meetingKey), null);
+            lastSessions = Array.isArray(sessions) ? sessions : [];
+            if (lastSessions.length) {
+                return lastSessions;
+            }
+            await this.wait(320 * (attempt + 1));
+        }
+        return lastSessions;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 03-05-2026
+     * @description Espera no bloqueante entre reintentos de datos
+     * @param {number} milliseconds Milisegundos
+     * @returns {Promise<void>} Promesa resuelta tras la espera
+     */
+    wait(milliseconds) {
+        return new Promise((resolve) => setTimeout(resolve, milliseconds));
     }
 
     /**
@@ -1390,9 +1503,9 @@ class RaceStreamCalendarPage {
      * @param {Array} sessions Sesiones
      */
     renderSessions(meeting, sessions) {
-        const rows = sessions.map(session => {
+        const rows = sessions.map((session, index) => {
             const sessionStatus = this.getSessionStatus(session, meeting);
-            const sessionAction = this.getSessionActionButton(sessionStatus);
+            const sessionAction = this.getSessionActionButton(sessionStatus, session, meeting, index);
             const sessionDate = this.formatClientDateBadge(session.date_start);
 
             return `

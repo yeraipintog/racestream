@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RaceStream - Calendario F1</title>
+    <title>RaceStream - Sesiones F1</title>
     <link rel="icon" type="image/png" href="/assets/img/LogoRS2.png">
 
     <link rel="stylesheet" href="/css/variables.css">
     <link rel="stylesheet" href="/css/base.css">
     <link rel="stylesheet" href="/css/layout.css">
     <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/sessions.css">
 </head>
 <body>
 <div class="rs-page-shell">
@@ -18,8 +19,7 @@
             <a class="rs-navbar__brand" href="/" aria-label="Ir a Inicio">
                 <img class="rs-navbar__logo" src="/assets/img/LogoRS2.png" alt="Logotipo de RaceStream">
             </a>
-
-            <nav class="rs-navbar__nav">
+            <nav class="rs-navbar__nav" aria-label="Navegación principal">
                 <a class="rs-navbar__link" href="/live.html">En Vivo</a>
                 <a class="rs-navbar__link" href="/calendar.html">Calendario</a>
                 <a class="rs-navbar__link" href="/sessions.html">Sesiones</a>
@@ -28,26 +28,21 @@
                 <a class="rs-navbar__link rs-navbar__link--overflow" href="/teams.html">Escuderías</a>
                 <a class="rs-navbar__link rs-navbar__link--overflow" href="/news.html">Noticias</a>
             </nav>
-
             <div class="rs-navbar__actions">
-                <a class="rs-navbar__icon-link" href="/favorites.html" title="Favoritos">★</a>
-
+                <a class="rs-navbar__icon-link" href="/favorites.html" title="Favoritos" aria-label="Favoritos">&#9733;</a>
                 <div class="rs-profile-dropdown" id="profileDropdown">
                     <button class="rs-profile-dropdown__trigger" type="button" aria-label="Mi cuenta">
                         <img src="/assets/img/MiCuenta.png" alt="Mi cuenta">
                     </button>
-
                     <div class="rs-profile-dropdown__menu">
                         <a class="rs-button rs-button--primary rs-profile-dropdown__button" href="/login.html">Iniciar sesión</a>
                         <a class="rs-button rs-profile-dropdown__button rs-profile-dropdown__button--secondary" href="/register.html">Registrarse</a>
                     </div>
                 </div>
-
                 <div class="rs-navbar-mobile-menu" id="mobileMenuDropdown">
                     <button class="rs-navbar__menu-trigger" type="button" aria-label="Abrir menú">
                         <img src="/assets/img/MenuHamburguesa.png" alt="Menú">
                     </button>
-
                     <div class="rs-navbar-mobile-menu__panel">
                         <a class="rs-navbar-mobile-menu__overflow-link" href="/drivers.html">Pilotos</a>
                         <a class="rs-navbar-mobile-menu__overflow-link" href="/teams.html">Escuderías</a>
@@ -64,18 +59,14 @@
 
     <section class="rs-race-strip" id="raceStrip">
         <div class="rs-container rs-race-strip__inner">
-            <div class="rs-race-strip__label">
-                <span>Próximo GP</span>
-            </div>
-
+            <div class="rs-race-strip__label"><span>Próximo GP</span></div>
             <div class="rs-race-strip__main">
                 <div class="rs-race-strip__title-row">
                     <img id="raceStripFlag" class="rs-flag-inline rs-flag-inline--medium" src="" alt="Bandera del país" style="display:none;">
-                    <span id="raceStripTitle" class="rs-race-strip__title">-</span>
+                    <span id="raceStripTitle" class="rs-race-strip__title">Cargando calendario</span>
                 </div>
                 <span id="raceStripMeta" class="rs-race-strip__meta">-</span>
             </div>
-
             <div class="rs-race-strip__side">
                 <div id="raceStripAction"></div>
                 <div id="raceStripClocks" class="rs-race-strip__clocks">-</div>
@@ -83,55 +74,31 @@
         </div>
     </section>
 
-    <main class="rs-main">
+    <main class="rs-main rs-sessions-page">
         <div class="rs-container">
-            <section class="rs-calendar-topbar">
+            <section class="rs-calendar-topbar rs-sessions-head" aria-label="Selector de sesiones">
                 <div class="rs-calendar-topbar__left">
-                    <h1 class="rs-calendar-topbar__title">Calendario Fórmula 1</h1>
-
+                    <h1 class="rs-calendar-topbar__title">Sesiones Fórmula 1</h1>
                     <div class="rs-calendar-topbar__controls">
                         <div class="rs-select-wrap rs-select-wrap--inline">
-                            <select id="yearInput" aria-label="Seleccionar temporada">
+                            <select id="sessionsYearInput" aria-label="Seleccionar temporada">
                                 <option value="2023">2023</option>
                                 <option value="2024">2024</option>
                                 <option value="2025">2025</option>
                                 <option value="2026" selected>2026</option>
                             </select>
                         </div>
+                        <label class="rs-select-wrap rs-select-wrap--inline rs-sessions-select" aria-label="Seleccionar Gran Premio">
+                            <select id="meetingSelect" aria-label="Seleccionar Gran Premio"></select>
+                        </label>
                     </div>
                 </div>
-
-                <div id="topSelectedCircuit" class="rs-calendar-topbar__selected">-</div>
+                <div id="sessionsSelectedGp" class="rs-calendar-topbar__selected">-</div>
             </section>
 
-            <section class="rs-layout-2">
-                <aside>
-                    <div class="rs-calendar-panel">
-                        <div class="rs-calendar-panel__header">
-                            <div id="calendarMonthLabel" class="rs-calendar-month">-</div>
-
-                            <div class="rs-calendar-nav">
-                                <button id="prevMonthButton" class="rs-calendar-nav__button" type="button">&lsaquo;</button>
-                                <button id="nextMonthButton" class="rs-calendar-nav__button" type="button">&rsaquo;</button>
-                            </div>
-                        </div>
-
-                        <div id="calendarGrid" class="rs-calendar-grid"></div>
-                        <div id="calendarEvents" class="rs-calendar-events"></div>
-                    </div>
-
-                    <div id="calendarInsight" class="rs-calendar-insight"></div>
-                </aside>
-
-                <section>
-                    <h2 id="selectedGpTitle" class="rs-selected-gp-title">Selecciona un Gran Premio</h2>
-
-                    <div class="rs-gp-detail-grid">
-                        <div id="selectedCircuitCard" class="rs-circuit-card"></div>
-                    </div>
-
-                    <div id="sessionsContent"></div>
-                </section>
+            <section class="rs-sessions-block">
+                <h2 id="sessionsSelectedTitle" class="rs-sessions-selected-title">Cargando gran premio...</h2>
+                <section id="sessionsList" class="rs-session-list"></section>
             </section>
         </div>
     </main>
@@ -166,7 +133,7 @@
             </div>
 
             <div class="rs-footer__bottom">
-                <span>© 2026 RaceStream. Todos los derechos reservados.</span>
+                <span>&copy; 2026 RaceStream. Todos los derechos reservados.</span>
                 <div class="rs-footer__bottom-links">
                     <a href="/terms.html">Términos y condiciones</a>
                     <a href="/privacy-policy.html">Política de privacidad</a>
@@ -178,6 +145,6 @@
 </div>
 
 <script src="/js/nav.js"></script>
-<script src="/js/calendar.js"></script>
+<script src="/js/sessions.js"></script>
 </body>
 </html>

@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RaceStream - Calendario F1</title>
+    <title>RaceStream - Inicio F1</title>
     <link rel="icon" type="image/png" href="/assets/img/LogoRS2.png">
 
     <link rel="stylesheet" href="/css/variables.css">
     <link rel="stylesheet" href="/css/base.css">
     <link rel="stylesheet" href="/css/layout.css">
     <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/home.css">
 </head>
 <body>
 <div class="rs-page-shell">
@@ -19,7 +20,7 @@
                 <img class="rs-navbar__logo" src="/assets/img/LogoRS2.png" alt="Logotipo de RaceStream">
             </a>
 
-            <nav class="rs-navbar__nav">
+            <nav class="rs-navbar__nav" aria-label="Navegación principal">
                 <a class="rs-navbar__link" href="/live.html">En Vivo</a>
                 <a class="rs-navbar__link" href="/calendar.html">Calendario</a>
                 <a class="rs-navbar__link" href="/sessions.html">Sesiones</a>
@@ -30,7 +31,7 @@
             </nav>
 
             <div class="rs-navbar__actions">
-                <a class="rs-navbar__icon-link" href="/favorites.html" title="Favoritos">★</a>
+                <a class="rs-navbar__icon-link" href="/favorites.html" title="Favoritos" aria-label="Favoritos">&#9733;</a>
 
                 <div class="rs-profile-dropdown" id="profileDropdown">
                     <button class="rs-profile-dropdown__trigger" type="button" aria-label="Mi cuenta">
@@ -64,18 +65,14 @@
 
     <section class="rs-race-strip" id="raceStrip">
         <div class="rs-container rs-race-strip__inner">
-            <div class="rs-race-strip__label">
-                <span>Próximo GP</span>
-            </div>
-
+            <div class="rs-race-strip__label"><span>Pr&oacute;ximo GP</span></div>
             <div class="rs-race-strip__main">
                 <div class="rs-race-strip__title-row">
                     <img id="raceStripFlag" class="rs-flag-inline rs-flag-inline--medium" src="" alt="Bandera del país" style="display:none;">
-                    <span id="raceStripTitle" class="rs-race-strip__title">-</span>
+                    <span id="raceStripTitle" class="rs-race-strip__title">Cargando calendario</span>
                 </div>
                 <span id="raceStripMeta" class="rs-race-strip__meta">-</span>
             </div>
-
             <div class="rs-race-strip__side">
                 <div id="raceStripAction"></div>
                 <div id="raceStripClocks" class="rs-race-strip__clocks">-</div>
@@ -83,55 +80,85 @@
         </div>
     </section>
 
-    <main class="rs-main">
-        <div class="rs-container">
-            <section class="rs-calendar-topbar">
-                <div class="rs-calendar-topbar__left">
-                    <h1 class="rs-calendar-topbar__title">Calendario Fórmula 1</h1>
-
-                    <div class="rs-calendar-topbar__controls">
-                        <div class="rs-select-wrap rs-select-wrap--inline">
-                            <select id="yearInput" aria-label="Seleccionar temporada">
-                                <option value="2023">2023</option>
-                                <option value="2024">2024</option>
-                                <option value="2025">2025</option>
-                                <option value="2026" selected>2026</option>
-                            </select>
-                        </div>
+    <main class="rs-main rs-home">
+        <section class="rs-home-hero">
+            <div class="rs-container rs-home-hero__inner">
+                <div class="rs-home-hero__copy">
+                    <h1>RaceStream</h1>
+                    <p>RaceStream centraliza la temporada de Fórmula 1 en una experiencia visual, directa y pensada para consultar carreras, sesiones, datos en vivo y contexto sin perder tiempo entre páginas dispersas.</p>
+                    <div class="rs-home-hero__actions">
+                        <a class="rs-button rs-button--primary" href="/live.html">Ver En Vivo</a>
+                        <a class="rs-button" href="/calendar.html">Abrir calendario</a>
                     </div>
                 </div>
 
-                <div id="topSelectedCircuit" class="rs-calendar-topbar__selected">-</div>
+                <aside class="rs-home-next-card" aria-label="Próxima sesión">
+                    <div class="rs-home-card__header">
+                        <span>Próxima sesión</span>
+                    </div>
+                    <h2 id="heroSessionTitle">Cargando datos...</h2>
+                    <p id="heroSessionMeta">RaceStream está buscando la siguiente sesión disponible.</p>
+                    <div class="rs-home-countdown" id="heroCountdown">--d --h --m</div>
+                </aside>
+            </div>
+        </section>
+
+        <div class="rs-container">
+            <section class="rs-home-grid">
+                <article class="rs-home-panel rs-home-panel--live">
+                    <h2>En Vivo</h2>
+                    <p>Cuando haya sesión activa, aquí tendrás leaderboard, gaps, neumáticos, pit stops, race control, clima y telemetría.</p>
+                    <div class="rs-home-live-grid">
+                        <div><strong id="liveNextName">-</strong><span>Sesión vigilada</span></div>
+                        <div><strong id="liveNextTime">-</strong><span>Hora local</span></div>
+                        <div><strong id="liveDataStatus">Preparado</strong><span>Datos OpenF1</span></div>
+                    </div>
+                    <a class="rs-button rs-button--primary" href="/live.html">Entrar al Live Center</a>
+                </article>
+
+                <article class="rs-home-panel rs-home-help">
+                    <h2>F1 para Todos</h2>
+                    <div class="rs-home-glossary">
+                        <button type="button" data-term="SC">SC</button>
+                        <button type="button" data-term="VSC">VSC</button>
+                        <button type="button" data-term="DNF">DNF</button>
+                        <button type="button" data-term="ERS">ERS</button>
+                    </div>
+                    <p id="glossaryText">Safety Car: Coche de seguridad que reduce el ritmo y junta a los pilotos cuando hay peligro en pista.</p>
+                    <a class="rs-link-chip rs-home-help__link" href="/help.html">Abrir glosario</a>
+                </article>
             </section>
 
-            <section class="rs-layout-2">
-                <aside>
-                    <div class="rs-calendar-panel">
-                        <div class="rs-calendar-panel__header">
-                            <div id="calendarMonthLabel" class="rs-calendar-month">-</div>
-
-                            <div class="rs-calendar-nav">
-                                <button id="prevMonthButton" class="rs-calendar-nav__button" type="button">&lsaquo;</button>
-                                <button id="nextMonthButton" class="rs-calendar-nav__button" type="button">&rsaquo;</button>
-                            </div>
+            <section class="rs-home-section">
+                <div class="rs-home-section__title">
+                    <h2>Tabla de Clasificaciones</h2>
+                </div>
+                <div class="rs-home-standings">
+                    <article class="rs-home-panel">
+                        <div class="rs-home-card__header">
+                            <span>Pilotos</span>
+                            <a href="/standings.html">Ver completa</a>
                         </div>
+                        <div id="driversStandings" class="rs-home-ranking"></div>
+                    </article>
 
-                        <div id="calendarGrid" class="rs-calendar-grid"></div>
-                        <div id="calendarEvents" class="rs-calendar-events"></div>
+                    <article class="rs-home-panel">
+                        <div class="rs-home-card__header">
+                            <span>Constructores</span>
+                            <a href="/standings.html">Ver completa</a>
+                        </div>
+                        <div id="teamsStandings" class="rs-home-ranking"></div>
+                    </article>
+                </div>
+            </section>
+
+            <section class="rs-home-section">
+                <div class="rs-home-news-main">
+                    <div class="rs-home-section__title">
+                        <h2>Noticias destacadas</h2>
                     </div>
-
-                    <div id="calendarInsight" class="rs-calendar-insight"></div>
-                </aside>
-
-                <section>
-                    <h2 id="selectedGpTitle" class="rs-selected-gp-title">Selecciona un Gran Premio</h2>
-
-                    <div class="rs-gp-detail-grid">
-                        <div id="selectedCircuitCard" class="rs-circuit-card"></div>
-                    </div>
-
-                    <div id="sessionsContent"></div>
-                </section>
+                    <div id="homeNews" class="rs-home-news"></div>
+                </div>
             </section>
         </div>
     </main>
@@ -157,7 +184,7 @@
                 <div class="rs-footer__column">
                     <h3>Cuenta</h3>
                     <div class="rs-footer__links">
-                        <a href="/account.html">Mi Cuenta</a>
+                    <a href="/account.html">Mi Cuenta</a>
                         <a href="/favorites.html">Favoritos</a>
                         <a href="/preferences.html">Preferencias</a>
                         <a href="/privacy.html">Privacidad</a>
@@ -166,7 +193,7 @@
             </div>
 
             <div class="rs-footer__bottom">
-                <span>© 2026 RaceStream. Todos los derechos reservados.</span>
+                <span>&copy; 2026 RaceStream. Todos los derechos reservados.</span>
                 <div class="rs-footer__bottom-links">
                     <a href="/terms.html">Términos y condiciones</a>
                     <a href="/privacy-policy.html">Política de privacidad</a>
@@ -178,6 +205,6 @@
 </div>
 
 <script src="/js/nav.js"></script>
-<script src="/js/calendar.js"></script>
+<script src="/js/home.js"></script>
 </body>
 </html>
