@@ -1,0 +1,344 @@
+/**
+ * @author Yerai Pinto
+ * @since 1.0
+ * @version 1.1.0
+ * @created 04-05-2026
+ * @modified 05-05-2026
+ * @description Estilos responsive para páginas de Pilotos y Escuderías con tarjetas visuales desplegables
+ */
+
+.rs-participants-topbar {
+    margin-bottom: 22px;
+}
+
+.rs-participants-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 20px;
+}
+
+body[data-rs-page="drivers"] .rs-participants-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.rs-participant-card {
+    position: relative;
+    min-height: 280px;
+    padding: 18px;
+    border-radius: 8px;
+    overflow: hidden;
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--team-color) 62%, #05070c), color-mix(in srgb, var(--team-color) 36%, #111827)),
+        #111827;
+    box-shadow: var(--rs-shadow-md);
+    cursor: pointer;
+    align-self: start;
+}
+
+.rs-participant-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, .12) 0 1px, transparent 1px 4px),
+        linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, .26) 100%);
+    opacity: .20;
+    pointer-events: none;
+}
+
+.rs-participant-card__top,
+.rs-driver-card__body,
+.rs-participant-stats,
+.rs-participant-card__details,
+.rs-team-card__drivers,
+.rs-team-card__car {
+    position: relative;
+    z-index: 1;
+}
+
+.rs-participant-card__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.rs-participant-card__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.rs-participant-card__eyebrow {
+    color: #fff;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.rs-participant-card h2 {
+    margin: 6px 0 0;
+    color: #fff;
+    font-size: clamp(22px, 3vw, 34px);
+    line-height: .94;
+}
+
+.rs-participant-card h2 span,
+.rs-participant-card h2 strong {
+    display: block;
+}
+
+.rs-participant-card__toggle {
+    min-width: 0;
+    height: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.rs-driver-card__body {
+    min-height: 160px;
+    display: grid;
+    grid-template-columns: minmax(0, .85fr) minmax(130px, 1fr);
+    align-items: end;
+    gap: 10px;
+}
+
+.rs-driver-card__info {
+    display: grid;
+    gap: 12px;
+    justify-items: start;
+}
+
+.rs-driver-card__number {
+    color: #fff;
+    font-size: clamp(36px, 7vw, 58px);
+    font-weight: 900;
+    line-height: 1;
+}
+
+.rs-standings-code {
+    min-width: auto;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    font-size: 12px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.rs-driver-card__portrait {
+    align-self: stretch;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.rs-driver-card__avatar {
+    width: min(230px, 100%);
+    height: 250px;
+    border-radius: 8px;
+    background: transparent;
+}
+
+.rs-participant-card--compact {
+    min-height: 220px;
+}
+
+.rs-participant-card--compact .rs-driver-card__body,
+.rs-participant-card--compact .rs-team-card__car {
+    min-height: 70px;
+}
+
+.rs-driver-card__avatar img {
+    object-fit: contain;
+    object-position: center bottom;
+}
+
+.rs-participant-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.rs-participant-stats div,
+.rs-participant-detail-grid div {
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, .18);
+}
+
+.rs-participant-stats span,
+.rs-participant-detail-grid span,
+.rs-participant-comparison__row span {
+    display: block;
+    color: rgba(255, 255, 255, .76);
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.rs-participant-stats strong,
+.rs-participant-detail-grid strong,
+.rs-participant-comparison__row strong {
+    display: block;
+    margin-top: 5px;
+    color: #fff;
+    font-weight: 900;
+    overflow-wrap: anywhere;
+}
+
+.rs-participant-card__details {
+    display: none;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, .18);
+}
+
+.rs-participant-card--expanded .rs-participant-card__details {
+    display: block;
+}
+
+body[data-rs-page="drivers"] .rs-participant-stats {
+    display: none;
+}
+
+body[data-rs-page="drivers"] .rs-participant-card--expanded .rs-participant-stats {
+    display: grid;
+}
+
+.rs-participant-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.rs-participant-comparison,
+.rs-team-card__balance {
+    margin-top: 10px;
+    display: grid;
+    gap: 8px;
+}
+
+.rs-participant-comparison__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 10px;
+    align-items: center;
+}
+
+.rs-participant-comparison__bar {
+    grid-column: 1 / -1;
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .14);
+}
+
+.rs-participant-comparison__bar i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #fff;
+}
+
+.rs-team-card {
+    min-height: 300px;
+}
+
+.rs-team-card__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rs-team-card__mark {
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, .24);
+}
+
+.rs-team-card__drivers {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+
+.rs-team-card__driver-chip {
+    min-height: 34px;
+    padding: 4px 9px 4px 4px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, .22);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.rs-team-card__driver-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+}
+
+.rs-team-card__driver-avatar img {
+    object-fit: cover;
+    object-position: center top;
+}
+
+.rs-team-card__car {
+    height: 150px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.rs-team-card__car img {
+    width: 100%;
+    max-height: 135px;
+    object-fit: contain;
+    object-position: center bottom;
+    filter: drop-shadow(0 18px 16px rgba(0, 0, 0, .30));
+}
+
+@media (max-width: 1180px) {
+    body[data-rs-page="drivers"] .rs-participants-grid,
+    .rs-participants-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 680px) {
+    body[data-rs-page="drivers"] .rs-participants-grid,
+    .rs-participants-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .rs-driver-card__body {
+        grid-template-columns: minmax(0, .8fr) minmax(120px, 1fr);
+    }
+
+    .rs-participant-detail-grid {
+        grid-template-columns: 1fr;
+    }
+}

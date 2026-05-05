@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.9
+ * @version 1.3.0
  * @created 21-04-2026
- * @modified 04-05-2026
- * @description Estilos de componentes RaceStream con navbar activo, titulos compartidos e interfaz responsive
+ * @modified 05-05-2026
+ * @description Estilos de componentes RaceStream con navbar activo, favoritos, formularios, cookies y componentes responsive
  */
 
 /* =========================
@@ -106,10 +106,14 @@
 
 .rs-profile-dropdown__trigger:hover,
 .rs-navbar__menu-trigger:hover,
-.rs-navbar__icon-link:hover,
+.rs-navbar__icon-link:hover {
+    filter: brightness(1.14);
+    transform: translateY(-1px);
+}
+
 .rs-calendar-nav__button:hover,
 .rs-link-chip:hover,
-button:hover {
+button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
     border-color: rgba(226, 232, 240, .34);
     background-color: rgba(255, 255, 255, .08);
     filter: brightness(1.08);
@@ -327,21 +331,25 @@ button:hover {
 }
 
 .rs-select-wrap::after {
-    content: "▾";
+    content: "";
     position: absolute;
-    right: 14px;
+    right: 16px;
     top: 50%;
     transform: translateY(-50%);
-    color: var(--rs-text-muted);
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid var(--rs-text-muted);
     pointer-events: none;
-    font-size: 12px;
 }
 
 .rs-select-wrap--inline select {
     width: auto;
     min-width: 120px;
-    padding: 10px 34px 10px 14px;
+    padding: 10px 42px 10px 14px;
     font-weight: 800;
+    appearance: none;
 }
 
 .rs-calendar-topbar__selected {
@@ -655,6 +663,25 @@ button:hover {
 .rs-flag-inline--medium {
     width: 20px;
     height: 20px;
+}
+
+.rs-country-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.rs-country-badge img {
+    width: 22px;
+    height: 16px;
+    border-radius: 2px;
+    object-fit: cover;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, .14);
 }
 
 /* =========================
@@ -1288,9 +1315,175 @@ button:hover {
     box-shadow: 0 8px 18px rgba(229, 57, 53, .12);
 }
 
+.rs-favorite-button {
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(255, 255, 255, .18);
+    border-radius: 999px;
+    background: rgba(0, 0, 0, .20);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    font-weight: 900;
+    line-height: 1;
+    cursor: pointer;
+    transition: .18s ease;
+}
+
+.rs-favorite-button--active {
+    border-color: rgba(250, 204, 21, .50);
+    background: rgba(250, 204, 21, .16);
+    color: #fde68a;
+}
+
+.rs-favorite-button:hover {
+    border-color: rgba(250, 204, 21, .50);
+    transform: translateY(-1px);
+}
+
+.rs-session-row,
+.rs-news-card,
+.rs-participant-card,
+.rs-calendar-events__item {
+    outline: 1px solid transparent;
+    outline-offset: 0;
+    transition: border-color .18s ease, outline-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.rs-session-row:hover,
+.rs-news-card:hover,
+.rs-participant-card:hover,
+.rs-calendar-events__item:hover {
+    outline-color: rgba(226, 232, 240, .28);
+}
+
+.rs-session-row--expanded,
+.rs-news-card--expanded,
+.rs-participant-card--expanded,
+.rs-calendar-events__item--active {
+    outline-color: rgba(226, 232, 240, .55);
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, .10),
+        0 0 0 3px rgba(255, 255, 255, .08);
+}
+
+/* =========================
+   PLACEHOLDER PILOTO
+========================= */
+.rs-person-avatar {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    overflow: hidden;
+    background: #303846;
+}
+
+.rs-person-avatar img {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.rs-person-avatar--fallback img {
+    opacity: 0;
+}
+
+.rs-person-avatar--fallback::before {
+    content: "";
+    position: absolute;
+    top: 18%;
+    left: 50%;
+    width: 34%;
+    height: 34%;
+    border-radius: 999px;
+    background: #c0c5ce;
+    transform: translateX(-50%);
+}
+
+.rs-person-avatar--fallback::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 12%;
+    width: 62%;
+    height: 42%;
+    border-radius: 48% 48% 18% 18%;
+    background: #c0c5ce;
+    transform: translateX(-50%);
+}
+
+.rs-team-mark {
+    position: relative;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    overflow: hidden;
+    background: rgba(255, 255, 255, .07);
+    border: 1px solid rgba(255, 255, 255, .12);
+}
+
+.rs-team-mark img {
+    width: 100%;
+    height: 100%;
+    padding: 7px;
+    object-fit: contain;
+}
+
+.rs-team-mark span {
+    position: absolute;
+    inset: 0;
+    display: none;
+    place-items: center;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.rs-team-mark--fallback span {
+    display: grid;
+}
+
 .rs-link-chip--live {
     border-color: rgba(220, 38, 38, .35);
     background: rgba(220, 38, 38, .16);
+}
+
+.rs-cookie-banner {
+    position: fixed;
+    left: 50%;
+    bottom: 18px;
+    transform: translateX(-50%);
+    z-index: 1500;
+    width: min(520px, calc(100vw - 36px));
+    padding: 16px;
+    border: 1px solid var(--rs-border);
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(17, 24, 39, .98), rgba(12, 18, 30, .98));
+    box-shadow: 0 20px 44px rgba(0, 0, 0, .38);
+}
+
+.rs-cookie-banner p {
+    margin: 0 0 12px;
+    text-align: justify;
+}
+
+.rs-cookie-banner div {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.rs-cookie-banner strong {
+    color: #fff;
 }
 
 /* =========================

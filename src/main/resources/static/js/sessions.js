@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.1
+ * @version 1.4.0
  * @created 30-04-2026
- * @modified 04-05-2026
- * @description Lógica de Sesiones con selector de GP, carga reforzada, estados reales y tablas desplegables
+ * @modified 05-05-2026
+ * @description Lógica de Sesiones con selector de GP, carga reforzada, podios, placeholder de pilotos y tablas desplegables
  */
 class RaceStreamSessionsPage {
 
@@ -12,11 +12,14 @@ class RaceStreamSessionsPage {
         this.initialParams = new URLSearchParams(window.location.search);
         const requestedYear = Number(this.initialParams.get('year'));
         this.year = Number.isInteger(requestedYear) && requestedYear >= 2023 ? requestedYear : new Date().getFullYear();
+        this.raceStripYear = new Date().getFullYear();
+        this.currentMeetingApi = `/api/f1/schedule/current-or-next-meeting?year=${this.raceStripYear}`;
         this.meetingsApi = (year) => `/api/f1/schedule/calendar-meetings?year=${year}`;
         this.sessionsApi = (meetingKey) => `/api/f1/schedule/meetings/${meetingKey}/sessions`;
         this.resultsApi = (sessionKey) => `/api/f1/session-results?sessionKey=${sessionKey}`;
         this.driversApi = (sessionKey) => `/api/f1/drivers?sessionKey=${sessionKey}`;
         this.lapsApi = (sessionKey) => `/api/f1/live/laps?sessionKey=${sessionKey}`;
+        this.mediaApi = (number) => `/api/f1/media/driver?number=${number}`;
         this.yearInput = document.getElementById('sessionsYearInput');
         this.meetingSelect = document.getElementById('meetingSelect');
         this.sessionsList = document.getElementById('sessionsList');
@@ -35,7 +38,9 @@ class RaceStreamSessionsPage {
         this.sessionData = new Map();
         this.selectionRequestId = 0;
         this.meetingsRequestId = 0;
+        this.raceStripRequestId = 0;
         this.bindEvents();
+        this.loadRaceStripMeeting();
         this.loadMeetings();
         setInterval(() => {
             this.updateRaceStripClocks();
@@ -72,7 +77,6 @@ class RaceStreamSessionsPage {
         this.selectionRequestId++;
         this.year = year;
         this.sessionData.clear();
-        this.topSessions = [];
         this.selectedMeeting = null;
         this.meetingSelect.disabled = true;
         this.meetingSelect.value = '';
@@ -91,10 +95,6 @@ class RaceStreamSessionsPage {
             this.updateSelectedTitle(null);
             return;
         }
-
-        this.topMeeting = this.getCurrentOrNextMeeting(this.meetings);
-        this.updateRaceStrip();
-        this.loadTopSessions(requestId);
 
         this.selectableMeetings = this.meetings.filter((meeting) => this.getMeetingStatus(meeting) === 'completed' && this.hasRealMeetingKey(meeting));
         this.meetingSelect.innerHTML = this.selectableMeetings.map((meeting) => `
@@ -215,24 +215,27 @@ class RaceStreamSessionsPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 03-05-2026
-     * @modified 03-05-2026
-     * @description Carga datos solo del GP seleccionado y cancela cargas antiguas
+     * @modified 04-05-2026
+     * @description Carga datos del GP seleccionado en lotes pequeños para reducir espera sin saturar APIs
      * @param {Array} sessions Sesiones del GP
      * @param {number} requestId Identificador de seleccion activa
      */
     async loadCompletedSessionsData(sessions, requestId) {
         const completedSessions = sessions.filter((session) => this.shouldLoadSessionDetails(session));
-        for (const session of completedSessions) {
+        const batchSize = 2;
+        for (let index = 0; index < completedSessions.length; index += batchSize) {
             if (requestId !== this.selectionRequestId) {
                 return;
             }
-            await this.loadSessionData(session);
+            await Promise.all(completedSessions.slice(index, index + batchSize).map((session) => this.loadSessionData(session)));
             if (requestId !== this.selectionRequestId) {
                 return;
             }
-            await this.wait(380);
+            if (index + batchSize < completedSessions.length) {
+                await this.wait(220);
+            }
         }
     }
 
@@ -263,6 +266,15 @@ class RaceStreamSessionsPage {
         });
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.1
+     * @created 03-05-2026
+     * @modified 04-05-2026
+     * @description Renderiza sesiones y actualiza las fotos reales de pilotos al terminar
+     * @param {Array} sessions Sesiones del GP
+     */
     renderSessions(sessions) {
         this.sessionsList.innerHTML = sessions.map((session, index) => {
             const date = new Date(session.date_start);
@@ -278,8 +290,8 @@ class RaceStreamSessionsPage {
                         <div class="rs-session-row__meta">${this.translateSessionType(session.session_type)}</div>
                     </div>
                     <div class="rs-session-row__summary">
-                        ${hasData ? '' : `<div class="rs-session-row__pending">${isFinished ? pendingText : 'Por definir'}</div>`}
-                        ${hasData ? `<button class="rs-link-chip rs-session-row__toggle" type="button" data-session-index="${index}">Ver detalles</button>` : ''}
+                        ${this.renderFavoriteButton(session, index)}
+                        ${hasData ? this.renderSessionPodium(session) : `<div class="rs-session-row__pending">${isFinished ? pendingText : 'Por definir'}</div>`}
                     </div>
                     ${hasData ? `<div class="rs-session-row__details">
                         ${this.renderResultTable(session)}
@@ -288,9 +300,52 @@ class RaceStreamSessionsPage {
             `;
         }).join('') || '<p class="empty-state">No hay sesiones disponibles para este GP.</p>';
 
-        this.sessionsList.querySelectorAll('.rs-session-row__toggle').forEach((button) => {
-            button.addEventListener('click', () => this.toggleSession(Number(button.dataset.sessionIndex)));
+        this.sessionsList.querySelectorAll('.rs-session-row').forEach((row) => {
+            row.addEventListener('click', () => this.toggleSession(Number(row.dataset.sessionIndex)));
         });
+        this.hydrateDriverImages();
+        window.RaceStreamFavorites?.bind(this.sessionsList);
+    }
+
+    renderFavoriteButton(session, index) {
+        if (!window.RaceStreamFavorites) return '';
+        const params = new URLSearchParams({
+            year: String(this.year),
+            meetingKey: String(this.selectedMeeting?.meeting_key || ''),
+            sessionIndex: String(index)
+        });
+        if (session?.session_key) params.set('sessionKey', session.session_key);
+        return window.RaceStreamFavorites.button({
+            type: 'Sesión',
+            externalId: session?.session_key || `${this.selectedMeeting?.meeting_key || 'gp'}-${index}`,
+            title: `${this.selectedMeeting?.meeting_name || 'GP'} · ${this.translateSessionName(session?.session_name)}`,
+            url: `/sessions.html?${params.toString()}`,
+            description: `${this.formatDateTime(session?.date_start)} · ${this.translateSessionType(session?.session_type)}`
+        });
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 05-05-2026
+     * @description Renderiza el podio compacto de una sesion completada con datos disponibles
+     * @param {Object} session Sesion
+     * @returns {string} HTML del podio
+     */
+    renderSessionPodium(session) {
+        const podium = this.getSortedResults(session).slice(0, 3);
+        if (podium.length < 3) return '<div class="rs-session-row__pending">Podio no disponible</div>';
+        return `
+            <div class="rs-session-podium" aria-label="Podio de la sesión">
+                ${podium.map((row, index) => {
+                    const driver = this.getDriver(row, session);
+                    const name = driver?.full_name || row.full_name || `Piloto ${row.driver_number || ''}`;
+                    const image = driver?.headshot_url || this.getDriverFallbackImage(name, driver?.team_name || row.team_name, this.getSessionYear(session), 64) || '';
+                    return `<span class="rs-session-podium__item"><strong>${index + 1}</strong><span class="rs-person-avatar"><img src="${image}" alt="Foto de ${name}" loading="lazy" onerror="this.onerror=null;this.closest('.rs-person-avatar').classList.add('rs-person-avatar--fallback');this.removeAttribute('src');"></span></span>`;
+                }).join('')}
+            </div>
+        `;
     }
 
     /**
@@ -411,13 +466,25 @@ class RaceStreamSessionsPage {
         return Number.isFinite(points) ? points.toLocaleString('es-ES', { maximumFractionDigits: 2 }) : value || 0;
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.2
+     * @created 03-05-2026
+     * @modified 04-05-2026
+     * @description Pinta la celda del piloto con fallback visual y endpoint interno de imagen oficial
+     * @param {Object} driver Piloto OpenF1
+     * @param {Object} row Resultado
+     * @param {Object} session Sesión
+     * @returns {string} HTML de piloto
+     */
     renderDriverCell(driver, row, session) {
         const name = driver?.full_name || row.full_name || `Piloto ${row.driver_number || ''}`;
         const year = this.getSessionYear(session);
         const fallback = this.getDriverFallbackImage(name, driver?.team_name || row.team_name, year);
-        const image = driver?.headshot_url?.includes(`/common/f1/${year}/`) ? driver.headshot_url : fallback;
         const number = row.driver_number || driver?.driver_number || '';
-        return `<span class="rs-session-driver"><img src="${image}" data-driver-number="${number}" data-fallback-src="${fallback}" alt="Foto de ${name}" onerror="this.onerror=null;this.src=this.dataset.fallbackSrc || '/assets/img/LogoRS2.png';">${name}</span>`;
+        const image = fallback || driver?.headshot_url || '';
+        return `<span class="rs-session-driver"><span class="rs-session-driver__avatar rs-person-avatar"><img src="${image}" data-driver-number="${number}" data-media-url="${number ? this.mediaApi(number) : ''}" alt="Foto de ${name}" onerror="this.onerror=null;this.closest('.rs-person-avatar').classList.add('rs-person-avatar--fallback');this.removeAttribute('src');"></span>${name}</span>`;
     }
 
     renderTeamCell(driver, row, session) {
@@ -426,13 +493,62 @@ class RaceStreamSessionsPage {
         return `<span class="rs-session-team"><img src="${logo}" alt="Logo de ${teamName}" onerror="this.style.display='none';">${teamName}</span>`;
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.1
+     * @created 04-05-2026
+     * @modified 04-05-2026
+     * @description Sustituye fotos calculadas por la imagen real del endpoint interno cuando está disponible
+     * @returns {void}
+     */
+    hydrateDriverImages() {
+        this.sessionsList.querySelectorAll('img[data-media-url^="/api/f1/media/driver"]').forEach(async (image) => {
+            if (image.getAttribute('src')) {
+                image.closest('.rs-person-avatar')?.classList.remove('rs-person-avatar--fallback');
+                return;
+            }
+            const media = await this.fetchJson(image.dataset.mediaUrl, {});
+            if (!media?.headshotUrl || image.src === media.headshotUrl) return;
+            this.loadImage(media.headshotUrl)
+                .then(() => {
+                    image.src = media.headshotUrl;
+                    image.closest('.rs-person-avatar')?.classList.remove('rs-person-avatar--fallback');
+                })
+                .catch(() => {
+                    image.removeAttribute('src');
+                    image.closest('.rs-person-avatar')?.classList.add('rs-person-avatar--fallback');
+                });
+        });
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 04-05-2026
+     * @description Precarga una imagen antes de reemplazar la foto visible del piloto
+     * @param {string} url URL de la imagen
+     * @returns {Promise<void>} Resultado de carga
+     */
+    loadImage(url) {
+        return new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve();
+            image.onerror = () => reject();
+            image.src = url;
+        });
+    }
+
     toggleSession(index) {
+        let expandedRow = null;
         this.sessionsList.querySelectorAll('.rs-session-row').forEach((row, rowIndex) => {
             const expanded = rowIndex === index && !row.classList.contains('rs-session-row--expanded');
             row.classList.toggle('rs-session-row--expanded', expanded);
-            const toggle = row.querySelector('.rs-session-row__toggle');
-            if (toggle) toggle.textContent = expanded ? 'Contraer' : 'Ver detalles';
+            row.setAttribute('aria-expanded', expanded);
+            if (expanded) expandedRow = row;
         });
+        expandedRow?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     expandRequestedSession(sessions) {
@@ -444,17 +560,49 @@ class RaceStreamSessionsPage {
             : requestedIndex;
         if ((requestedSessionKey || hasRequestedIndex) && Number.isInteger(index) && index >= 0) {
             this.toggleSession(index);
-            this.sessionsList.querySelector(`[data-session-index="${index}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            this.sessionsList.querySelector(`[data-session-index="${index}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             this.initialParams.delete('sessionKey');
             this.initialParams.delete('sessionIndex');
         }
     }
 
-    async loadTopSessions(requestId = this.meetingsRequestId) {
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 04-05-2026
+     * @description Carga el GP actual o próximo real sin depender de la temporada seleccionada en Sesiones
+     * @returns {Promise<void>} Carga completada
+     */
+    async loadRaceStripMeeting() {
+        const requestId = ++this.raceStripRequestId;
+        let meeting = await this.fetchJson(this.currentMeetingApi, null);
+        if (!meeting?.meeting_key) {
+            const meetings = await this.fetchArrayWithRetry(this.meetingsApi(this.raceStripYear), 4, 320);
+            meeting = this.getCurrentOrNextMeeting(meetings);
+        }
+        if (requestId !== this.raceStripRequestId || !meeting) return;
+        this.topMeeting = meeting;
+        this.topSessions = [];
+        this.updateRaceStrip();
+        this.loadTopSessions(requestId);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.1
+     * @created 03-05-2026
+     * @modified 04-05-2026
+     * @description Carga las sesiones del GP del strip superior sin usar la temporada seleccionada
+     * @param {number} requestId Identificador de carga del strip
+     * @returns {Promise<void>} Carga completada
+     */
+    async loadTopSessions(requestId = this.raceStripRequestId) {
         if (!this.topMeeting?.meeting_key) return;
         const meetingKey = this.topMeeting.meeting_key;
         const sessions = await this.fetchSessionsWithRetry(meetingKey);
-        if (requestId !== this.meetingsRequestId || this.topMeeting?.meeting_key !== meetingKey) return;
+        if (requestId !== this.raceStripRequestId || this.topMeeting?.meeting_key !== meetingKey) return;
         this.topSessions = Array.isArray(sessions) ? sessions : [];
         this.renderRaceStripAction();
     }
@@ -485,7 +633,7 @@ class RaceStreamSessionsPage {
             <div class="rs-race-strip__clock-card">
                 <div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-label">MI HORA</span><strong class="rs-race-strip__clock-value">${new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</strong></div>
                 <span class="rs-race-strip__clock-divider"></span>
-                <div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-subvalue">HORA CIRCUITO</span><span class="rs-race-strip__clock-track-value">${this.getCircuitNowTime(this.topMeeting.gmt_offset)}</span></div>
+                <div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-subvalue">CIRCUITO</span><span class="rs-race-strip__clock-track-value">${this.getCircuitNowTime(this.topMeeting.gmt_offset)}</span></div>
             </div>
         `;
     }
@@ -733,8 +881,9 @@ class RaceStreamSessionsPage {
         return scale[Number(position) - 1] || 0;
     }
 
-    getDriverFallbackImage(name, teamName = '', year = this.year) {
-        const clean = `${name || ''}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z\s-]/g, '').trim();
+    getDriverFallbackImage(name, teamName = '', year = this.year, width = 64) {
+        const displayName = `${name || ''}`.replace(/^Andrea\s+Kimi\s+Antonelli$/i, 'Kimi Antonelli');
+        const clean = displayName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z\s-]/g, '').trim();
         const parts = clean.split(/\s+/).filter(Boolean);
         if (parts.length < 2) return '/assets/img/LogoRS2.png';
         const given = parts[0];
@@ -742,7 +891,7 @@ class RaceStreamSessionsPage {
         const assetId = `${given.slice(0, 3)}${family.slice(0, 3)}01`;
         const team = this.resolveTeamLogoSlug(teamName, year) || (assetId === 'arvlin01' ? 'racingbulls' : '');
         if (team && team !== '-') {
-            return `https://media.formula1.com/image/upload/c_lfill,w_64/q_auto/d_common:f1:${year}:fallback:driver:${year}fallbackdriverright.webp/v1740000001/common/f1/${year}/${team}/${assetId}/${year}${team}${assetId}right.webp`;
+            return `https://media.formula1.com/image/upload/c_lfill,w_${width}/q_auto/d_common:f1:${year}:fallback:driver:${year}fallbackdriverright.webp/v1740000001/common/f1/${year}/${team}/${assetId}/${year}${team}${assetId}right.webp`;
         }
         const folder = assetId.charAt(0).toUpperCase();
         const displayName = `${this.capitalize(given)}_${this.capitalize(family)}`;

@@ -249,7 +249,7 @@ class RaceStreamNewsPage {
             <div class="rs-race-strip__clock-card">
                 <div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-label">MI HORA</span><strong class="rs-race-strip__clock-value">${this.getNowTime()}</strong></div>
                 <span class="rs-race-strip__clock-divider"></span>
-                <div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-subvalue">HORA CIRCUITO</span><span class="rs-race-strip__clock-track-value">${this.getCircuitNowTime(this.nextMeeting.gmt_offset)}</span></div>
+                <div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-subvalue">CIRCUITO</span><span class="rs-race-strip__clock-track-value">${this.getCircuitNowTime(this.nextMeeting.gmt_offset)}</span></div>
             </div>
         `;
     }

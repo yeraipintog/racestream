@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.3
+ * @version 1.0.4
  * @created 03-05-2026
- * @modified 03-05-2026
+ * @modified 04-05-2026
  * @description Fórmula 1 En Vivo con estado visual, horarios dobles y datos agregados desde OpenF1
  */
 class RaceStreamLivePage {
@@ -156,21 +156,26 @@ class RaceStreamLivePage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.2
+     * @version 1.0.3
      * @created 03-05-2026
-     * @modified 03-05-2026
-     * @description Renderiza el estado junto al titulo y los datos principales en linea horizontal
+     * @modified 04-05-2026
+     * @description Renderiza el GP completo y la fila de sesión con horarios de cliente y circuito
      */
     renderStatus() {
         const status = this.getSessionStatus(this.session);
         const flag = this.meeting?.country_flag ? `<img class="rs-flag-inline" src="${this.meeting.country_flag}" alt="Bandera de ${this.meeting.country_name || 'país'}">` : '';
         this.liveTitleStatus.innerHTML = this.getStatusPillHtml(status);
         this.liveStatusCard.innerHTML = `
-            <div class="rs-live-metrics rs-live-status-grid">
-                <div class="rs-live-metric"><span class="rs-live-metric__label">Sesión</span><strong>${this.translateSessionName(this.session?.session_name)}</strong></div>
-                <div class="rs-live-metric"><span class="rs-live-metric__label">GP</span><strong class="rs-live-metric__flag">${flag}${this.meeting?.meeting_name || '-'}</strong></div>
-                <div class="rs-live-metric"><span class="rs-live-metric__label">Hora cliente</span><strong>${this.formatDateTime(this.session?.date_start)}</strong></div>
-                <div class="rs-live-metric"><span class="rs-live-metric__label">Hora circuito</span><strong>${this.formatCircuitDateTime(this.session?.date_start, this.meeting?.gmt_offset)}</strong></div>
+            <div class="rs-live-session-summary">
+                <div class="rs-live-session-summary__gp">
+                    <span class="rs-live-metric__label">Gran Premio</span>
+                    <strong class="rs-live-metric__flag">${flag}${this.meeting?.meeting_official_name || this.meeting?.meeting_name || '-'}</strong>
+                </div>
+                <div class="rs-live-session-summary__row">
+                    <div class="rs-live-metric"><span class="rs-live-metric__label">Sesión</span><strong>${this.translateSessionName(this.session?.session_name)}</strong></div>
+                    <div class="rs-live-metric"><span class="rs-live-metric__label">Hora cliente</span><strong>${this.formatDateTime(this.session?.date_start)}</strong></div>
+                    <div class="rs-live-metric"><span class="rs-live-metric__label">Hora circuito</span><strong>${this.formatCircuitDateTime(this.session?.date_start, this.meeting?.gmt_offset)}</strong></div>
+                </div>
             </div>
         `;
     }
@@ -402,7 +407,7 @@ class RaceStreamLivePage {
     }
     updateRaceStripClocks() {
         if (!this.meeting) return;
-        this.raceStripClocks.innerHTML = `<div class="rs-race-strip__clock-card"><div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-label">MI HORA</span><strong class="rs-race-strip__clock-value">${this.formatTime(new Date())}</strong></div><span class="rs-race-strip__clock-divider"></span><div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-subvalue">HORA CIRCUITO</span><span class="rs-race-strip__clock-track-value">${this.getCircuitNowTime(this.meeting.gmt_offset)}</span></div></div>`;
+        this.raceStripClocks.innerHTML = `<div class="rs-race-strip__clock-card"><div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-label">MI HORA</span><strong class="rs-race-strip__clock-value">${this.formatTime(new Date())}</strong></div><span class="rs-race-strip__clock-divider"></span><div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-subvalue">CIRCUITO</span><span class="rs-race-strip__clock-track-value">${this.getCircuitNowTime(this.meeting.gmt_offset)}</span></div></div>`;
         this.renderRaceStripAction();
     }
 

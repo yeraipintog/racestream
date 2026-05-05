@@ -104,15 +104,27 @@
         </section>
 
         <div class="rs-container">
+            <section class="rs-home-last-session" aria-label="Resultado de la última sesión">
+                <div class="rs-home-last-session__head">
+                    <div>
+                        <span>Última Sesión</span>
+                        <strong id="lastSessionTitle">Cargando última sesión...</strong>
+                    </div>
+                    <a id="lastSessionLink" class="rs-link-chip" href="/sessions.html" aria-label="Abrir última sesión">Ver sesión</a>
+                </div>
+                <div id="lastSessionResults" class="rs-home-last-session__results" aria-live="polite"></div>
+            </section>
+
             <section class="rs-home-grid">
                 <article class="rs-home-panel rs-home-panel--live">
                     <h2>En Vivo</h2>
                     <p>Cuando haya sesión activa, aquí tendrás leaderboard, gaps, neumáticos, pit stops, race control, clima y telemetría.</p>
                     <div class="rs-home-live-grid">
-                        <div><strong id="liveNextName">-</strong><span>Sesión vigilada</span></div>
-                        <div><strong id="liveNextTime">-</strong><span>Hora local</span></div>
-                        <div><strong id="liveDataStatus">Preparado</strong><span>Datos OpenF1</span></div>
+                        <div><strong id="liveNextName">-</strong><span>Próxima sesión</span></div>
+                        <div><strong id="liveNextTime">-</strong><span>Mi hora</span></div>
+                        <div><strong id="liveDataStatus">-</strong><span>Circuito</span></div>
                     </div>
+                    <div class="rs-home-live-source"><a href="https://openf1.org" target="_blank" rel="noopener noreferrer">OpenF1 <span aria-hidden="true">&#8599;</span></a></div>
                     <a class="rs-button rs-button--primary" href="/live.html">Entrar al Live Center</a>
                 </article>
 
@@ -125,7 +137,7 @@
                         <button type="button" data-term="ERS">ERS</button>
                     </div>
                     <p id="glossaryText">Safety Car: Coche de seguridad que reduce el ritmo y junta a los pilotos cuando hay peligro en pista.</p>
-                    <a class="rs-link-chip rs-home-help__link" href="/help.html">Abrir glosario</a>
+                    <a class="rs-link-chip rs-home-help__link" href="/help.html">Ayuda</a>
                 </article>
             </section>
 
@@ -205,6 +217,7 @@
 </div>
 
 <script src="/js/nav.js"></script>
+<script src="/js/f1-assets.js"></script>
 <script src="/js/home.js"></script>
 </body>
 </html>

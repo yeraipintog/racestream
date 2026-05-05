@@ -846,7 +846,7 @@ class RaceStreamCalendarPage {
                 <span class="rs-race-strip__clock-divider"></span>
 
                 <div class="rs-race-strip__clock-row">
-                    <span class="rs-race-strip__clock-subvalue">HORA CIRCUITO</span>
+                    <span class="rs-race-strip__clock-subvalue">CIRCUITO</span>
                     <span class="rs-race-strip__clock-track-value">${this.getCircuitNowTime(topMeeting.gmt_offset)}</span>
                 </div>
             </div>
@@ -1258,12 +1258,14 @@ class RaceStreamCalendarPage {
                             <span>${meeting.meeting_name ?? '-'}</span>
                         </h5>
                         <div class="rs-calendar-events__side">
+                            ${this.renderFavoriteButton('GP', meeting.meeting_key, meeting.meeting_name || 'Gran Premio', `/calendar.html?year=${this.selectedYear}&meetingKey=${meeting.meeting_key}`, `${this.formatGpDateRange(meeting)} · ${meeting.circuit_short_name || meeting.location || ''}`)}
                             <span class="rs-calendar-events__date">${this.formatGpDateRange(meeting)}</span>
                         </div>
                     </div>
                 </div>
             `;
         }).join('');
+        window.RaceStreamFavorites?.bind(this.calendarEvents);
     }
 
     /**
@@ -1509,7 +1511,7 @@ class RaceStreamCalendarPage {
             const sessionDate = this.formatClientDateBadge(session.date_start);
 
             return `
-                <div class="${this.getSessionTypeClass(session.session_type)} ${sessionAction ? 'rs-session-row--has-action' : ''}">
+                <div class="${this.getSessionTypeClass(session.session_type)} rs-session-row--has-action">
                     <div class="rs-session-row__date" aria-label="${sessionDate.label}">
                         <strong>${sessionDate.day}</strong>
                         <span>${sessionDate.month}</span>
@@ -1524,12 +1526,15 @@ class RaceStreamCalendarPage {
                     </div>
 
                     <div class="rs-session-row__time rs-session-row__time--schedule">
-                        <span class="rs-session-row__time-label">Horario</span>
+                        <span class="rs-session-row__time-label">Mi hora</span>
                         <span class="rs-session-row__time-value rs-session-row__time-value--client">Cliente ${this.formatClientDateTimeRange(session.date_start, session.date_end)}</span>
                         <span class="rs-session-row__time-value">Circuito ${this.formatTimeOnly(session.date_start, meeting.gmt_offset, true)} - ${this.formatTimeOnly(session.date_end, meeting.gmt_offset, true)}</span>
                     </div>
 
-                    ${sessionAction ? `<div class="rs-session-row__actions">${sessionAction}</div>` : ''}
+                    <div class="rs-session-row__actions">
+                        ${this.renderFavoriteButton('Sesión', session.session_key || `${meeting.meeting_key}-${index}`, `${meeting.meeting_name || 'GP'} · ${this.translateSessionName(session.session_name)}`, `/sessions.html?year=${this.selectedYear}&meetingKey=${meeting.meeting_key}&sessionIndex=${index}${session.session_key ? `&sessionKey=${session.session_key}` : ''}`, `${this.formatClientDateTimeRange(session.date_start, session.date_end)} · ${this.translateSessionType(session.session_type)}`)}
+                        ${sessionAction || ''}
+                    </div>
                 </div>
             `;
         }).join('');
@@ -1542,6 +1547,13 @@ class RaceStreamCalendarPage {
                 </div>
             </div>
         `;
+        window.RaceStreamFavorites?.bind(this.sessionsContent);
+    }
+
+    renderFavoriteButton(type, externalId, title, url, description) {
+        return window.RaceStreamFavorites
+            ? window.RaceStreamFavorites.button({ type, externalId, title, url, description })
+            : '';
     }
 }
 /**

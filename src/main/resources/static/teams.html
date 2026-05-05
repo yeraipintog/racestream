@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RaceStream - En Vivo F1</title>
+    <title>RaceStream - Escuderías F1</title>
     <link rel="icon" type="image/png" href="/assets/img/LogoRS2.png">
+
     <link rel="stylesheet" href="/css/variables.css">
     <link rel="stylesheet" href="/css/base.css">
     <link rel="stylesheet" href="/css/layout.css">
     <link rel="stylesheet" href="/css/components.css">
-    <link rel="stylesheet" href="/css/live.css">
+    <link rel="stylesheet" href="/css/participants.css">
 </head>
-<body>
+<body data-rs-page="teams">
 <div class="rs-page-shell">
     <header class="rs-navbar" id="mainNavbar">
         <div class="rs-container rs-navbar__inner">
@@ -73,37 +74,21 @@
         </div>
     </section>
 
-    <main class="rs-main rs-live-page">
+    <main class="rs-main">
         <div class="rs-container">
-            <section class="rs-live-hero">
-                <div class="rs-live-hero__heading">
-                    <h1>Fórmula 1 En Vivo</h1>
-                    <div id="liveTitleStatus" class="rs-live-title-status"></div>
+            <section class="rs-calendar-topbar rs-participants-topbar" aria-label="Filtro de escuderías">
+                <div class="rs-calendar-topbar__left">
+                    <h1 class="rs-calendar-topbar__title">Escuderías Fórmula 1</h1>
+                    <div class="rs-calendar-topbar__controls">
+                        <div class="rs-select-wrap rs-select-wrap--inline">
+                            <select id="participantsYearInput" aria-label="Seleccionar temporada"></select>
+                        </div>
+                    </div>
                 </div>
-                <p class="rs-live-hero__description">Seguimiento de sesión con posiciones, gaps, clima, dirección de carrera, pits, neumáticos, radios, vueltas, adelantamientos y telemetría disponible desde OpenF1.</p>
-                <div class="rs-live-hero__divider" aria-hidden="true"></div>
-                <div class="rs-live-hero__status" id="liveStatusCard">
-                    <p class="loading-state">Cargando sesión en vivo...</p>
-                </div>
+                <div id="participantsSeasonMeta" class="rs-calendar-topbar__selected">Temporada</div>
             </section>
 
-            <section class="rs-live-grid">
-                <article class="rs-live-card rs-live-card--wide">
-                    <div class="rs-live-card__head"><h2>Leaderboard</h2><span id="leaderboardCount">-</span></div>
-                    <div id="leaderboard" class="rs-live-table-wrap"></div>
-                </article>
-                <article class="rs-live-card"><div class="rs-live-card__head"><h2>Clima</h2></div><div id="weatherPanel"></div></article>
-                <article class="rs-live-card"><div class="rs-live-card__head"><h2>Dirección de carrera</h2></div><div id="raceControlPanel"></div></article>
-                <article class="rs-live-card"><div class="rs-live-card__head"><h2>Neumáticos y stints</h2></div><div id="stintsPanel"></div></article>
-                <article class="rs-live-card"><div class="rs-live-card__head"><h2>Paradas en boxes</h2></div><div id="pitPanel"></div></article>
-                <article class="rs-live-card"><div class="rs-live-card__head"><h2>Team radio</h2></div><div id="radioPanel"></div></article>
-                <article class="rs-live-card"><div class="rs-live-card__head"><h2>Vueltas</h2></div><div id="lapsPanel"></div></article>
-                <article class="rs-live-card"><div class="rs-live-card__head"><h2>Adelantamientos</h2></div><div id="overtakesPanel"></div></article>
-                <article class="rs-live-card"><div class="rs-live-card__head"><h2>Parrilla</h2></div><div id="gridPanel"></div></article>
-                <article class="rs-live-card"><div class="rs-live-card__head"><h2>Campeonato</h2></div><div id="championshipPanel"></div></article>
-                <article class="rs-live-card"><div class="rs-live-card__head"><h2>Sectores</h2></div><div id="sectorsPanel"></div></article>
-                <article class="rs-live-card rs-live-card--wide"><div class="rs-live-card__head"><h2>Telemetría y mapa</h2><span>Datos brutos interpretados</span></div><div id="telemetryPanel"></div></article>
-            </section>
+            <section id="participantsGrid" class="rs-participants-grid" aria-label="Listado de escuderías"></section>
         </div>
     </main>
 
@@ -114,7 +99,6 @@
                     <img class="rs-footer__logo" src="/assets/img/LogoRS2.png" alt="Logotipo de RaceStream">
                     <h3 class="rs-footer__title">RaceStream</h3>
                 </div>
-
                 <div class="rs-footer__column">
                     <h3>Soporte</h3>
                     <div class="rs-footer__links">
@@ -124,7 +108,6 @@
                         <a href="/contact.html">Contacto</a>
                     </div>
                 </div>
-
                 <div class="rs-footer__column">
                     <h3>Cuenta</h3>
                     <div class="rs-footer__links">
@@ -135,7 +118,6 @@
                     </div>
                 </div>
             </div>
-
             <div class="rs-footer__bottom">
                 <span>&copy; 2026 RaceStream. Todos los derechos reservados.</span>
                 <div class="rs-footer__bottom-links">
@@ -149,6 +131,9 @@
 </div>
 
 <script src="/js/nav.js"></script>
-<script src="/js/live.js"></script>
+<script src="/js/race-strip.js"></script>
+<script src="/js/f1-assets.js"></script>
+<script src="/js/favorites.js"></script>
+<script src="/js/participants.js"></script>
 </body>
 </html>

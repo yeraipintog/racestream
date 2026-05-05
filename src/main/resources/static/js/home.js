@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.3
+ * @version 1.2.0
  * @created 30-04-2026
- * @modified 03-05-2026
- * @description Lógica de Inicio con contadores estables, carga segura, clasificaciones, GNews filtrado y ayuda contextual
+ * @modified 05-05-2026
+ * @description Lógica de Inicio con contadores estables, última sesión, carga segura, placeholders de piloto y ayuda contextual
  */
 class RaceStreamHomePage {
 
@@ -16,9 +16,12 @@ class RaceStreamHomePage {
      * @description Constructor principal de Inicio
      */
     constructor() {
+        this.assets = window.RaceStreamF1Assets;
         this.year = new Date().getFullYear();
         this.meetingsApi = `/api/f1/schedule/calendar-meetings?year=${this.year}`;
         this.sessionsByMeetingApi = (meetingKey) => `/api/f1/schedule/meetings/${meetingKey}/sessions`;
+        this.resultsApi = (sessionKey) => `/api/f1/session-results?sessionKey=${sessionKey}`;
+        this.driversApi = (sessionKey) => `/api/f1/drivers?sessionKey=${sessionKey}`;
         this.driverStandingsApi = `/api/f1/standings/drivers?year=${this.year}`;
         this.constructorStandingsApi = `/api/f1/standings/constructors?year=${this.year}`;
         this.newsApi = '/api/news/f1?limit=10';
@@ -63,6 +66,9 @@ class RaceStreamHomePage {
         this.liveNextName = document.getElementById('liveNextName');
         this.liveNextTime = document.getElementById('liveNextTime');
         this.liveDataStatus = document.getElementById('liveDataStatus');
+        this.lastSessionTitle = document.getElementById('lastSessionTitle');
+        this.lastSessionLink = document.getElementById('lastSessionLink');
+        this.lastSessionResults = document.getElementById('lastSessionResults');
         this.driversStandings = document.getElementById('driversStandings');
         this.teamsStandings = document.getElementById('teamsStandings');
         this.homeNews = document.getElementById('homeNews');
@@ -115,6 +121,7 @@ class RaceStreamHomePage {
         this.updateNavbarOffset();
         this.renderFallbackBlocks();
         this.loadHomeData();
+        this.loadLastSession();
         this.loadStandings();
         this.loadNews();
         this.showGlossaryTerm('SC');
@@ -269,7 +276,54 @@ class RaceStreamHomePage {
         const session = this.nextSession;
         this.liveNextName.textContent = session ? this.translateSessionName(session.session_name) : 'Sin sesión';
         this.liveNextTime.textContent = session ? this.formatTimeOnly(session.date_start) : '-';
-        this.liveDataStatus.textContent = session ? 'OpenF1 listo' : 'Pendiente';
+        this.liveDataStatus.textContent = session ? this.formatCircuitTimeOnly(session.date_start, this.nextMeeting?.gmt_offset) : '-';
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 05-05-2026
+     * @description Carga la ultima sesion completada con resultados reales antes de mostrarla
+     */
+    async loadLastSession() {
+        if (!this.lastSessionResults) return;
+        const meetings = await this.fetchJson(this.meetingsApi, []);
+        const completedMeetings = (Array.isArray(meetings) ? meetings : [])
+            .filter((meeting) => Number(meeting.meeting_key) > 0 && new Date(meeting.date_end).getTime() < Date.now())
+            .sort((left, right) => new Date(right.date_end).getTime() - new Date(left.date_end).getTime())
+            .slice(0, 4);
+
+        for (const meeting of completedMeetings) {
+            const sessions = await this.fetchJson(this.sessionsByMeetingApi(meeting.meeting_key), []);
+            const completedSessions = (Array.isArray(sessions) ? sessions : [])
+                .filter((session) => session.session_key && new Date(session.date_end).getTime() < Date.now())
+                .sort((left, right) => new Date(right.date_end).getTime() - new Date(left.date_end).getTime());
+            for (const session of completedSessions) {
+                const results = await this.fetchJson(this.resultsApi(session.session_key), []);
+                if (!Array.isArray(results) || !results.length) continue;
+                const drivers = await this.fetchJson(this.driversApi(session.session_key), []);
+                this.renderLastSession(meeting, session, results, Array.isArray(drivers) ? drivers : []);
+                return;
+            }
+        }
+
+        this.lastSessionTitle.textContent = 'Última sesión no disponible';
+        this.lastSessionResults.innerHTML = '<span class="empty-state">OpenF1 todavía no ofrece resultados recientes.</span>';
+    }
+
+    renderLastSession(meeting, session, results, drivers) {
+        const driverMap = new Map(drivers.map((driver) => [Number(driver.driver_number), driver]));
+        const sorted = [...results].sort((left, right) => (Number(left.position) || 999) - (Number(right.position) || 999));
+        this.lastSessionTitle.textContent = `${meeting.meeting_name || 'Gran Premio'} · ${this.translateSessionName(session.session_name)}`;
+        this.lastSessionLink.href = `/sessions.html?year=${this.year}&meetingKey=${meeting.meeting_key}&sessionKey=${session.session_key}`;
+        this.lastSessionResults.innerHTML = sorted.map((row, index) => {
+            const driver = driverMap.get(Number(row.driver_number)) || {};
+            const name = driver.full_name || row.full_name || `Piloto ${row.driver_number || ''}`;
+            const shortName = this.formatShortDriverName(name);
+            const color = this.resolveTeamColor(driver.team_name || row.team_name);
+            return `<span class="rs-home-last-session__driver" style="--team-color:${color}"><strong>${row.position || index + 1}</strong><span>${shortName}</span></span>`;
+        }).join('');
     }
 
     /**
@@ -379,21 +433,25 @@ class RaceStreamHomePage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 30-04-2026
-     * @modified 30-04-2026
-     * @description Renderiza un ranking compacto
+     * @modified 04-05-2026
+     * @description Renderiza un ranking compacto con placeholder gris cuando falta la foto del piloto
      * @param {HTMLElement} target Contenedor
      * @param {Array} rows Filas
      */
     renderRanking(target, rows) {
         target.innerHTML = rows.map(([position, name, meta, points, sourceUrl, type]) => {
             const mediaEndpoint = `${sourceUrl || ''}`.startsWith('/api/f1/media/driver') ? sourceUrl : '';
-            const imageUrl = mediaEndpoint ? '' : (sourceUrl || '/assets/img/LogoRS2.png');
+            const imageUrl = mediaEndpoint ? '' : (sourceUrl || (type === 'driver' ? '' : '/assets/img/LogoRS2.png'));
+            const fallbackClass = type === 'driver' && !imageUrl && !mediaEndpoint ? ' rs-person-avatar--fallback' : '';
+            const avatarClass = type === 'driver' ? ' rs-person-avatar' : '';
+            const driverError = "this.onerror=null;this.closest('.rs-home-ranking__media').classList.add('rs-person-avatar--fallback');this.removeAttribute('src');";
+            const teamError = "this.closest('.rs-home-ranking__media').classList.add('rs-home-ranking__media--fallback');this.src='/assets/img/LogoRS2.png';";
             return `
             <div class="rs-home-ranking__row">
                 <span class="rs-home-ranking__pos">${position}</span>
-                <span class="rs-home-ranking__media rs-home-ranking__media--${type}"><img class="rs-home-ranking__image ${type === 'constructor' ? 'rs-home-ranking__image--team' : ''}" ${imageUrl ? `src="${imageUrl}"` : ''} data-media-url="${mediaEndpoint}" alt="Imagen de ${name}" loading="lazy" onerror="this.closest('.rs-home-ranking__media').classList.add('rs-home-ranking__media--fallback'); this.src='/assets/img/LogoRS2.png';"></span>
+                <span class="rs-home-ranking__media rs-home-ranking__media--${type}${avatarClass}${fallbackClass}"><img class="rs-home-ranking__image ${type === 'constructor' ? 'rs-home-ranking__image--team' : ''}" ${imageUrl ? `src="${imageUrl}"` : ''} data-media-url="${mediaEndpoint}" alt="Imagen de ${name}" loading="lazy" onerror="${type === 'driver' ? driverError : teamError}"></span>
                 <div class="rs-home-ranking__content">
                     <strong>${name}</strong>
                     <span class="rs-home-ranking__meta">${meta}</span>
@@ -408,8 +466,9 @@ class RaceStreamHomePage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 30-04-2026
+     * @modified 04-05-2026
      * @description Sustituye el placeholder de pilotos por la foto real devuelta por OpenF1
      * @param {HTMLElement} target Contenedor del ranking
      */
@@ -422,18 +481,18 @@ class RaceStreamHomePage {
                 this.loadImage(media.headshotUrl)
                     .then(() => {
                         image.src = media.headshotUrl;
-                        mediaBox?.classList.remove('rs-home-ranking__media--loading', 'rs-home-ranking__media--fallback');
+                        mediaBox?.classList.remove('rs-home-ranking__media--loading', 'rs-home-ranking__media--fallback', 'rs-person-avatar--fallback');
                     })
                     .catch(() => {
-                        image.src = '/assets/img/LogoRS2.png';
+                        image.removeAttribute('src');
                         mediaBox?.classList.remove('rs-home-ranking__media--loading');
-                        mediaBox?.classList.add('rs-home-ranking__media--fallback');
+                        mediaBox?.classList.add('rs-person-avatar--fallback');
                     });
                 return;
             }
-            image.src = '/assets/img/LogoRS2.png';
+            image.removeAttribute('src');
             mediaBox?.classList.remove('rs-home-ranking__media--loading');
-            mediaBox?.classList.add('rs-home-ranking__media--fallback');
+            mediaBox?.classList.add('rs-person-avatar--fallback');
         });
     }
 
@@ -468,7 +527,7 @@ class RaceStreamHomePage {
                 <div class="rs-race-strip__clock-card">
                     <div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-label">MI HORA</span><strong class="rs-race-strip__clock-value">${this.getNowTime()}</strong></div>
                     <div class="rs-race-strip__clock-divider"></div>
-                    <div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-subvalue">HORA CIRCUITO</span><strong class="rs-race-strip__clock-track-value">${this.getCircuitNowTime(this.nextMeeting.gmt_offset)}</strong></div>
+                    <div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-subvalue">CIRCUITO</span><strong class="rs-race-strip__clock-track-value">${this.getCircuitNowTime(this.nextMeeting.gmt_offset)}</strong></div>
                 </div>
             `;
         }
@@ -546,6 +605,14 @@ class RaceStreamHomePage {
             return '-';
         }
         return new Date(value).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    formatCircuitTimeOnly(value, gmtOffset) {
+        if (!value) {
+            return '-';
+        }
+        const date = new Date(new Date(value).getTime() + this.parseGmtOffsetToMinutes(gmtOffset || '+00:00') * 60000);
+        return `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}`;
     }
 
     formatDateRange(startValue, endValue) {
@@ -642,6 +709,24 @@ class RaceStreamHomePage {
         const team = teams[key] || key;
         const file = team.replace(/-/g, '');
         return `https://media.formula1.com/image/upload/c_lfill,w_48/q_auto/v1740000001/common/f1/2026/${team}/2026${file}logowhite.webp`;
+    }
+
+    formatShortDriverName(value) {
+        const parts = `${value || ''}`.trim().split(/\s+/).filter(Boolean);
+        if (parts.length < 2) return value || '-';
+        return `${parts[0].charAt(0)}. ${parts.slice(1).join(' ')}`;
+    }
+
+    resolveTeamColor(value) {
+        if (this.assets) {
+            return this.assets.getTeamColor({ name: value }, this.year);
+        }
+        const key = `${value || ''}`.toLowerCase();
+        if (key.includes('ferrari')) return '#e8002d';
+        if (key.includes('mclaren')) return '#ff8000';
+        if (key.includes('red bull')) return '#1e5bc6';
+        if (key.includes('mercedes')) return '#00a19c';
+        return '#64748b';
     }
 
     /**

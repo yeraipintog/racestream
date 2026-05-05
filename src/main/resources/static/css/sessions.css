@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.0
+ * @version 1.4.0
  * @created 30-04-2026
- * @modified 03-05-2026
- * @description Estilos responsive de Sesiones con título compacto, selector tipo calendario y botones estables
+ * @modified 05-05-2026
+ * @description Estilos responsive de Sesiones con título compacto, podios, placeholder de pilotos y tarjetas desplegables
  */
 
 .rs-sessions-head {
@@ -12,6 +12,7 @@
 }
 
 .rs-sessions-select {
+    display: block;
     width: auto;
     min-width: 220px;
     flex: 0 1 320px;
@@ -27,9 +28,8 @@
 
 .rs-sessions-selected-title {
     margin: 0 0 18px;
-    padding-top: 16px;
+    padding-top: 0;
     padding-bottom: 0;
-    border-top: 1px solid rgba(255, 255, 255, .08);
     color: #fff;
     font-size: clamp(18px, 4.6vw, 28px);
     font-weight: 900;
@@ -43,6 +43,7 @@
         "details details details";
     align-items: center;
     row-gap: 0;
+    cursor: pointer;
 }
 
 .rs-session-row__summary {
@@ -55,18 +56,37 @@
     flex-wrap: nowrap;
 }
 
-.rs-session-row__toggle {
-    flex: 0 0 auto;
-    width: max-content;
-    min-width: 86px;
-    min-inline-size: max-content;
-    white-space: nowrap;
-    word-break: keep-all;
-    line-height: 1;
-}
-
 .rs-session-row__pending {
     color: var(--rs-text-muted);
+}
+
+.rs-session-podium {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: max-content;
+}
+
+.rs-session-podium__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.rs-session-podium__item .rs-person-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: transparent;
+}
+
+.rs-session-podium__item img {
+    object-fit: cover;
+    object-position: center top;
 }
 
 .rs-session-row__details {
@@ -120,7 +140,14 @@
     height: 34px;
     border-radius: 9px;
     object-fit: cover;
+    object-position: center top;
     background: rgba(255, 255, 255, .06);
+}
+
+.rs-session-driver__avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
 }
 
 @media (max-width: 820px) {
@@ -137,19 +164,24 @@
     }
 
     .rs-session-row {
-        grid-template-columns: 48px minmax(0, 1fr) max-content;
+        grid-template-columns: 48px minmax(0, 1fr);
+        grid-template-areas:
+            "date main"
+            "date summary"
+            "details details";
         gap: 10px;
         padding: 12px;
     }
 
     .rs-session-row__summary {
-        justify-content: flex-end;
+        justify-content: flex-start;
         min-width: 0;
+        flex-wrap: wrap;
     }
 
-    .rs-session-row__toggle {
-        min-width: 112px;
-        padding-inline: 10px;
+    .rs-session-podium {
+        min-width: 0;
+        flex-wrap: wrap;
     }
 
     .rs-session-row__main h4 {

@@ -1,9 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.0
+ * @version 1.0.1
  * @created 30-04-2026
- * @description Controlador REST para exponer clasificaciones de Formula 1 desde Jolpica
+ * @modified 04-05-2026
+ * @description Controlador REST para exponer clasificaciones, temporadas y resultados de Formula 1 desde Jolpica
  */
 package com.yerai.racestream.controller;
 
@@ -60,5 +61,32 @@ public class F1StandingsController {
     @GetMapping("/constructors")
     public JsonNode getConstructorStandings(@RequestParam(defaultValue = "2026") Integer year) {
         return jolpicaService.getConstructorStandingsByYear(year);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 04-05-2026
+     * @description Devuelve las temporadas disponibles para filtros historicos
+     * @return Temporadas disponibles
+     */
+    @GetMapping("/seasons")
+    public JsonNode getAvailableSeasons() {
+        return jolpicaService.getAvailableSeasons();
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 04-05-2026
+     * @description Devuelve carreras con resultados para detalles de clasificacion
+     * @param year Temporada
+     * @return Carreras con resultados oficiales
+     */
+    @GetMapping("/race-results")
+    public JsonNode getRaceResults(@RequestParam(defaultValue = "2026") Integer year) {
+        return jolpicaService.getRaceResultsByYear(year);
     }
 }

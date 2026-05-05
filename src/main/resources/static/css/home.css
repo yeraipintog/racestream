@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.3
+ * @version 1.2.1
  * @created 30-04-2026
- * @modified 04-05-2026
- * @description Estilos responsive de Inicio con rankings compactos, imágenes F1 2026 y noticias visuales
+ * @modified 05-05-2026
+ * @description Estilos responsive de Inicio con última sesión, rankings compactos, placeholder de pilotos e imágenes F1 2026
  */
 
 .rs-home {
@@ -164,6 +164,73 @@
     gap: 22px;
 }
 
+.rs-home-last-session {
+    margin-top: 24px;
+    padding: 14px 16px;
+    border: 1px solid var(--rs-border);
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(17, 24, 39, .96), rgba(12, 18, 30, .96));
+    box-shadow: var(--rs-shadow-md);
+}
+
+.rs-home-last-session__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 12px;
+}
+
+.rs-home-last-session__head div {
+    min-width: 0;
+}
+
+.rs-home-last-session__head span {
+    display: block;
+    color: #ffcdcd;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.rs-home-last-session__head strong {
+    display: block;
+    margin-top: 4px;
+    color: #fff;
+    font-size: 17px;
+    font-weight: 900;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rs-home-last-session__results {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding-bottom: 4px;
+}
+
+.rs-home-last-session__driver {
+    flex: 0 0 auto;
+    min-height: 34px;
+    padding: 0 10px;
+    border-left: 4px solid var(--team-color);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .045);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.rs-home-last-session__driver strong {
+    color: #fff;
+}
+
 .rs-home-grid {
     grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr);
     margin-top: 24px;
@@ -177,6 +244,25 @@
     background:
         linear-gradient(135deg, rgba(229, 57, 53, .18), rgba(56, 189, 248, .08)),
         linear-gradient(180deg, rgba(17, 24, 39, .96), rgba(12, 18, 30, .96));
+    display: flex;
+    flex-direction: column;
+}
+
+.rs-home-live-source {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: auto;
+    padding-top: 12px;
+}
+
+.rs-home-live-source a {
+    color: var(--rs-text-soft);
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.rs-home-live-source a:hover {
+    color: #fff;
 }
 
 .rs-home-live-grid {
@@ -302,6 +388,10 @@
     background: rgba(255, 255, 255, .06);
     position: relative;
     overflow: hidden;
+}
+
+.rs-home-ranking__media--driver.rs-person-avatar--fallback {
+    border: 1px solid rgba(255, 255, 255, .16);
 }
 
 .rs-home-ranking__image {
@@ -434,6 +524,11 @@
     .rs-home-standings,
     .rs-home-news {
         grid-template-columns: 1fr;
+    }
+
+    .rs-home-last-session__head {
+        align-items: flex-start;
+        flex-direction: column;
     }
 
     .rs-home-live-grid,
