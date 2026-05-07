@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.0
+ * @version 1.1.3
  * @created 05-05-2026
- * @modified 05-05-2026
- * @description API privada de cuenta, preferencias y privacidad
+ * @modified 07-05-2026
+ * @description API privada de cuenta, preferencias de avisos y privacidad
  */
 package com.yerai.racestream.controller;
 
@@ -35,9 +35,10 @@ public class UserController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.3
      * @created 05-05-2026
-     * @description Actualiza nombre y preferencias de usuario
+     * @modified 07-05-2026
+     * @description Actualiza nombre de usuario y preferencias de avisos del usuario
      * @param request Datos editables
      * @param authentication Sesion actual
      * @return Usuario actualizado
@@ -45,7 +46,13 @@ public class UserController {
     @PutMapping("/profile")
     public ResponseEntity<?> profile(@RequestBody ProfileRequest request, Authentication authentication) {
         AppUser user = currentUser(authentication);
-        if (request.name() != null && !request.name().isBlank()) user.setName(request.name().trim());
+        if (request.name() != null && !request.name().isBlank()) {
+            String name = request.name().trim();
+            if (!name.equalsIgnoreCase(user.getName()) && appUserRepository.existsByNameIgnoreCase(name)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Ya existe una cuenta con ese nombre de usuario"));
+            }
+            user.setName(name);
+        }
         if (request.email() != null && !request.email().isBlank()) {
             String email = request.email().trim().toLowerCase();
             if (!email.equalsIgnoreCase(user.getEmail()) && appUserRepository.existsByEmailIgnoreCase(email)) {
@@ -54,6 +61,9 @@ public class UserController {
             user.setEmail(email);
         }
         if (request.notificationsEnabled() != null) user.setNotificationsEnabled(request.notificationsEnabled());
+        if (request.emailNotificationsEnabled() != null) user.setEmailNotificationsEnabled(request.emailNotificationsEnabled());
+        if (request.favoriteDigestEnabled() != null) user.setFavoriteDigestEnabled(request.favoriteDigestEnabled());
+        if (request.favoriteDigestEmailEnabled() != null) user.setFavoriteDigestEmailEnabled(request.favoriteDigestEmailEnabled());
         if (request.privateProfile() != null) user.setPrivateProfile(request.privateProfile());
         appUserRepository.save(user);
         return ResponseEntity.ok(Map.of("saved", true));
@@ -93,6 +103,7 @@ public class UserController {
                 && password.matches(".*[^A-Za-z0-9].*");
     }
 
-    public record ProfileRequest(String name, String email, Boolean notificationsEnabled, Boolean privateProfile) {}
+    public record ProfileRequest(String name, String email, Boolean notificationsEnabled, Boolean emailNotificationsEnabled,
+            Boolean favoriteDigestEnabled, Boolean favoriteDigestEmailEnabled, Boolean privateProfile) {}
     public record PasswordRequest(String password) {}
 }

@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.0
+ * @version 1.2.4
  * @created 30-04-2026
- * @modified 05-05-2026
- * @description Lógica de Inicio con contadores estables, última sesión, carga segura, placeholders de piloto y ayuda contextual
+ * @modified 07-05-2026
+ * @description Logica de Inicio con contadores estables, ultima sesion, carga segura, placeholders de piloto y ayuda contextual
  */
 class RaceStreamHomePage {
 
@@ -44,8 +44,9 @@ class RaceStreamHomePage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 30-04-2026
+     * @modified 07-05-2026
      * @description Cachea los elementos usados por Inicio
      */
     cacheDom() {
@@ -54,11 +55,6 @@ class RaceStreamHomePage {
         this.profileTrigger = this.profileDropdown?.querySelector('.rs-profile-dropdown__trigger');
         this.mobileMenuDropdown = document.getElementById('mobileMenuDropdown');
         this.mobileMenuTrigger = this.mobileMenuDropdown?.querySelector('.rs-navbar__menu-trigger');
-        this.raceStripTitle = document.getElementById('raceStripTitle');
-        this.raceStripMeta = document.getElementById('raceStripMeta');
-        this.raceStripClocks = document.getElementById('raceStripClocks');
-        this.raceStripAction = document.getElementById('raceStripAction');
-        this.raceStripFlag = document.getElementById('raceStripFlag');
         this.heroSessionStatus = document.getElementById('heroSessionStatus');
         this.heroSessionTitle = document.getElementById('heroSessionTitle');
         this.heroSessionMeta = document.getElementById('heroSessionMeta');
@@ -83,21 +79,21 @@ class RaceStreamHomePage {
      * @description Asocia eventos de navegacion, scroll y glosario
      */
     bindEvents() {
-        this.profileTrigger?.addEventListener('click', (event) => {
+        if (!this.profileDropdown?.dataset.rsDropdownBound) this.profileTrigger?.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
             this.profileDropdown.classList.toggle('rs-profile-dropdown--open');
             this.mobileMenuDropdown?.classList.remove('rs-navbar-mobile-menu--open');
         });
 
-        this.mobileMenuTrigger?.addEventListener('click', (event) => {
+        if (!this.mobileMenuDropdown?.dataset.rsDropdownBound) this.mobileMenuTrigger?.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
             this.mobileMenuDropdown.classList.toggle('rs-navbar-mobile-menu--open');
             this.profileDropdown?.classList.remove('rs-profile-dropdown--open');
         });
 
-        document.addEventListener('click', () => {
+        if (!document.body.dataset.rsDropdownCloseBound) document.addEventListener('click', () => {
             this.profileDropdown?.classList.remove('rs-profile-dropdown--open');
             this.mobileMenuDropdown?.classList.remove('rs-navbar-mobile-menu--open');
         });
@@ -168,15 +164,15 @@ class RaceStreamHomePage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 30-04-2026
+     * @modified 07-05-2026
      * @description Carga calendario y calcula próximo GP/sesión
      */
     async loadHomeData() {
         const meetings = await this.fetchJson(this.meetingsApi, []);
         const safeMeetings = Array.isArray(meetings) ? meetings : [];
         this.nextMeeting = this.getCurrentOrNextMeeting(safeMeetings);
-        this.updateRaceStrip();
         await this.loadNextSession();
         this.renderHeroSession();
         this.renderLiveSummary();
@@ -220,30 +216,6 @@ class RaceStreamHomePage {
      * @since 1.0
      * @version 1.0.0
      * @created 30-04-2026
-     * @description Actualiza la franja fija de proximo GP
-     */
-    updateRaceStrip() {
-        if (!this.nextMeeting) {
-            this.raceStripTitle.textContent = 'Calendario no disponible';
-            this.raceStripMeta.textContent = 'Revisa la conexión con APIs';
-            this.raceStripClocks.textContent = '-';
-            return;
-        }
-
-        this.raceStripTitle.textContent = this.nextMeeting.meeting_name || 'Gran Premio';
-        this.raceStripMeta.textContent = this.formatDateRange(this.nextMeeting.date_start, this.nextMeeting.date_end);
-        this.raceStripAction.innerHTML = `<a class="rs-race-strip__status" href="/calendar.html">Ver GP</a>`;
-        this.raceStripFlag.style.display = this.nextMeeting.country_flag ? 'block' : 'none';
-        if (this.nextMeeting.country_flag) {
-            this.raceStripFlag.src = this.nextMeeting.country_flag;
-        }
-    }
-
-    /**
-     * @author Yerai Pinto
-     * @since 1.0
-     * @version 1.0.0
-     * @created 30-04-2026
      * @description Renderiza la tarjeta principal de próxima sesión
      */
     renderHeroSession() {
@@ -251,8 +223,8 @@ class RaceStreamHomePage {
         const meeting = this.nextMeeting;
 
         if (!meeting) {
-            this.heroSessionTitle.textContent = 'No hay calendario cargado';
-            this.heroSessionMeta.textContent = 'El inicio queda preparado para mostrar el siguiente GP cuando responda la API.';
+            this.heroSessionTitle.textContent = 'Recarga forzada';
+            this.heroSessionMeta.innerHTML = 'La API debe cargar calendario. <button class="rs-link-chip" type="button" onclick="window.location.reload()">Reintentar</button>';
             return;
         }
 
@@ -348,6 +320,8 @@ class RaceStreamHomePage {
                 this.getDriverImage(row.Driver),
                 'driver'
             ]));
+        } else {
+            this.renderApiRetry(this.driversStandings, 'Pilotos');
         }
 
         if (Array.isArray(constructors) && constructors.length) {
@@ -359,6 +333,8 @@ class RaceStreamHomePage {
                 this.getConstructorLogo(row.Constructor?.constructorId || row.Constructor?.name),
                 'constructor'
             ]));
+        } else {
+            this.renderApiRetry(this.teamsStandings, 'Escuderías');
         }
 
     }
@@ -375,14 +351,7 @@ class RaceStreamHomePage {
         const news = await this.fetchJson(this.newsApi, []);
         const f1News = (Array.isArray(news) ? news : []).filter((item) => this.isFormulaOneNews(`${item.title || ''} ${item.description || ''} ${item.content || ''}`));
         if (!f1News.length) {
-            this.homeNews.innerHTML = `
-                <article class="rs-home-news__item">
-                    <img class="rs-home-news__image" src="/assets/img/LogoRS2.png" alt="Noticias RaceStream">
-                    <div class="rs-home-news__body">
-                        <h3>Noticias no disponibles</h3>
-                    </div>
-                </article>
-            `;
+            this.renderApiRetry(this.homeNews, 'Noticias');
             return;
         }
 
@@ -406,28 +375,31 @@ class RaceStreamHomePage {
      * @since 1.0
      * @version 1.0.0
      * @created 30-04-2026
-     * @description Renderiza bloques con datos internos temporales
+     * @description Renderiza estados de espera mientras llegan datos reales
      */
     renderFallbackBlocks() {
-        this.renderRanking(this.driversStandings, [
-            ['1', 'Pendiente de API Jolpica', 'Clasificación real', '-', '', 'driver'],
-            ['2', 'Favoritos del usuario', 'Próxima mejora', '-', '', 'driver'],
-            ['3', 'Evolución temporal', 'Próxima mejora', '-', '', 'driver']
-        ]);
-        this.renderRanking(this.teamsStandings, [
-            ['1', 'Pendiente de API Jolpica', 'Constructores', '-', '', 'constructor'],
-            ['2', 'Comparativa visual', 'Próxima mejora', '-', '', 'constructor'],
-            ['3', 'Racha reciente', 'Próxima mejora', '-', '', 'constructor']
-        ]);
-        this.homeNews.innerHTML = [
-            'RaceStream prepara el Live Center',
-            'Calendario enriquecido',
-            'Glosario integrado'
-        ].map((title) => `
-            <article class="rs-home-news__item">
-                <h3>${title}</h3>
-            </article>
-        `).join('');
+        this.driversStandings.innerHTML = '<div class="loading-state">Cargando datos oficiales...</div>';
+        this.teamsStandings.innerHTML = '<div class="loading-state">Cargando datos oficiales...</div>';
+        this.homeNews.innerHTML = '<div class="loading-state">Cargando noticias...</div>';
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 07-05-2026
+     * @description Muestra recarga manual cuando falta una carga obligatoria de API
+     * @param {HTMLElement} target Contenedor
+     * @param {string} label Datos esperados
+     */
+    renderApiRetry(target, label) {
+        target.innerHTML = `
+            <div class="rs-api-retry empty-state">
+                <strong>${label}</strong>
+                <span>Recarga forzada</span>
+                <button class="rs-button" type="button" onclick="window.location.reload()">Reintentar</button>
+            </div>
+        `;
     }
 
     /**
@@ -517,20 +489,12 @@ class RaceStreamHomePage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 30-04-2026
-     * @description Actualiza relojes y cuenta atras
+     * @modified 07-05-2026
+     * @description Actualiza la cuenta atras de Inicio sin sobrescribir la franja comun
      */
     updateDynamicTime() {
-        if (this.nextMeeting) {
-            this.raceStripClocks.innerHTML = `
-                <div class="rs-race-strip__clock-card">
-                    <div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-label">MI HORA</span><strong class="rs-race-strip__clock-value">${this.getNowTime()}</strong></div>
-                    <div class="rs-race-strip__clock-divider"></div>
-                    <div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-subvalue">CIRCUITO</span><strong class="rs-race-strip__clock-track-value">${this.getCircuitNowTime(this.nextMeeting.gmt_offset)}</strong></div>
-                </div>
-            `;
-        }
         this.heroCountdown.textContent = this.getCountdown(this.nextSession?.date_start || this.nextMeeting?.date_start);
         this.renderLiveSummary();
         this.refreshSessionIfFinished();

@@ -1,7 +1,7 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.4.0
+ * @version 1.4.3
  * @created 30-04-2026
  * @modified 05-05-2026
  * @description Estilos responsive de Sesiones con título compacto, podios, placeholder de pilotos y tarjetas desplegables
@@ -31,7 +31,7 @@
     padding-top: 0;
     padding-bottom: 0;
     color: #fff;
-    font-size: clamp(18px, 4.6vw, 28px);
+    font-size: 28px;
     font-weight: 900;
     line-height: 1.15;
 }
@@ -135,6 +135,20 @@
     padding: 4px;
 }
 
+.rs-session-team__initials {
+    width: 28px;
+    height: 28px;
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .08);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 900;
+}
+
 .rs-session-driver img {
     width: 34px;
     height: 34px;
@@ -157,6 +171,14 @@
 }
 
 @media (max-width: 560px) {
+    .rs-sessions-selected-title {
+        font-size: 20px;
+    }
+
+    .rs-sessions-select {
+        flex: none;
+    }
+
     .rs-sessions-select,
     .rs-sessions-select select {
         width: 100%;
@@ -190,5 +212,12 @@
 
     .rs-session-row__meta {
         font-size: 12px;
+    }
+
+    #sessionsList > .empty-state,
+    #sessionsList > .loading-state {
+        width: min(210px, calc(100vw - 48px));
+        max-width: 210px;
+        box-sizing: border-box;
     }
 }

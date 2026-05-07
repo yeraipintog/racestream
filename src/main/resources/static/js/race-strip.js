@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.0
+ * @version 1.2.5
  * @created 04-05-2026
- * @modified 05-05-2026
+ * @modified 07-05-2026
  * @description Carga la franja común de próximo GP con cache para no repetir llamadas al cambiar de pagina
  */
 class RaceStreamRaceStrip {
@@ -26,7 +26,7 @@ class RaceStreamRaceStrip {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 04-05-2026
      * @description Inicializa carga y refresco de relojes
      */
@@ -50,11 +50,12 @@ class RaceStreamRaceStrip {
      * @since 1.0
      * @version 1.0.0
      * @created 04-05-2026
-     * @description Activa menús de perfil y hamburguesa en páginas que solo usan scripts comunes
+     * @description Activa menús de perfil y hamburguesa si el layout común todavía no los ha enlazado
      */
     bindNavbarDropdowns() {
         const profileDropdown = document.getElementById('profileDropdown');
         const mobileMenuDropdown = document.getElementById('mobileMenuDropdown');
+        if (profileDropdown?.dataset.rsDropdownBound && mobileMenuDropdown?.dataset.rsDropdownBound) return;
         profileDropdown?.querySelector('.rs-profile-dropdown__trigger')?.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -101,8 +102,11 @@ class RaceStreamRaceStrip {
 
     render() {
         if (!this.meeting || this.meeting.isMissingNode) {
-            this.title.textContent = 'Calendario no disponible';
-            this.meta.textContent = 'Revisa la conexión con APIs';
+            this.title.textContent = 'Recarga forzada';
+            this.meta.textContent = 'Reintentar carga';
+            if (this.action) {
+                this.action.innerHTML = '<button class="rs-button" type="button" onclick="window.location.reload()">Reintentar</button>';
+            }
             this.clocks.textContent = '-';
             return;
         }
@@ -117,22 +121,40 @@ class RaceStreamRaceStrip {
 
     renderClocks() {
         if (!this.meeting) return;
-        this.clocks.innerHTML = `
-            <div class="rs-race-strip__clock-card">
-                <div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-label">MI HORA</span><strong class="rs-race-strip__clock-value">${this.getNowTime()}</strong></div>
-                <div class="rs-race-strip__clock-divider"></div>
-                <div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-subvalue">CIRCUITO</span><strong class="rs-race-strip__clock-track-value">${this.getCircuitNowTime(this.meeting.gmt_offset)}</strong></div>
-            </div>
-        `;
+        if (!this.clocks.querySelector('.rs-race-strip__clock-card')) {
+            this.clocks.innerHTML = `
+                <div class="rs-race-strip__clock-card">
+                    <div class="rs-race-strip__clock-row">
+                        <span class="rs-race-strip__clock-label">MI HORA</span>
+                        <strong class="rs-race-strip__clock-value"></strong>
+                    </div>
+                    <div class="rs-race-strip__clock-divider"></div>
+                    <div class="rs-race-strip__clock-row">
+                        <span class="rs-race-strip__clock-subvalue">CIRCUITO</span>
+                        <strong class="rs-race-strip__clock-track-value"></strong>
+                    </div>
+                </div>
+            `;
+        }
+        this.clocks.querySelector('.rs-race-strip__clock-value').textContent = this.getNowTime();
+        this.clocks.querySelector('.rs-race-strip__clock-track-value').textContent = this.getCircuitNowTime(this.meeting.gmt_offset);
     }
 
     renderAction() {
         if (!this.meeting || !this.action) return;
         const session = this.sessions.find((item) => new Date(item.date_end).getTime() >= Date.now());
         const isLive = session && Date.now() >= new Date(session.date_start).getTime();
-        this.action.innerHTML = isLive
-            ? '<a class="rs-button rs-button--primary" href="/live.html">En Vivo</a>'
-            : `<span class="rs-race-strip__status">${this.translateSessionName(session?.session_name || 'GP')} en ${this.getCountdown(session?.date_start || this.meeting.date_start)}</span>`;
+        if (isLive) {
+            if (!this.action.querySelector('a')) this.action.innerHTML = '<a class="rs-button rs-button--primary" href="/live.html">En Vivo</a>';
+            return;
+        }
+        const label = `${this.translateSessionName(session?.session_name || 'GP')} en ${this.getCountdown(session?.date_start || this.meeting.date_start)}`;
+        const status = this.action.querySelector('.rs-race-strip__status');
+        if (status) {
+            status.textContent = label;
+        } else {
+            this.action.innerHTML = `<span class="rs-race-strip__status">${label}</span>`;
+        }
     }
 
     formatDateRange(startValue, endValue) {
@@ -167,11 +189,24 @@ class RaceStreamRaceStrip {
         const days = Math.floor(diff / 86400000);
         const hours = Math.floor((diff % 86400000) / 3600000);
         const minutes = Math.floor((diff % 3600000) / 60000);
-        return `${days}d ${hours}h ${minutes}m`;
+        const seconds = Math.floor((diff % 60000) / 1000);
+        return `${days}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
     }
 
     translateSessionName(name) {
-        return ({ 'Practice 1': 'Libres 1', 'Practice 2': 'Libres 2', 'Practice 3': 'Libres 3', 'Free Practice 1': 'Libres 1', 'Free Practice 2': 'Libres 2', 'Free Practice 3': 'Libres 3', Qualifying: 'Clasificación', Race: 'Carrera', Sprint: 'Sprint', 'Sprint Qualifying': 'Clasif. sprint', 'Sprint Shootout': 'Clasif. sprint' })[name] || name || 'Sesión';
+        return {
+            'Practice 1': 'Libres 1',
+            'Practice 2': 'Libres 2',
+            'Practice 3': 'Libres 3',
+            'Free Practice 1': 'Libres 1',
+            'Free Practice 2': 'Libres 2',
+            'Free Practice 3': 'Libres 3',
+            Qualifying: 'Clasificación',
+            Race: 'Carrera',
+            Sprint: 'Sprint',
+            'Sprint Qualifying': 'Clasif. sprint',
+            'Sprint Shootout': 'Clasif. sprint'
+        }[name] || name || 'Sesión';
     }
 
     wait(milliseconds) {
@@ -179,6 +214,24 @@ class RaceStreamRaceStrip {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    window.raceStreamRaceStrip = new RaceStreamRaceStrip();
-});
+/**
+ * @author Yerai Pinto
+ * @since 1.0
+ * @version 1.0.0
+ * @created 07-05-2026
+ * @description Evita doble refresco en paginas con franja superior propia
+ * @returns {boolean} Resultado
+ */
+const pageOwnsRaceStrip = () => Boolean(document.querySelector('.rs-live-page, .rs-sessions-page, .rs-news-page') || document.getElementById('calendarGrid'));
+
+const bootRaceStreamRaceStrip = () => {
+    if (!pageOwnsRaceStrip() && !window.raceStreamRaceStrip && document.getElementById('raceStripTitle')) {
+        window.raceStreamRaceStrip = new RaceStreamRaceStrip();
+    }
+};
+
+if (document.getElementById('raceStripTitle')) {
+    bootRaceStreamRaceStrip();
+} else {
+    document.addEventListener('DOMContentLoaded', bootRaceStreamRaceStrip, { once: true });
+}

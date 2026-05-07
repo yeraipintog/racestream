@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.5
+ * @version 1.0.6
  * @created 30-04-2026
- * @modified 03-05-2026
+ * @modified 06-05-2026
  * @description Carga y renderiza noticias completas de Fórmula 1 desde el backend RaceStream con filtro estricto
  */
 class RaceStreamNewsPage {
@@ -47,21 +47,21 @@ class RaceStreamNewsPage {
         const mobileMenuDropdown = document.getElementById('mobileMenuDropdown');
         const mobileMenuTrigger = mobileMenuDropdown?.querySelector('.rs-navbar__menu-trigger');
 
-        profileTrigger?.addEventListener('click', (event) => {
+        if (!profileDropdown?.dataset.rsDropdownBound) profileTrigger?.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
             profileDropdown.classList.toggle('rs-profile-dropdown--open');
             mobileMenuDropdown?.classList.remove('rs-navbar-mobile-menu--open');
         });
 
-        mobileMenuTrigger?.addEventListener('click', (event) => {
+        if (!mobileMenuDropdown?.dataset.rsDropdownBound) mobileMenuTrigger?.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
             mobileMenuDropdown.classList.toggle('rs-navbar-mobile-menu--open');
             profileDropdown?.classList.remove('rs-profile-dropdown--open');
         });
 
-        document.addEventListener('click', () => {
+        if (!document.body.dataset.rsDropdownCloseBound) document.addEventListener('click', () => {
             profileDropdown?.classList.remove('rs-profile-dropdown--open');
             mobileMenuDropdown?.classList.remove('rs-navbar-mobile-menu--open');
         });

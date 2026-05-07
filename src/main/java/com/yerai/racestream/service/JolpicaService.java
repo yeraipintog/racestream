@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.6
+ * @version 1.0.8
  * @created 28-04-2026
- * @modified 04-05-2026
+ * @modified 07-05-2026
  * @description Servicio para consultar Jolpica F1 con cache por temporada, calendario, clasificaciones y resultados
  * @see https://github.com/jolpica/jolpica-f1
  */
@@ -94,9 +94,10 @@ public class JolpicaService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 30-04-2026
-     * @description Obtiene la clasificacion de pilotos desde Jolpica
+     * @modified 07-05-2026
+     * @description Obtiene la clasificacion de pilotos desde Jolpica sin cachear respuestas vacias
      * @param year Temporada
      * @return Clasificacion de pilotos
      */
@@ -108,16 +109,19 @@ public class JolpicaService {
         }
 
         ArrayNode standings = getStandings(selectedYear, "driverstandings.json", "DriverStandings");
-        driverStandingsCache.put(selectedYear, standings.deepCopy());
+        if (!standings.isEmpty()) {
+            driverStandingsCache.put(selectedYear, standings.deepCopy());
+        }
         return standings;
     }
 
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 30-04-2026
-     * @description Obtiene la clasificacion de constructores desde Jolpica
+     * @modified 07-05-2026
+     * @description Obtiene la clasificacion de constructores desde Jolpica sin cachear respuestas vacias
      * @param year Temporada
      * @return Clasificacion de constructores
      */
@@ -129,7 +133,9 @@ public class JolpicaService {
         }
 
         ArrayNode standings = getStandings(selectedYear, "constructorstandings.json", "ConstructorStandings");
-        constructorStandingsCache.put(selectedYear, standings.deepCopy());
+        if (!standings.isEmpty()) {
+            constructorStandingsCache.put(selectedYear, standings.deepCopy());
+        }
         return standings;
     }
 
@@ -152,10 +158,10 @@ public class JolpicaService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 04-05-2026
-     * @modified 04-05-2026
-     * @description Obtiene todos los resultados paginados de carrera para detalles de pilotos y escuderias
+     * @modified 07-05-2026
+     * @description Obtiene resultados paginados y usa fallback por ronda para detalles historicos de pilotos y escuderias
      * @param year Temporada
      * @return Carreras con resultados oficiales
      */
@@ -169,11 +175,14 @@ public class JolpicaService {
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
                 ArrayNode result = getPagedRaceResults(selectedYear);
+                if (result.isEmpty()) {
+                    result = getRoundRaceResults(selectedYear);
+                }
                 if (!result.isEmpty()) {
                     raceResultsCache.put(selectedYear, result.deepCopy());
                 }
                 return result.deepCopy();
-            } catch (RestClientException ex) {
+            } catch (RuntimeException ex) {
                 if (attempt < MAX_ATTEMPTS) {
                     sleepBeforeRetry(attempt);
                 }
@@ -181,6 +190,45 @@ public class JolpicaService {
         }
 
         return objectMapper.createArrayNode();
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 07-05-2026
+     * @description Recupera resultados carrera a carrera cuando Jolpica no entrega la pagina agregada de una temporada
+     * @param selectedYear Temporada
+     * @return Carreras con resultados oficiales
+     */
+    private ArrayNode getRoundRaceResults(Integer selectedYear) {
+        Map<String, ObjectNode> racesByRound = new LinkedHashMap<>();
+        ArrayNode races = getRacesByYear(selectedYear);
+        for (JsonNode race : races) {
+            String round = race.path("round").asText();
+            if (round.isBlank()) {
+                continue;
+            }
+            String url = UriComponentsBuilder
+                    .fromUriString(jolpicaBaseUrl)
+                    .pathSegment(String.valueOf(selectedYear), round, "results.json")
+                    .queryParam("limit", 100)
+                    .toUriString();
+            try {
+                JsonNode apiResponse = restTemplate.getForObject(url, JsonNode.class);
+                JsonNode roundRaces = apiResponse == null
+                        ? null
+                        : apiResponse.path("MRData").path("RaceTable").path("Races");
+                if (roundRaces != null && roundRaces.isArray()) {
+                    mergeRaceResults(racesByRound, (ArrayNode) roundRaces);
+                }
+            } catch (RestClientException ex) {
+                sleepBeforeRetry(1);
+            }
+        }
+        ArrayNode result = objectMapper.createArrayNode();
+        racesByRound.values().forEach(result::add);
+        return result;
     }
 
     /**
@@ -270,9 +318,10 @@ public class JolpicaService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 30-04-2026
-     * @description Consulta una tabla de clasificacion Jolpica y devuelve sus filas
+     * @modified 07-05-2026
+     * @description Consulta una tabla de clasificacion Jolpica y reintenta respuestas vacias temporales
      * @param year Temporada
      * @param resource Recurso Jolpica
      * @param nodeName Nodo de clasificacion
@@ -292,9 +341,12 @@ public class JolpicaService {
                         ? null
                         : apiResponse.path("MRData").path("StandingsTable").path("StandingsLists").path(0).path(nodeName);
 
-                return standings != null && standings.isArray()
-                        ? (ArrayNode) standings
-                        : objectMapper.createArrayNode();
+                if (standings != null && standings.isArray() && !standings.isEmpty()) {
+                    return (ArrayNode) standings;
+                }
+                if (attempt < MAX_ATTEMPTS) {
+                    sleepBeforeRetry(attempt);
+                }
             } catch (RestClientException ex) {
                 if (attempt < MAX_ATTEMPTS) {
                     sleepBeforeRetry(attempt);

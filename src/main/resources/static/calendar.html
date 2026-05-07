@@ -13,75 +13,9 @@
 </head>
 <body>
 <div class="rs-page-shell">
-    <header class="rs-navbar" id="mainNavbar">
-        <div class="rs-container rs-navbar__inner">
-            <a class="rs-navbar__brand" href="/" aria-label="Ir a Inicio">
-                <img class="rs-navbar__logo" src="/assets/img/LogoRS2.png" alt="Logotipo de RaceStream">
-            </a>
+    <header class="rs-navbar" id="mainNavbar"></header>
 
-            <nav class="rs-navbar__nav">
-                <a class="rs-navbar__link" href="/live.html">En Vivo</a>
-                <a class="rs-navbar__link" href="/calendar.html">Calendario</a>
-                <a class="rs-navbar__link" href="/sessions.html">Sesiones</a>
-                <a class="rs-navbar__link" href="/standings.html">Clasificación</a>
-                <a class="rs-navbar__link rs-navbar__link--overflow" href="/drivers.html">Pilotos</a>
-                <a class="rs-navbar__link rs-navbar__link--overflow" href="/teams.html">Escuderías</a>
-                <a class="rs-navbar__link rs-navbar__link--overflow" href="/news.html">Noticias</a>
-            </nav>
-
-            <div class="rs-navbar__actions">
-                <a class="rs-navbar__icon-link" href="/favorites.html" title="Favoritos">★</a>
-
-                <div class="rs-profile-dropdown" id="profileDropdown">
-                    <button class="rs-profile-dropdown__trigger" type="button" aria-label="Mi cuenta">
-                        <img src="/assets/img/MiCuenta.png" alt="Mi cuenta">
-                    </button>
-
-                    <div class="rs-profile-dropdown__menu">
-                        <a class="rs-button rs-button--primary rs-profile-dropdown__button" href="/login.html">Iniciar sesión</a>
-                        <a class="rs-button rs-profile-dropdown__button rs-profile-dropdown__button--secondary" href="/register.html">Registrarse</a>
-                    </div>
-                </div>
-
-                <div class="rs-navbar-mobile-menu" id="mobileMenuDropdown">
-                    <button class="rs-navbar__menu-trigger" type="button" aria-label="Abrir menú">
-                        <img src="/assets/img/MenuHamburguesa.png" alt="Menú">
-                    </button>
-
-                    <div class="rs-navbar-mobile-menu__panel">
-                        <a class="rs-navbar-mobile-menu__overflow-link" href="/drivers.html">Pilotos</a>
-                        <a class="rs-navbar-mobile-menu__overflow-link" href="/teams.html">Escuderías</a>
-                        <a class="rs-navbar-mobile-menu__overflow-link" href="/news.html">Noticias</a>
-                        <a class="rs-navbar-mobile-menu__desktop-link" href="/forum.html">Foro</a>
-                        <a href="/help.html">Ayuda</a>
-                        <a class="rs-navbar-mobile-menu__desktop-link" href="/faq.html">FAQ</a>
-                        <a class="rs-navbar-mobile-menu__desktop-link" href="/contact.html">Contacto</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <section class="rs-race-strip" id="raceStrip">
-        <div class="rs-container rs-race-strip__inner">
-            <div class="rs-race-strip__label">
-                <span>Próximo GP</span>
-            </div>
-
-            <div class="rs-race-strip__main">
-                <div class="rs-race-strip__title-row">
-                    <img id="raceStripFlag" class="rs-flag-inline rs-flag-inline--medium" src="" alt="Bandera del país" style="display:none;">
-                    <span id="raceStripTitle" class="rs-race-strip__title">-</span>
-                </div>
-                <span id="raceStripMeta" class="rs-race-strip__meta">-</span>
-            </div>
-
-            <div class="rs-race-strip__side">
-                <div id="raceStripAction"></div>
-                <div id="raceStripClocks" class="rs-race-strip__clocks">-</div>
-            </div>
-        </div>
-    </section>
+    <section class="rs-race-strip" id="raceStrip"></section>
 
     <main class="rs-main">
         <div class="rs-container">
@@ -124,7 +58,10 @@
                 </aside>
 
                 <section>
-                    <h2 id="selectedGpTitle" class="rs-selected-gp-title">Selecciona un Gran Premio</h2>
+                    <div class="rs-selected-gp-title-row">
+                        <h2 id="selectedGpTitle" class="rs-selected-gp-title">Selecciona un Gran Premio</h2>
+                        <div id="selectedGpFavorite" class="rs-selected-gp-favorite"></div>
+                    </div>
 
                     <div class="rs-gp-detail-grid">
                         <div id="selectedCircuitCard" class="rs-circuit-card"></div>
@@ -136,48 +73,12 @@
         </div>
     </main>
 
-    <footer class="rs-footer">
-        <div class="rs-container">
-            <div class="rs-footer__inner">
-                <div class="rs-footer__brand">
-                    <img class="rs-footer__logo" src="/assets/img/LogoRS2.png" alt="Logotipo de RaceStream">
-                    <h3 class="rs-footer__title">RaceStream</h3>
-                </div>
-
-                <div class="rs-footer__column">
-                    <h3>Soporte</h3>
-                    <div class="rs-footer__links">
-                        <a href="/forum.html">Foro</a>
-                        <a href="/help.html">Ayuda</a>
-                        <a href="/faq.html">FAQ</a>
-                        <a href="/contact.html">Contacto</a>
-                    </div>
-                </div>
-
-                <div class="rs-footer__column">
-                    <h3>Cuenta</h3>
-                    <div class="rs-footer__links">
-                        <a href="/account.html">Mi Cuenta</a>
-                        <a href="/favorites.html">Favoritos</a>
-                        <a href="/preferences.html">Preferencias</a>
-                        <a href="/privacy.html">Privacidad</a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="rs-footer__bottom">
-                <span>© 2026 RaceStream. Todos los derechos reservados.</span>
-                <div class="rs-footer__bottom-links">
-                    <a href="/terms.html">Términos y condiciones</a>
-                    <a href="/privacy-policy.html">Política de privacidad</a>
-                    <a href="/cookies.html">Política de cookies</a>
-                </div>
-            </div>
-        </div>
-    </footer>
+    <footer class="rs-footer"></footer>
 </div>
 
 <script src="/js/nav.js"></script>
+<script src="/js/race-strip.js"></script>
+<script src="/js/f1-assets.js"></script>
 <script src="/js/favorites.js"></script>
 <script src="/js/calendar.js"></script>
 </body>

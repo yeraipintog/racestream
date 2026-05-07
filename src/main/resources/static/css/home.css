@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.1
+ * @version 1.2.6
  * @created 30-04-2026
- * @modified 05-05-2026
+ * @modified 07-05-2026
  * @description Estilos responsive de Inicio con última sesión, rankings compactos, placeholder de pilotos e imágenes F1 2026
  */
 
@@ -77,7 +77,7 @@
 .rs-home-next-card,
 .rs-home-panel {
     border: 1px solid var(--rs-border);
-    border-radius: 20px;
+    border-radius: 8px;
     background: linear-gradient(180deg, rgba(17, 24, 39, .94), rgba(12, 18, 30, .94));
     box-shadow: var(--rs-shadow-md);
 }
@@ -95,13 +95,15 @@
 }
 
 .rs-home-card__header strong,
-.rs-home-card__header a {
+.rs-home-card__header a,
+.rs-home-last-session__head a {
     color: #fff;
     font-size: 12px;
     font-weight: 900;
 }
 
-.rs-home-card__header a {
+.rs-home-card__header a,
+.rs-home-last-session__head a {
     min-height: 24px;
     padding: 0;
     color: var(--rs-text-soft);
@@ -110,7 +112,8 @@
     transition: color .22s ease, filter .22s ease;
 }
 
-.rs-home-card__header a:hover {
+.rs-home-card__header a:hover,
+.rs-home-last-session__head a:hover {
     color: #fff;
     filter: brightness(1.16);
 }
@@ -183,6 +186,14 @@
 
 .rs-home-last-session__head div {
     min-width: 0;
+    width: 100%;
+}
+
+.rs-home-last-session__eyebrow-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
 }
 
 .rs-home-last-session__head span {
@@ -232,11 +243,13 @@
 }
 
 .rs-home-grid {
-    grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr);
-    margin-top: 24px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    margin-top: 28px;
 }
 
 .rs-home-panel {
+    height: auto;
     padding: 20px;
 }
 
@@ -248,20 +261,24 @@
     flex-direction: column;
 }
 
-.rs-home-live-source {
+.rs-home-live-actions {
     display: flex;
-    justify-content: flex-end;
-    margin-top: auto;
-    padding-top: 12px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 18px;
+    padding-top: 0;
 }
 
-.rs-home-live-source a {
+.rs-home-live-source {
     color: var(--rs-text-soft);
     font-size: 12px;
     font-weight: 900;
+    text-decoration: none;
+    white-space: nowrap;
 }
 
-.rs-home-live-source a:hover {
+.rs-home-live-source:hover {
     color: #fff;
 }
 
@@ -269,7 +286,7 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
-    margin: 20px 0;
+    margin: 16px 0 0;
 }
 
 .rs-home-live-grid div,
@@ -277,7 +294,7 @@
 .rs-home-ranking__row,
 .rs-home-news__item {
     border: 1px solid rgba(255, 255, 255, .08);
-    border-radius: 14px;
+    border-radius: 8px;
     background: rgba(255, 255, 255, .035);
 }
 
@@ -305,6 +322,7 @@
 }
 
 .rs-home-panel p {
+    margin: 0 0 14px;
     text-align: justify;
 }
 
@@ -320,11 +338,16 @@
 }
 
 .rs-home-section {
-    margin-top: 34px;
+    margin-top: 42px;
+}
+
+.rs-home-grid + .rs-home-section,
+.rs-home-section + .rs-home-section {
+    margin-top: 48px;
 }
 
 .rs-home-section__title {
-    margin-bottom: 14px;
+    margin-bottom: 18px;
 }
 
 .rs-home-section__title h2 {
@@ -339,6 +362,15 @@
 .rs-home-ranking {
     display: grid;
     gap: 10px;
+}
+
+.rs-home-ranking > .loading-state,
+.rs-home-ranking > .rs-api-retry,
+.rs-home-news > .loading-state,
+.rs-home-news > .rs-api-retry {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: min(520px, 100%);
 }
 
 .rs-home-ranking__row {
@@ -497,7 +529,7 @@
 
 .rs-home-help__link {
     width: fit-content;
-    margin-top: auto;
+    margin-top: 16px;
 }
 
 @media (max-width: 1100px) {
@@ -526,11 +558,6 @@
         grid-template-columns: 1fr;
     }
 
-    .rs-home-last-session__head {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
     .rs-home-live-grid,
     .rs-home-shortcuts {
         grid-template-columns: 1fr;
@@ -546,6 +573,16 @@
 
     .rs-home-hero__actions .rs-button {
         width: 100%;
+    }
+
+    .rs-home-live-actions {
+        gap: 8px;
+    }
+
+    .rs-home-live-actions .rs-button {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding-inline: 12px;
     }
 
     .rs-home-ranking__row {

@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.0
+ * @version 1.1.7
  * @created 04-05-2026
- * @modified 05-05-2026
+ * @modified 07-05-2026
  * @description Estilos responsive para páginas de Pilotos y Escuderías con tarjetas visuales desplegables
  */
 
@@ -15,7 +15,15 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
+    grid-auto-rows: auto;
     gap: 20px;
+}
+
+.rs-participants-grid > .loading-state,
+.rs-participants-grid > .empty-state {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: min(520px, 100%);
 }
 
 body[data-rs-page="drivers"] .rs-participants-grid {
@@ -33,7 +41,15 @@ body[data-rs-page="drivers"] .rs-participants-grid {
         #111827;
     box-shadow: var(--rs-shadow-md);
     cursor: pointer;
-    align-self: start;
+    align-self: stretch;
+    height: auto;
+}
+
+.rs-participant-card--target {
+    outline-color: rgba(255, 255, 255, .72);
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, .16),
+        0 0 0 4px rgba(255, 255, 255, .12);
 }
 
 .rs-participant-card::before {
@@ -80,7 +96,7 @@ body[data-rs-page="drivers"] .rs-participants-grid {
 .rs-participant-card h2 {
     margin: 6px 0 0;
     color: #fff;
-    font-size: clamp(22px, 3vw, 34px);
+    font-size: 32px;
     line-height: .94;
 }
 
@@ -119,7 +135,7 @@ body[data-rs-page="drivers"] .rs-participants-grid {
 
 .rs-driver-card__number {
     color: #fff;
-    font-size: clamp(36px, 7vw, 58px);
+    font-size: 58px;
     font-weight: 900;
     line-height: 1;
 }
@@ -145,22 +161,28 @@ body[data-rs-page="drivers"] .rs-participants-grid {
     display: flex;
     align-items: flex-end;
     justify-content: center;
+    min-height: 190px;
 }
 
 .rs-driver-card__avatar {
-    width: min(230px, 100%);
-    height: 250px;
+    width: min(320px, 100%);
+    height: 310px;
     border-radius: 8px;
     background: transparent;
 }
 
 .rs-participant-card--compact {
-    min-height: 220px;
+    min-height: 190px;
 }
 
 .rs-participant-card--compact .rs-driver-card__body,
 .rs-participant-card--compact .rs-team-card__car {
-    min-height: 70px;
+    min-height: auto;
+}
+
+.rs-participant-card--compact .rs-driver-card__body {
+    grid-template-columns: 1fr;
+    margin-top: 12px;
 }
 
 .rs-driver-card__avatar img {
@@ -262,6 +284,10 @@ body[data-rs-page="drivers"] .rs-participant-card--expanded .rs-participant-stat
     min-height: 300px;
 }
 
+.rs-team-card.rs-participant-card--compact {
+    min-height: 210px;
+}
+
 .rs-team-card__actions {
     display: inline-flex;
     align-items: center;
@@ -313,6 +339,26 @@ body[data-rs-page="drivers"] .rs-participant-card--expanded .rs-participant-stat
     justify-content: center;
 }
 
+.rs-team-card__car--missing {
+    display: none;
+    height: 0;
+}
+
+.rs-team-card__car-fallback {
+    min-height: 94px;
+    width: 100%;
+    padding: 16px;
+    border: 1px dashed rgba(255, 255, 255, .24);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, .78);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 900;
+    text-align: center;
+}
+
 .rs-team-card__car img {
     width: 100%;
     max-height: 135px;
@@ -338,7 +384,35 @@ body[data-rs-page="drivers"] .rs-participant-card--expanded .rs-participant-stat
         grid-template-columns: minmax(0, .8fr) minmax(120px, 1fr);
     }
 
-    .rs-participant-detail-grid {
+    .rs-driver-card__avatar {
+        height: 260px;
+    }
+
+    .rs-participant-detail-grid,
+    body[data-rs-page="teams"] .rs-participant-detail-grid {
         grid-template-columns: 1fr;
+    }
+
+    body[data-rs-page="drivers"] .rs-participant-detail-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .rs-participant-card--compact {
+        min-height: auto;
+    }
+
+    .rs-participant-card h2 {
+        font-size: 28px;
+    }
+
+    .rs-driver-card__number {
+        font-size: 48px;
+    }
+
+    .rs-participants-grid > .empty-state,
+    .rs-participants-grid > .loading-state {
+        width: min(210px, calc(100vw - 48px));
+        max-width: 210px;
+        box-sizing: border-box;
     }
 }

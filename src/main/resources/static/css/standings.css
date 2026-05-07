@@ -1,7 +1,7 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.1
+ * @version 1.0.4
  * @created 04-05-2026
  * @modified 05-05-2026
  * @description Estilos responsive de Clasificación con filtros, tablas, banderas y detalle por GP
@@ -13,6 +13,7 @@
 
 .rs-standings-switch {
     margin: 0 0 18px;
+    box-sizing: border-box;
     display: inline-flex;
     gap: 8px;
     padding: 5px;
@@ -28,7 +29,13 @@
     border-radius: 999px;
     background: transparent;
     color: var(--rs-text-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-weight: 900;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .rs-standings-tab--active {
@@ -38,6 +45,8 @@
 }
 
 .rs-standings-panel {
+    max-width: 100%;
+    min-width: 0;
     padding: 18px;
     border: 1px solid var(--rs-border);
     border-radius: 20px;
@@ -47,30 +56,36 @@
 
 .rs-standings-panel__head {
     min-height: 50px;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 16px;
-    align-items: end;
+    align-items: center;
 }
 
 .rs-standings-panel__left {
-    display: flex;
+    display: grid;
+    grid-template-columns: max-content minmax(220px, 320px);
     align-items: center;
     gap: 12px;
-    flex-wrap: wrap;
     min-width: 0;
 }
 
 .rs-standings-panel__left h2 {
     margin: 0;
-    font-size: clamp(20px, 3vw, 30px);
+    font-size: 30px;
     font-weight: 900;
 }
 
 .rs-standings-filter {
+    position: relative;
     min-width: 220px;
     max-width: 320px;
+}
+
+.rs-standings-filter select {
+    width: 100%;
+    padding-right: 42px;
 }
 
 .rs-standings-selected-media {
@@ -78,6 +93,11 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
+}
+
+.rs-standings-selected-media:empty {
+    display: none;
+    min-height: 0;
 }
 
 .rs-standings-selected-media__group {
@@ -95,9 +115,15 @@
 }
 
 .rs-standings-table-wrap {
+    max-width: 100%;
     overflow-x: auto;
     border: 1px solid rgba(255, 255, 255, .08);
     border-radius: 14px;
+}
+
+#standingsTableContent {
+    min-width: 0;
+    max-width: 100%;
 }
 
 .rs-standings-table {
@@ -155,6 +181,13 @@ a.rs-standings-team-cell {
     border-radius: 12px;
 }
 
+.rs-standings-avatar img,
+.rs-standings-selected-media__avatar img,
+.rs-standings-result-driver__avatar img {
+    object-fit: cover;
+    object-position: center top;
+}
+
 .rs-standings-code {
     min-width: auto;
     min-height: 0;
@@ -186,6 +219,16 @@ a.rs-standings-team-cell {
     .rs-standings-panel__head {
         grid-template-columns: 1fr;
         align-items: start;
+        min-height: 0;
+    }
+
+    .rs-standings-panel__left {
+        grid-template-columns: 1fr;
+        align-items: start;
+    }
+
+    .rs-standings-panel__left h2 {
+        font-size: 24px;
     }
 
     .rs-standings-selected-media {
@@ -204,13 +247,36 @@ a.rs-standings-team-cell {
         border-radius: 18px;
     }
 
-    .rs-standings-switch,
-    .rs-standings-tab {
+    .rs-standings-switch {
         width: 100%;
     }
 
     .rs-standings-switch {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+        width: calc(100vw - 24px) !important;
+        max-width: 320px !important;
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 4px;
+        overflow: hidden;
+    }
+
+    .rs-standings-tab {
+        width: 100% !important;
+        min-width: 0;
+        box-sizing: border-box;
+        padding: 0 8px;
+        font-size: 12px;
+    }
+
+    .rs-standings-panel {
+        width: calc(100vw - 24px);
+        max-width: 336px;
+    }
+
+    #standingsTableContent > .empty-state,
+    #standingsTableContent > .loading-state {
+        width: calc(100vw - 56px);
+        max-width: 100%;
+        box-sizing: border-box;
     }
 }

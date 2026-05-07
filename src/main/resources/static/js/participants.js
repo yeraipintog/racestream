@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.0
+ * @version 1.2.5
  * @created 04-05-2026
- * @modified 05-05-2026
+ * @modified 06-05-2026
  * @description Lógica compartida para páginas de Pilotos y Escuderías con tarjetas desplegables por temporada
  */
 class RaceStreamParticipantsPage {
@@ -66,8 +66,8 @@ class RaceStreamParticipantsPage {
             this.fetchArray(`/api/f1/standings/constructors?year=${this.year}`, 4),
             this.fetchArray(`/api/f1/standings/race-results?year=${this.year}`, 3)
         ]);
-        this.driverStandings = drivers;
-        this.constructorStandings = constructors;
+        this.driverStandings = drivers.length ? drivers : this.buildDriverStandingsFromResults(races);
+        this.constructorStandings = constructors.length ? constructors : this.buildConstructorStandingsFromResults(races);
         this.raceResults = races;
         this.render();
     }
@@ -79,7 +79,10 @@ class RaceStreamParticipantsPage {
             this.renderDrivers();
         }
         this.grid.querySelectorAll('[data-card-id]').forEach((card) => {
-            card.addEventListener('click', () => this.toggleCard(card.dataset.cardId));
+            card.addEventListener('click', (event) => {
+                if (event.target.closest('a, button, input, label')) return;
+                this.toggleCard(card.dataset.cardId);
+            });
         });
         this.assets.hydrateDriverImages(this.grid, this.fetchJson.bind(this), this.loadImage.bind(this));
         window.RaceStreamFavorites?.bind(this.grid);
@@ -89,7 +92,7 @@ class RaceStreamParticipantsPage {
     renderDrivers() {
         this.seasonMeta.textContent = `Temporada ${this.year} · ${this.driverStandings.length} pilotos`;
         if (!this.driverStandings.length) {
-            this.grid.innerHTML = '<p class="empty-state">No hay pilotos disponibles para esta temporada.</p>';
+            this.renderApiRetry('Pilotos');
             return;
         }
         this.grid.innerHTML = this.driverStandings.map((row, index) => this.renderDriverCard(row, index)).join('');
@@ -108,7 +111,15 @@ class RaceStreamParticipantsPage {
         const birthDate = this.formatBirthDate(driver.dateOfBirth);
         const age = this.getAge(driver.dateOfBirth);
         const races = this.getRaceCountForDriver(driver);
+        const driverNumber = this.getDriverSeasonNumber(driver);
         const compactClass = this.year < 2024 ? ' rs-participant-card--compact' : '';
+        const favorite = this.renderFavoriteButton(
+            'Piloto',
+            driver.driverId,
+            name,
+            `/drivers.html?year=${this.year}&driverId=${driver.driverId}`,
+            `${this.assets.getConstructorName(constructor)} · ${this.assets.formatPoints(row.points)} pts`
+        );
         return `
             <article class="rs-participant-card rs-driver-card${compactClass}" style="--team-color:${color};" data-card-id="driver-${index}" data-driver-id="${this.assets.escape(driver.driverId)}">
                 <div class="rs-participant-card__top">
@@ -117,13 +128,13 @@ class RaceStreamParticipantsPage {
                         <h2><span>${this.assets.escape(firstName)}</span><strong>${this.assets.escape(familyName)}</strong></h2>
                     </div>
                     <div class="rs-participant-card__actions">
-                        ${this.renderFavoriteButton('Piloto', driver.driverId, name, `/drivers.html?year=${this.year}&driverId=${driver.driverId}`, `${this.assets.getConstructorName(constructor)} · ${this.assets.formatPoints(row.points)} pts`)}
+                        ${favorite}
                         <span class="rs-participant-card__toggle" aria-label="Posición actual de ${this.assets.escape(name)}">P${this.assets.escape(row.position || '-')}</span>
                     </div>
                 </div>
                 <div class="rs-driver-card__body">
                     <div class="rs-driver-card__info">
-                        <span class="rs-driver-card__number">${this.assets.escape(driver.permanentNumber || driver.code || '-')}</span>
+                        <span class="rs-driver-card__number">${this.assets.escape(driverNumber || '-')}</span>
                         ${this.assets.nationalityBadge(driver.nationality)}
                     </div>
                     ${this.year >= 2024 ? `<div class="rs-driver-card__portrait">${this.assets.personAvatar(driver, 'rs-driver-card__avatar', { constructor, year: this.year, size: 440 })}</div>` : ''}
@@ -137,9 +148,7 @@ class RaceStreamParticipantsPage {
                     <div class="rs-participant-detail-grid">
                         ${this.renderDetail('Nacimiento', birthDate)}
                         ${this.renderDetail('Edad', age ? `${age} años` : '-')}
-                        ${this.renderDetail('Escudería', this.assets.getConstructorName(constructor))}
                         ${this.renderDetail('Código', driver.code || '-')}
-                        ${this.renderDetail('Compañero', teammate ? this.assets.getDriverName(teammate.Driver) : '-')}
                         ${this.renderDetail('Diferencia', teammate ? `${teammateGap >= 0 ? '+' : ''}${this.assets.formatPoints(teammateGap)} pts` : '-')}
                     </div>
                     ${teammate ? this.renderComparison(row, teammate, maxTeamPoints) : ''}
@@ -151,7 +160,7 @@ class RaceStreamParticipantsPage {
     renderTeams() {
         this.seasonMeta.textContent = `Temporada ${this.year} · ${this.constructorStandings.length} escuderías`;
         if (!this.constructorStandings.length) {
-            this.grid.innerHTML = '<p class="empty-state">No hay escuderías disponibles para esta temporada.</p>';
+            this.renderApiRetry('Escuderías');
             return;
         }
         this.grid.innerHTML = this.constructorStandings.map((row, index) => this.renderTeamCard(row, index)).join('');
@@ -164,6 +173,13 @@ class RaceStreamParticipantsPage {
         const car = this.assets.getTeamCar(constructor, this.year);
         const races = this.getRaceCountForConstructor(constructor);
         const compactClass = this.year < 2024 ? ' rs-participant-card--compact' : '';
+        const favorite = this.renderFavoriteButton(
+            'Escudería',
+            constructor.constructorId,
+            this.assets.getConstructorName(constructor),
+            `/teams.html?year=${this.year}&constructorId=${constructor.constructorId}`,
+            `${this.assets.formatPoints(row.points)} pts · ${drivers.map((driverRow) => this.assets.getDriverName(driverRow.Driver)).join(' / ')}`
+        );
         return `
             <article class="rs-participant-card rs-team-card${compactClass}" style="--team-color:${color};" data-card-id="team-${index}" data-constructor-id="${this.assets.escape(constructor.constructorId)}">
                 <div class="rs-participant-card__top">
@@ -172,14 +188,15 @@ class RaceStreamParticipantsPage {
                         <h2><strong>${this.assets.escape(this.assets.getConstructorName(constructor))}</strong></h2>
                     </div>
                     <div class="rs-team-card__actions">
-                        ${this.renderFavoriteButton('Escudería', constructor.constructorId, this.assets.getConstructorName(constructor), `/teams.html?year=${this.year}&constructorId=${constructor.constructorId}`, `${this.assets.formatPoints(row.points)} pts · ${drivers.map((driverRow) => this.assets.getDriverName(driverRow.Driver)).join(' / ')}`)}
+                        ${favorite}
                         ${this.assets.teamMark(constructor, this.year, 'rs-team-card__mark')}
                         <span class="rs-participant-card__toggle" aria-label="Posición actual de ${this.assets.escape(this.assets.getConstructorName(constructor))}">P${this.assets.escape(row.position || '-')}</span>
                     </div>
                 </div>
                 <div class="rs-team-card__drivers">${drivers.map((driverRow) => this.renderDriverChip(driverRow.Driver)).join('')}</div>
                 ${this.year >= 2024 ? `<div class="rs-team-card__car">
-                    <img src="${car}" alt="Coche de ${this.assets.escape(this.assets.getConstructorName(constructor))}" loading="lazy" onerror="this.remove();">
+                    <img src="${car}" alt="Coche de ${this.assets.escape(this.assets.getConstructorName(constructor))}" loading="lazy" onerror="this.closest('.rs-team-card__car').classList.add('rs-team-card__car--missing');this.remove();">
+                    <span class="rs-team-card__car-fallback">Imagen del coche no disponible</span>
                 </div>` : ''}
                 <div class="rs-participant-stats">
                     ${this.renderStat('Carreras', races || '-')}
@@ -189,7 +206,7 @@ class RaceStreamParticipantsPage {
                 <div class="rs-participant-card__details">
                     <div class="rs-participant-detail-grid">
                         ${this.renderDetail('Pilotos', drivers.map((driverRow) => this.assets.getDriverName(driverRow.Driver)).join(' / ') || '-')}
-                        ${this.renderDetail('Motor', this.assets.getEngineName(constructor))}
+                        ${this.renderDetail('Nacionalidad', constructor.nationality || '-')}
                     </div>
                     <div class="rs-team-card__balance">${drivers.map((driverRow) => this.renderDriverBalance(driverRow, Number(row.points || 0))).join('')}</div>
                 </div>
@@ -197,10 +214,86 @@ class RaceStreamParticipantsPage {
         `;
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 07-05-2026
+     * @description Construye pilotos desde resultados si la API de clasificacion devuelve vacio
+     * @param {Array} races Carreras con resultados Jolpica
+     * @returns {Array} Clasificacion reconstruida
+     */
+    buildDriverStandingsFromResults(races) {
+        const rows = new Map();
+        (races || []).forEach((race) => (race.Results || []).forEach((result) => {
+            const driver = result.Driver || {};
+            const id = driver.driverId || this.assets.normalize(this.assets.getDriverName(driver));
+            if (!id) return;
+            const row = rows.get(id) || { Driver: driver, Constructors: [], points: 0, wins: 0 };
+            row.points += Number(result.points || 0);
+            row.wins += Number(result.positionOrder || result.position) === 1 ? 1 : 0;
+            if (result.Constructor && !row.Constructors.some((team) => team.constructorId === result.Constructor.constructorId)) {
+                row.Constructors = [result.Constructor, ...row.Constructors].slice(0, 2);
+            }
+            rows.set(id, row);
+        }));
+        return [...rows.values()]
+            .sort((left, right) => Number(right.points) - Number(left.points) || Number(right.wins) - Number(left.wins))
+            .map((row, index) => ({ ...row, position: String(index + 1), points: `${row.points}` }));
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 07-05-2026
+     * @description Construye escuderias desde resultados si la API de clasificacion devuelve vacio
+     * @param {Array} races Carreras con resultados Jolpica
+     * @returns {Array} Clasificacion reconstruida
+     */
+    buildConstructorStandingsFromResults(races) {
+        const rows = new Map();
+        (races || []).forEach((race) => (race.Results || []).forEach((result) => {
+            const constructor = result.Constructor || {};
+            const id = constructor.constructorId || this.assets.normalize(this.assets.getConstructorName(constructor));
+            if (!id) return;
+            const row = rows.get(id) || { Constructor: constructor, points: 0, wins: 0 };
+            row.points += Number(result.points || 0);
+            row.wins += Number(result.positionOrder || result.position) === 1 ? 1 : 0;
+            rows.set(id, row);
+        }));
+        return [...rows.values()]
+            .sort((left, right) => Number(right.points) - Number(left.points) || Number(right.wins) - Number(left.wins))
+            .map((row, index) => ({ ...row, position: String(index + 1), points: `${row.points}` }));
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 07-05-2026
+     * @description Invita a recargar cuando una respuesta obligatoria llega vacia
+     * @param {string} label Datos esperados
+     */
+    renderApiRetry(label) {
+        this.grid.innerHTML = `
+            <div class="rs-api-retry empty-state">
+                <strong>${this.assets.escape(label)}</strong>
+                <span>Recarga forzada</span>
+                <button class="rs-button" type="button" onclick="window.location.reload()">Reintentar</button>
+            </div>
+        `;
+    }
+
     renderDriverChip(driver) {
         const row = this.driverStandings.find((item) => item.Driver?.driverId === driver?.driverId);
         const constructor = (row?.Constructors || [])[0] || {};
-        return `<span class="rs-team-card__driver-chip">${this.assets.personAvatar(driver, 'rs-team-card__driver-avatar', { constructor, year: this.year })}<span>${this.assets.escape(this.assets.getDriverName(driver))}</span></span>`;
+        return `
+            <span class="rs-team-card__driver-chip">
+                ${this.assets.personAvatar(driver, 'rs-team-card__driver-avatar', { constructor, year: this.year })}
+                <span>${this.assets.escape(this.assets.getDriverName(driver))}</span>
+            </span>
+        `;
     }
 
     renderFavoriteButton(type, externalId, title, url, description) {
@@ -213,6 +306,32 @@ class RaceStreamParticipantsPage {
         return this.raceResults.filter((race) =>
             (race.Results || []).some((result) => result.Driver?.driverId === driver?.driverId
                 || (driver?.code && result.Driver?.code === driver.code))).length;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 06-05-2026
+     * @description Obtiene el número de carrera desde Jolpica sin insertar datos manuales
+     * @param {Object} driver Piloto de la temporada
+     * @returns {string} Número usado por el piloto en esa temporada
+     */
+    getDriverSeasonNumber(driver) {
+        const directNumber = this.assets.getDriverNumber(driver);
+        if (directNumber) return directNumber;
+        const selectedName = this.assets.normalize(this.assets.getDriverName(driver));
+        for (const race of this.raceResults) {
+            const result = (race.Results || []).find((item) => {
+                const resultDriver = item.Driver || {};
+                return resultDriver.driverId === driver?.driverId
+                    || (driver?.code && resultDriver.code === driver.code)
+                    || selectedName === this.assets.normalize(this.assets.getDriverName(resultDriver));
+            });
+            const number = result?.number || result?.driver_number || result?.Driver?.permanentNumber;
+            if (number) return number;
+        }
+        return '';
     }
 
     getRaceCountForConstructor(constructor) {
@@ -255,26 +374,15 @@ class RaceStreamParticipantsPage {
         return `<div><span>${label}</span><strong>${value}</strong></div>`;
     }
 
-    renderRawStat(label, value) {
-        return `<div><span>${label}</span><strong>${value}</strong></div>`;
-    }
-
     renderDetail(label, value) {
         return `<div><span>${label}</span><strong>${this.assets.escape(value)}</strong></div>`;
     }
 
-    renderRawDetail(label, value) {
-        return `<div><span>${label}</span><strong>${value}</strong></div>`;
-    }
-
     toggleCard(cardId) {
-        let expandedCard = null;
         this.grid.querySelectorAll('.rs-participant-card').forEach((card) => {
             const expanded = card.dataset.cardId === cardId && !card.classList.contains('rs-participant-card--expanded');
             card.classList.toggle('rs-participant-card--expanded', expanded);
-            if (expanded) expandedCard = card;
         });
-        expandedCard?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     expandRequestedCard() {
@@ -285,6 +393,9 @@ class RaceStreamParticipantsPage {
                 : null;
         if (!target) return;
         this.toggleCard(target.dataset.cardId);
+        target.classList.add('rs-participant-card--target');
+        window.setTimeout(() => target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 120);
+        window.setTimeout(() => target.classList.remove('rs-participant-card--target'), 2200);
         this.pendingDriverId = null;
         this.pendingConstructorId = null;
     }
@@ -308,8 +419,12 @@ class RaceStreamParticipantsPage {
     }
 
     getTeamDrivers(constructorId) {
+        const selected = this.constructorStandings.find((row) => row.Constructor?.constructorId === constructorId)?.Constructor || {};
+        const selectedSlug = this.assets.getTeamSlug(selected.constructorId || selected.name, this.year);
         return this.driverStandings
-            .filter((row) => (row.Constructors || []).some((constructor) => constructor.constructorId === constructorId))
+            .filter((row) => (row.Constructors || []).some((constructor) =>
+                constructor.constructorId === constructorId
+                || this.assets.getTeamSlug(constructor.constructorId || constructor.name, this.year) === selectedSlug))
             .slice(0, 2);
     }
 

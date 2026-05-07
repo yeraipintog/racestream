@@ -19,4 +19,5 @@ public interface UserFavoriteRepository extends JpaRepository<UserFavorite, Long
     List<UserFavorite> findByUserOrderByCreatedAtDesc(AppUser user);
     Optional<UserFavorite> findByUserAndTypeIgnoreCaseAndExternalIdIgnoreCase(AppUser user, String type, String externalId);
     Optional<UserFavorite> findByIdAndUser(Long id, AppUser user);
+    void deleteByUser(AppUser user);
 }

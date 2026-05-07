@@ -1,17 +1,18 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.4.0
+ * @version 1.4.5
  * @created 30-04-2026
- * @modified 05-05-2026
+ * @modified 07-05-2026
  * @description Lógica de Sesiones con selector de GP, carga reforzada, podios, placeholder de pilotos y tablas desplegables
  */
 class RaceStreamSessionsPage {
 
     constructor() {
+        this.assets = window.RaceStreamF1Assets;
         this.initialParams = new URLSearchParams(window.location.search);
         const requestedYear = Number(this.initialParams.get('year'));
-        this.year = Number.isInteger(requestedYear) && requestedYear >= 2023 ? requestedYear : new Date().getFullYear();
+        this.year = Number.isInteger(requestedYear) && requestedYear >= 1950 ? requestedYear : new Date().getFullYear();
         this.raceStripYear = new Date().getFullYear();
         this.currentMeetingApi = `/api/f1/schedule/current-or-next-meeting?year=${this.raceStripYear}`;
         this.meetingsApi = (year) => `/api/f1/schedule/calendar-meetings?year=${year}`;
@@ -19,6 +20,7 @@ class RaceStreamSessionsPage {
         this.resultsApi = (sessionKey) => `/api/f1/session-results?sessionKey=${sessionKey}`;
         this.driversApi = (sessionKey) => `/api/f1/drivers?sessionKey=${sessionKey}`;
         this.lapsApi = (sessionKey) => `/api/f1/live/laps?sessionKey=${sessionKey}`;
+        this.raceResultsApi = (year) => `/api/f1/standings/race-results?year=${year}`;
         this.mediaApi = (number) => `/api/f1/media/driver?number=${number}`;
         this.yearInput = document.getElementById('sessionsYearInput');
         this.meetingSelect = document.getElementById('meetingSelect');
@@ -36,12 +38,14 @@ class RaceStreamSessionsPage {
         this.topMeeting = null;
         this.topSessions = [];
         this.sessionData = new Map();
+        this.currentSessions = [];
+        this.loadingSessionKeys = new Set();
+        this.expandedSessionIndex = null;
         this.selectionRequestId = 0;
         this.meetingsRequestId = 0;
         this.raceStripRequestId = 0;
         this.bindEvents();
-        this.loadRaceStripMeeting();
-        this.loadMeetings();
+        this.init();
         setInterval(() => {
             this.updateRaceStripClocks();
             this.renderRaceStripAction();
@@ -50,10 +54,17 @@ class RaceStreamSessionsPage {
 
     bindEvents() {
         this.yearInput.value = String(this.year);
-        this.yearInput.addEventListener('change', () => this.loadMeetings(Number(this.yearInput.value)));
+        this.yearInput.addEventListener('change', () => {
+            this.initialParams.delete('meetingKey');
+            this.initialParams.delete('sessionKey');
+            this.initialParams.delete('sessionIndex');
+            this.updateUrl(Number(this.yearInput.value), null);
+            this.loadMeetings(Number(this.yearInput.value));
+        });
         this.meetingSelect.addEventListener('change', () => this.selectMeeting(Number(this.meetingSelect.value)));
         const profileDropdown = document.getElementById('profileDropdown');
         const mobileMenuDropdown = document.getElementById('mobileMenuDropdown');
+        if (profileDropdown?.dataset.rsDropdownBound && mobileMenuDropdown?.dataset.rsDropdownBound) return;
         profileDropdown?.querySelector('.rs-profile-dropdown__trigger')?.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -70,6 +81,39 @@ class RaceStreamSessionsPage {
             profileDropdown?.classList.remove('rs-profile-dropdown--open');
             mobileMenuDropdown?.classList.remove('rs-navbar-mobile-menu--open');
         });
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 07-05-2026
+     * @description Inicializa temporadas, strip superior y meetings seleccionables
+     * @returns {Promise<void>} Carga completada
+     */
+    async init() {
+        await this.loadSeasons();
+        this.loadRaceStripMeeting();
+        await this.loadMeetings();
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 07-05-2026
+     * @description Carga temporadas historicas en el selector de sesiones
+     * @returns {Promise<void>} Carga completada
+     */
+    async loadSeasons() {
+        const currentYear = new Date().getFullYear();
+        const seasons = await this.fetchJson('/api/f1/standings/seasons', []);
+        const safeSeasons = Array.isArray(seasons) && seasons.length
+            ? seasons
+            : Array.from({ length: currentYear - 1949 }, (_, index) => ({ season: currentYear - index }));
+        this.yearInput.innerHTML = safeSeasons
+            .map((item) => `<option value="${item.season}" ${Number(item.season) === this.year ? 'selected' : ''}>${item.season}</option>`)
+            .join('');
     }
 
     async loadMeetings(year = this.year) {
@@ -96,7 +140,7 @@ class RaceStreamSessionsPage {
             return;
         }
 
-        this.selectableMeetings = this.meetings.filter((meeting) => this.getMeetingStatus(meeting) === 'completed' && this.hasRealMeetingKey(meeting));
+        this.selectableMeetings = this.meetings.filter((meeting) => this.getMeetingStatus(meeting) === 'completed' && this.hasUsableMeetingKey(meeting));
         this.meetingSelect.innerHTML = this.selectableMeetings.map((meeting) => `
             <option value="${meeting.meeting_key}">${meeting.meeting_name}</option>
         `).join('');
@@ -131,16 +175,15 @@ class RaceStreamSessionsPage {
         }
         this.renderSelectedMeetingInfo(this.selectedMeeting);
         this.updateSelectedTitle(this.selectedMeeting);
-        this.sessionsList.innerHTML = '<p class="loading-state">Cargando sesiones y resultados...</p>';
+        this.updateUrl(this.year, meetingKey);
+        this.sessionsList.innerHTML = '<p class="loading-state">Cargando sesiones oficiales...</p>';
         const sessions = await this.fetchSessionsWithRetry(meetingKey);
         if (requestId !== this.selectionRequestId) {
             return;
         }
         const safeSessions = Array.isArray(sessions) ? sessions : [];
-        await this.loadCompletedSessionsData(safeSessions, requestId);
-        if (requestId !== this.selectionRequestId) {
-            return;
-        }
+        this.currentSessions = safeSessions;
+        this.expandedSessionIndex = null;
         this.renderSessions(safeSessions);
         this.expandRequestedSession(safeSessions);
     }
@@ -161,7 +204,7 @@ class RaceStreamSessionsPage {
             const meetings = await this.fetchArrayWithRetry(this.meetingsApi(year), 1);
             if (requestId !== this.meetingsRequestId) return [];
             lastMeetings = Array.isArray(meetings) ? meetings : [];
-            if (lastMeetings.some((meeting) => this.hasRealMeetingKey(meeting))) {
+            if (lastMeetings.some((meeting) => this.hasUsableMeetingKey(meeting))) {
                 return lastMeetings;
             }
             await this.wait(420 * (attempt + 1));
@@ -179,8 +222,15 @@ class RaceStreamSessionsPage {
      */
     renderSelectedMeetingInfo(meeting) {
         if (!this.sessionsSelectedGp) return;
+        const country = meeting?.country_name || meeting?.jolpica_country || '';
+        const flag = meeting?.country_flag
+            ? `<img class="rs-flag-inline" src="${meeting.country_flag}" alt="Bandera de ${country || 'país'}">`
+            : this.assets?.countryFlag(country) || '';
         this.sessionsSelectedGp.innerHTML = meeting
-            ? `${meeting.country_flag ? `<img class="rs-flag-inline" src="${meeting.country_flag}" alt="Bandera de ${meeting.country_name || 'país'}">` : ''}<span>${meeting.location || meeting.meeting_name || 'GP'} · ${this.formatDateRange(meeting.date_start, meeting.date_end)}</span>`
+            ? `
+                ${flag}
+                <span>${meeting.location || meeting.meeting_name || 'GP'} · ${this.formatDateRange(meeting.date_start, meeting.date_end)}</span>
+            `
             : '-';
     }
 
@@ -215,33 +265,6 @@ class RaceStreamSessionsPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.2
-     * @created 03-05-2026
-     * @modified 04-05-2026
-     * @description Carga datos del GP seleccionado en lotes pequeños para reducir espera sin saturar APIs
-     * @param {Array} sessions Sesiones del GP
-     * @param {number} requestId Identificador de seleccion activa
-     */
-    async loadCompletedSessionsData(sessions, requestId) {
-        const completedSessions = sessions.filter((session) => this.shouldLoadSessionDetails(session));
-        const batchSize = 2;
-        for (let index = 0; index < completedSessions.length; index += batchSize) {
-            if (requestId !== this.selectionRequestId) {
-                return;
-            }
-            await Promise.all(completedSessions.slice(index, index + batchSize).map((session) => this.loadSessionData(session)));
-            if (requestId !== this.selectionRequestId) {
-                return;
-            }
-            if (index + batchSize < completedSessions.length) {
-                await this.wait(220);
-            }
-        }
-    }
-
-    /**
-     * @author Yerai Pinto
-     * @since 1.0
      * @version 1.0.0
      * @created 03-05-2026
      * @description Carga resultados, pilotos y vueltas de una sesion real
@@ -249,7 +272,19 @@ class RaceStreamSessionsPage {
      * @returns {Promise<void>} Carga completada
      */
     async loadSessionData(session) {
-        if (!session?.session_key || this.sessionData.has(session.session_key)) {
+        const cacheKey = this.getSessionCacheKey(session);
+        if (!cacheKey || this.sessionData.has(cacheKey)) {
+            return;
+        }
+        if (this.canUseJolpicaRaceResults(session)) {
+            this.sessionData.set(cacheKey, {
+                results: await this.loadJolpicaRaceRows(),
+                laps: [],
+                driverMap: new Map()
+            });
+            return;
+        }
+        if (!session?.session_key) {
             return;
         }
         const results = await this.fetchArrayWithRetry(this.resultsApi(session.session_key), 5, 260);
@@ -259,10 +294,74 @@ class RaceStreamSessionsPage {
             safeResults.length ? Promise.resolve([]) : this.fetchArrayWithRetry(this.lapsApi(session.session_key), 5, 260)
         ]);
         const driverMap = new Map((Array.isArray(drivers) ? drivers : []).map((driver) => [Number(driver.driver_number), driver]));
-        this.sessionData.set(session.session_key, {
+        this.sessionData.set(cacheKey, {
             results: safeResults,
             laps: Array.isArray(laps) ? laps : [],
             driverMap
+        });
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 07-05-2026
+     * @description Devuelve una clave estable para sesiones reales o sinteticas
+     * @param {Object} session Sesion
+     * @returns {string} Clave
+     */
+    getSessionCacheKey(session) {
+        return session?.session_key
+            ? `${session.session_key}`
+            : `${this.selectedMeeting?.meeting_key || 'gp'}:${session?.session_name || session?.session_type || 'session'}`;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 07-05-2026
+     * @description Indica si una carrera historica puede usar resultados Jolpica
+     * @param {Object} session Sesion
+     * @returns {boolean} Resultado
+     */
+    canUseJolpicaRaceResults(session) {
+        return !session?.session_key
+            && /race/i.test(`${session?.session_name || ''} ${session?.session_type || ''}`)
+            && Boolean(this.selectedMeeting?.jolpica_round);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 07-05-2026
+     * @description Adapta resultados Jolpica al formato de tabla de sesiones
+     * @returns {Promise<Array>} Resultados de carrera adaptados
+     */
+    async loadJolpicaRaceRows() {
+        const races = await this.fetchArrayWithRetry(this.raceResultsApi(this.year), 4, 280);
+        const race = races.find((item) => `${item.round || ''}` === `${this.selectedMeeting?.jolpica_round || ''}`)
+            || races.find((item) => this.normalizeAssetKey(item.raceName) === this.normalizeAssetKey(this.selectedMeeting?.meeting_name));
+        return (race?.Results || []).map((result) => {
+            const driver = result.Driver || {};
+            const constructor = result.Constructor || {};
+            const time = result.Time?.time || '';
+            const isLeader = Number(result.positionOrder || result.position) === 1;
+            return {
+                Driver: driver,
+                Constructor: constructor,
+                driver_number: result.number || driver.permanentNumber || '',
+                driver_code: driver.code || '',
+                full_name: [driver.givenName, driver.familyName].filter(Boolean).join(' ') || driver.code || 'Piloto',
+                team_name: constructor.name || '-',
+                position: result.positionOrder || result.position || result.positionText,
+                number_of_laps: result.laps || '-',
+                duration: isLeader ? time : null,
+                gap_to_leader: !isLeader && time.startsWith('+') ? time : null,
+                points: result.points || 0,
+                status: result.status || '-'
+            };
         });
     }
 
@@ -281,21 +380,23 @@ class RaceStreamSessionsPage {
             const status = this.getSessionStatus(session);
             const isFinished = status !== 'upcoming' && status !== 'cancelled';
             const hasData = isFinished && this.hasSessionData(session);
-            const pendingText = session.session_key ? 'Datos no disponibles' : 'Sin resultados oficiales';
+            const key = this.getSessionCacheKey(session);
+            const expanded = this.expandedSessionIndex === index;
+            const loading = this.loadingSessionKeys.has(key);
+            const pendingText = this.shouldLoadSessionDetails(session) ? 'Pulsa para cargar resultados' : 'Sin resultados oficiales';
             return `
-                <article class="${this.getSessionTypeClass(session.session_type)}" data-session-index="${index}">
+                <article class="${this.getSessionTypeClass(session.session_type)}${expanded ? ' rs-session-row--expanded' : ''}" data-session-index="${index}" aria-expanded="${expanded}">
                     <div class="rs-session-row__date"><strong>${date.getDate()}</strong><span>${date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}</span></div>
                     <div class="rs-session-row__main">
                         <div class="rs-session-row__title"><h4>${this.translateSessionName(session.session_name)}</h4></div>
                         <div class="rs-session-row__meta">${this.translateSessionType(session.session_type)}</div>
                     </div>
                     <div class="rs-session-row__summary">
-                        ${this.renderFavoriteButton(session, index)}
-                        ${hasData ? this.renderSessionPodium(session) : `<div class="rs-session-row__pending">${isFinished ? pendingText : 'Por definir'}</div>`}
+                        ${hasData ? this.renderSessionPodium(session) : `<div class="rs-session-row__pending">${loading ? 'Cargando resultados...' : isFinished ? pendingText : 'Por definir'}</div>`}
                     </div>
-                    ${hasData ? `<div class="rs-session-row__details">
-                        ${this.renderResultTable(session)}
-                    </div>` : ''}
+                    <div class="rs-session-row__details">
+                        ${hasData ? this.renderResultTable(session) : `<p class="${loading ? 'loading-state' : 'empty-state'}">${loading ? 'Cargando datos de la sesión...' : 'Abre la sesión para consultar resultados.'}</p>`}
+                    </div>
                 </article>
             `;
         }).join('') || '<p class="empty-state">No hay sesiones disponibles para este GP.</p>';
@@ -304,7 +405,6 @@ class RaceStreamSessionsPage {
             row.addEventListener('click', () => this.toggleSession(Number(row.dataset.sessionIndex)));
         });
         this.hydrateDriverImages();
-        window.RaceStreamFavorites?.bind(this.sessionsList);
     }
 
     renderFavoriteButton(session, index) {
@@ -341,8 +441,12 @@ class RaceStreamSessionsPage {
                 ${podium.map((row, index) => {
                     const driver = this.getDriver(row, session);
                     const name = driver?.full_name || row.full_name || `Piloto ${row.driver_number || ''}`;
-                    const image = driver?.headshot_url || this.getDriverFallbackImage(name, driver?.team_name || row.team_name, this.getSessionYear(session), 64) || '';
-                    return `<span class="rs-session-podium__item"><strong>${index + 1}</strong><span class="rs-person-avatar"><img src="${image}" alt="Foto de ${name}" loading="lazy" onerror="this.onerror=null;this.closest('.rs-person-avatar').classList.add('rs-person-avatar--fallback');this.removeAttribute('src');"></span></span>`;
+                    return `
+                        <span class="rs-session-podium__item">
+                            <strong>${index + 1}</strong>
+                            ${this.renderDriverAvatar(name, driver, row, session, '')}
+                        </span>
+                    `;
                 }).join('')}
             </div>
         `;
@@ -358,7 +462,8 @@ class RaceStreamSessionsPage {
      * @returns {boolean} Resultado
      */
     shouldLoadSessionDetails(session) {
-        return Boolean(session?.session_key) && !['upcoming', 'cancelled'].includes(this.getSessionStatus(session));
+        return (Boolean(session?.session_key) || this.canUseJolpicaRaceResults(session))
+            && !['upcoming', 'cancelled'].includes(this.getSessionStatus(session));
     }
 
     /**
@@ -371,14 +476,17 @@ class RaceStreamSessionsPage {
      * @returns {boolean} Resultado
      */
     hasSessionData(session) {
-        const data = this.sessionData.get(session?.session_key);
+        if (this.sessionData.has(this.getSessionCacheKey(session)) && this.canUseJolpicaRaceResults(session)) {
+            return true;
+        }
+        const data = this.getSessionData(session);
         return Boolean(data?.results?.length || data?.laps?.length);
     }
 
     renderResultTable(session) {
         const rows = this.getSortedResults(session);
         if (!rows.length) {
-            return '<p class="empty-state">OpenF1 todavía no ofrece resultados para esta sesión.</p>';
+            return `<p class="empty-state">${session?.is_jolpica_fallback ? 'Jolpica todavía no ofrece resultados para esta sesión.' : 'OpenF1 todavía no ofrece resultados para esta sesión.'}</p>`;
         }
 
         const isQualifying = this.isQualifyingSession(session);
@@ -480,17 +588,90 @@ class RaceStreamSessionsPage {
      */
     renderDriverCell(driver, row, session) {
         const name = driver?.full_name || row.full_name || `Piloto ${row.driver_number || ''}`;
-        const year = this.getSessionYear(session);
-        const fallback = this.getDriverFallbackImage(name, driver?.team_name || row.team_name, year);
-        const number = row.driver_number || driver?.driver_number || '';
-        const image = fallback || driver?.headshot_url || '';
-        return `<span class="rs-session-driver"><span class="rs-session-driver__avatar rs-person-avatar"><img src="${image}" data-driver-number="${number}" data-media-url="${number ? this.mediaApi(number) : ''}" alt="Foto de ${name}" onerror="this.onerror=null;this.closest('.rs-person-avatar').classList.add('rs-person-avatar--fallback');this.removeAttribute('src');"></span>${name}</span>`;
+        return `
+            <span class="rs-session-driver">
+                ${this.renderDriverAvatar(name, driver, row, session, 'rs-session-driver__avatar')}
+                ${name}
+            </span>
+        `;
     }
 
     renderTeamCell(driver, row, session) {
         const teamName = driver?.team_name || row.team_name || '-';
-        const logo = this.getTeamLogo(teamName, this.getSessionYear(session));
+        const year = this.getSessionYear(session);
+        if (year < 2024) {
+            return `<span class="rs-session-team"><span class="rs-session-team__initials">${this.getInitials(teamName)}</span>${teamName}</span>`;
+        }
+        const logo = this.getTeamLogo(teamName, year);
         return `<span class="rs-session-team"><img src="${logo}" alt="Logo de ${teamName}" onerror="this.style.display='none';">${teamName}</span>`;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 06-05-2026
+     * @description Renderiza avatar de piloto usando codigo para temporadas sin foto fiable
+     * @param {string} name Nombre del piloto
+     * @param {Object} driver Piloto OpenF1
+     * @param {Object} row Resultado
+     * @param {Object} session Sesion
+     * @param {string} className Clase extra
+     * @returns {string} HTML del avatar
+     */
+    renderDriverAvatar(name, driver, row, session, className) {
+        const year = this.getSessionYear(session);
+        if (year < 2024) {
+            return `<span class="${className} rs-person-avatar rs-person-avatar--code"><span>${this.getDriverCode(driver, row, name)}</span></span>`;
+        }
+        const fallback = this.getDriverFallbackImage(name, driver?.team_name || row.team_name, year);
+        const number = row.driver_number || driver?.driver_number || '';
+        const image = driver?.headshot_url || fallback || '';
+        const mediaUrl = number ? this.mediaApi(number) : '';
+        return `
+            <span class="${className} rs-person-avatar">
+                <img
+                    src="${image}"
+                    data-driver-number="${number}"
+                    data-media-url="${mediaUrl}"
+                    alt="Foto de ${name}"
+                    onerror="this.onerror=null;this.closest('.rs-person-avatar').classList.add('rs-person-avatar--fallback');this.removeAttribute('src');">
+            </span>
+        `;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 06-05-2026
+     * @description Calcula iniciales compactas para pilotos o escuderias historicas
+     * @param {string} value Texto original
+     * @returns {string} Iniciales visibles
+     */
+    getInitials(value) {
+        return `${value || '-'}`
+            .split(/\s+/)
+            .filter(Boolean)
+            .map((part) => part[0])
+            .join('')
+            .slice(0, 3)
+            .toUpperCase();
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 06-05-2026
+     * @description Devuelve el codigo oficial de OpenF1 para avatares historicos sin foto
+     * @param {Object} driver Piloto OpenF1
+     * @param {Object} row Resultado
+     * @param {string} name Nombre del piloto
+     * @returns {string} Codigo visible
+     */
+    getDriverCode(driver, row, name) {
+        return driver?.name_acronym || row.driver_code || this.getInitials(name);
     }
 
     /**
@@ -504,10 +685,8 @@ class RaceStreamSessionsPage {
      */
     hydrateDriverImages() {
         this.sessionsList.querySelectorAll('img[data-media-url^="/api/f1/media/driver"]').forEach(async (image) => {
-            if (image.getAttribute('src')) {
-                image.closest('.rs-person-avatar')?.classList.remove('rs-person-avatar--fallback');
-                return;
-            }
+            const fallbackSrc = image.getAttribute('src');
+            if (fallbackSrc) image.closest('.rs-person-avatar')?.classList.remove('rs-person-avatar--fallback');
             const media = await this.fetchJson(image.dataset.mediaUrl, {});
             if (!media?.headshotUrl || image.src === media.headshotUrl) return;
             this.loadImage(media.headshotUrl)
@@ -516,8 +695,13 @@ class RaceStreamSessionsPage {
                     image.closest('.rs-person-avatar')?.classList.remove('rs-person-avatar--fallback');
                 })
                 .catch(() => {
-                    image.removeAttribute('src');
-                    image.closest('.rs-person-avatar')?.classList.add('rs-person-avatar--fallback');
+                    if (fallbackSrc) {
+                        image.src = fallbackSrc;
+                        image.closest('.rs-person-avatar')?.classList.remove('rs-person-avatar--fallback');
+                    } else {
+                        image.removeAttribute('src');
+                        image.closest('.rs-person-avatar')?.classList.add('rs-person-avatar--fallback');
+                    }
                 });
         });
     }
@@ -540,15 +724,21 @@ class RaceStreamSessionsPage {
         });
     }
 
-    toggleSession(index) {
-        let expandedRow = null;
-        this.sessionsList.querySelectorAll('.rs-session-row').forEach((row, rowIndex) => {
-            const expanded = rowIndex === index && !row.classList.contains('rs-session-row--expanded');
-            row.classList.toggle('rs-session-row--expanded', expanded);
-            row.setAttribute('aria-expanded', expanded);
-            if (expanded) expandedRow = row;
-        });
-        expandedRow?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    async toggleSession(index) {
+        const row = this.sessionsList.querySelector(`[data-session-index="${index}"]`);
+        const shouldExpand = row && !row.classList.contains('rs-session-row--expanded');
+        this.expandedSessionIndex = shouldExpand ? index : null;
+        this.renderSessions(this.currentSessions);
+        if (!shouldExpand) return;
+
+        const session = this.currentSessions[index];
+        const key = this.getSessionCacheKey(session);
+        if (!this.shouldLoadSessionDetails(session) || this.hasSessionData(session) || this.loadingSessionKeys.has(key)) return;
+        this.loadingSessionKeys.add(key);
+        this.renderSessions(this.currentSessions);
+        await this.loadSessionData(session);
+        this.loadingSessionKeys.delete(key);
+        this.renderSessions(this.currentSessions);
     }
 
     expandRequestedSession(sessions) {
@@ -560,7 +750,6 @@ class RaceStreamSessionsPage {
             : requestedIndex;
         if ((requestedSessionKey || hasRequestedIndex) && Number.isInteger(index) && index >= 0) {
             this.toggleSession(index);
-            this.sessionsList.querySelector(`[data-session-index="${index}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             this.initialParams.delete('sessionKey');
             this.initialParams.delete('sessionIndex');
         }
@@ -622,30 +811,58 @@ class RaceStreamSessionsPage {
         if (!this.topMeeting) return;
         const session = this.topSessions.find((item) => new Date(item.date_end).getTime() >= Date.now());
         const isLive = session && Date.now() >= new Date(session.date_start).getTime();
-        this.raceStripAction.innerHTML = isLive
-            ? '<a class="rs-button rs-button--primary" href="/live.html">En Vivo</a>'
-            : `<span class="rs-race-strip__status">${this.getCountdown(this.translateSessionName(session?.session_name), session?.date_start || this.topMeeting.date_start)}</span>`;
+        if (isLive) {
+            if (!this.raceStripAction.querySelector('a')) this.raceStripAction.innerHTML = '<a class="rs-button rs-button--primary" href="/live.html">En Vivo</a>';
+            return;
+        }
+        const text = this.getCountdown(this.translateSessionName(session?.session_name), session?.date_start || this.topMeeting.date_start);
+        const status = this.raceStripAction.querySelector('.rs-race-strip__status');
+        if (status) {
+            status.textContent = text;
+        } else {
+            this.raceStripAction.innerHTML = `<span class="rs-race-strip__status">${text}</span>`;
+        }
     }
 
     updateRaceStripClocks() {
         if (!this.topMeeting) return;
-        this.raceStripClocks.innerHTML = `
-            <div class="rs-race-strip__clock-card">
-                <div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-label">MI HORA</span><strong class="rs-race-strip__clock-value">${new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</strong></div>
-                <span class="rs-race-strip__clock-divider"></span>
-                <div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-subvalue">CIRCUITO</span><span class="rs-race-strip__clock-track-value">${this.getCircuitNowTime(this.topMeeting.gmt_offset)}</span></div>
-            </div>
-        `;
+        if (!this.raceStripClocks.querySelector('.rs-race-strip__clock-card')) {
+            this.raceStripClocks.innerHTML = `
+                <div class="rs-race-strip__clock-card">
+                    <div class="rs-race-strip__clock-row">
+                        <span class="rs-race-strip__clock-label">MI HORA</span>
+                        <strong class="rs-race-strip__clock-value"></strong>
+                    </div>
+                    <span class="rs-race-strip__clock-divider"></span>
+                    <div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-subvalue">CIRCUITO</span><span class="rs-race-strip__clock-track-value"></span></div>
+                </div>
+            `;
+        }
+        this.raceStripClocks.querySelector('.rs-race-strip__clock-value').textContent = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        this.raceStripClocks.querySelector('.rs-race-strip__clock-track-value').textContent = this.getCircuitNowTime(this.topMeeting.gmt_offset);
     }
 
     getSortedResults(session) {
-        const data = this.sessionData.get(session?.session_key);
+        const data = this.getSessionData(session);
         const rows = (data?.results?.length ? data.results : this.buildRowsFromLaps(session));
         return [...rows].sort((left, right) => (Number(left.position) || 999) - (Number(right.position) || 999));
     }
 
     getDriver(row, session) {
-        return this.sessionData.get(session?.session_key)?.driverMap.get(Number(row.driver_number));
+        return this.getSessionData(session)?.driverMap.get(Number(row.driver_number)) || row.Driver;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 07-05-2026
+     * @description Lee datos cargados de una sesion real o sintetica
+     * @param {Object} session Sesion
+     * @returns {Object|undefined} Datos cacheados
+     */
+    getSessionData(session) {
+        return this.sessionData.get(this.getSessionCacheKey(session));
     }
 
     formatRaceTimeOrGap(row, session, index) {
@@ -691,7 +908,7 @@ class RaceStreamSessionsPage {
     }
 
     buildRowsFromLaps(session) {
-        const data = this.sessionData.get(session?.session_key);
+        const data = this.getSessionData(session);
         const bestByDriver = new Map();
         (data?.laps || []).forEach((lap) => {
             if (!lap.driver_number) return;
@@ -716,7 +933,7 @@ class RaceStreamSessionsPage {
     }
 
     getLapStats(row, session) {
-        const data = this.sessionData.get(session?.session_key);
+        const data = this.getSessionData(session);
         const laps = (data?.laps || []).filter((lap) => Number(lap.driver_number) === Number(row.driver_number));
         const validLaps = laps.filter((lap) => Number(lap.lap_duration));
         const best = validLaps.sort((left, right) => Number(left.lap_duration) - Number(right.lap_duration))[0];
@@ -862,7 +1079,10 @@ class RaceStreamSessionsPage {
         const key = this.normalizeAssetKey(value);
         if (key.includes('red-bull')) return 'redbullracing';
         if (key.includes('alpha-tauri') || key.includes('alphatauri')) return 'alphatauri';
-        if (key.includes('racing-bulls') || key.includes('visa-cash-app') || key === 'rb') return year <= 2023 ? 'alphatauri' : 'racingbulls';
+        if (key.includes('racing-bulls') || key.includes('visa-cash-app') || key.includes('rb-f1') || key === 'rb') {
+            if (year <= 2023) return 'alphatauri';
+            return year === 2024 ? 'rb' : 'racingbulls';
+        }
         if (key.includes('aston-martin')) return 'astonmartin';
         if (key.includes('haas')) return 'haas';
         if (key.includes('alfa-romeo')) return 'alfaromeo';
@@ -882,20 +1102,27 @@ class RaceStreamSessionsPage {
     }
 
     getDriverFallbackImage(name, teamName = '', year = this.year, width = 64) {
-        const displayName = `${name || ''}`.replace(/^Andrea\s+Kimi\s+Antonelli$/i, 'Kimi Antonelli');
+        const displayName = `${name || ''}`;
         const clean = displayName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z\s-]/g, '').trim();
         const parts = clean.split(/\s+/).filter(Boolean);
         if (parts.length < 2) return '/assets/img/LogoRS2.png';
         const given = parts[0];
         const family = this.getDriverFamilyCode(parts);
-        const assetId = `${given.slice(0, 3)}${family.slice(0, 3)}01`;
-        const team = this.resolveTeamLogoSlug(teamName, year) || (assetId === 'arvlin01' ? 'racingbulls' : '');
+        const kimi = family === 'antonelli' && /kimi|andrea/.test(clean);
+        const assetId = kimi ? 'andant01' : `${given.slice(0, 3)}${family.slice(0, 3)}01`;
+        const assetYear = assetId === 'jacdoo01' && year === 2024 ? 2025 : year;
+        const team = assetId === 'jacdoo01' && year === 2024
+            ? 'alpine'
+            : this.resolveTeamLogoSlug(teamName, year) || (assetId === 'arvlin01' ? 'racingbulls' : '');
         if (team && team !== '-') {
-            return `https://media.formula1.com/image/upload/c_lfill,w_${width}/q_auto/d_common:f1:${year}:fallback:driver:${year}fallbackdriverright.webp/v1740000001/common/f1/${year}/${team}/${assetId}/${year}${team}${assetId}right.webp`;
+            return `https://media.formula1.com/image/upload/c_lfill,w_${width}/q_auto`
+                + `/d_common:f1:${assetYear}:fallback:driver:${assetYear}fallbackdriverright.webp`
+                + `/v1740000001/common/f1/${assetYear}/${team}/${assetId}/${assetYear}${team}${assetId}right.webp`;
         }
         const folder = assetId.charAt(0).toUpperCase();
-        const displayName = `${this.capitalize(given)}_${this.capitalize(family)}`;
-        return `https://www.formula1.com/content/dam/fom-website/drivers/${folder}/${assetId.toUpperCase()}_${displayName}/${assetId}.png.transform/1col/image.png`;
+        const legacyDisplayName = `${this.capitalize(given)}_${this.capitalize(family)}`;
+        return `https://www.formula1.com/content/dam/fom-website/drivers/${folder}`
+            + `/${assetId.toUpperCase()}_${legacyDisplayName}/${assetId}.png.transform/1col/image.png`;
     }
 
     /**
@@ -1034,6 +1261,36 @@ class RaceStreamSessionsPage {
         return Number(meeting?.meeting_key) > 0 && !meeting?.is_jolpica_fallback;
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 07-05-2026
+     * @description Permite meetings reales OpenF1 y meetings historicos sinteticos de Jolpica
+     * @param {Object} meeting Gran Premio
+     * @returns {boolean} Resultado
+     */
+    hasUsableMeetingKey(meeting) {
+        const key = Number(meeting?.meeting_key);
+        return Number.isFinite(key) && key !== 0;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 07-05-2026
+     * @description Conserva temporada y GP de sesiones al recargar
+     * @param {number} year Temporada
+     * @param {number|null} meetingKey GP seleccionado
+     */
+    updateUrl(year, meetingKey) {
+        const params = new URLSearchParams();
+        params.set('year', year || this.year);
+        if (meetingKey) params.set('meetingKey', meetingKey);
+        window.history.replaceState({}, '', `?${params.toString()}`);
+    }
+
     getCurrentOrNextMeeting(meetings) {
         return meetings.find((meeting) => new Date(meeting.date_end).getTime() >= Date.now()) || meetings[meetings.length - 1] || null;
     }
@@ -1059,7 +1316,22 @@ class RaceStreamSessionsPage {
     }
 
     translateSessionName(name) {
-        return ({ 'Practice 1': 'Libres 1', 'Practice 2': 'Libres 2', 'Practice 3': 'Libres 3', 'Free Practice 1': 'Libres 1', 'Free Practice 2': 'Libres 2', 'Free Practice 3': 'Libres 3', 'Sprint Qualifying': 'Clasif. sprint', 'Sprint Shootout': 'Clasif. sprint', Qualifying: 'Clasificación', Race: 'Carrera', Sprint: 'Sprint', 'Day 1': 'Día 1', 'Day 2': 'Día 2', 'Day 3': 'Día 3' })[name] || name || 'Sesión';
+        return {
+            'Practice 1': 'Libres 1',
+            'Practice 2': 'Libres 2',
+            'Practice 3': 'Libres 3',
+            'Free Practice 1': 'Libres 1',
+            'Free Practice 2': 'Libres 2',
+            'Free Practice 3': 'Libres 3',
+            'Sprint Qualifying': 'Clasif. sprint',
+            'Sprint Shootout': 'Clasif. sprint',
+            Qualifying: 'Clasificación',
+            Race: 'Carrera',
+            Sprint: 'Sprint',
+            'Day 1': 'Día 1',
+            'Day 2': 'Día 2',
+            'Day 3': 'Día 3'
+        }[name] || name || 'Sesión';
     }
 
     translateSessionType(type) {
@@ -1094,7 +1366,8 @@ class RaceStreamSessionsPage {
         const days = Math.floor(diff / 86400000);
         const hours = Math.floor((diff % 86400000) / 3600000);
         const minutes = Math.floor((diff % 3600000) / 60000);
-        return `${sessionName || 'Sesión'} en ${days}d ${hours}h ${minutes}m`;
+        const seconds = Math.floor((diff % 60000) / 1000);
+        return `${sessionName || 'Sesión'} en ${days}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
     }
 
     /**

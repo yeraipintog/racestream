@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RaceStream - Admin</title>
+    <link rel="icon" type="image/png" href="/assets/img/LogoRS2.png">
+    <link rel="stylesheet" href="/css/variables.css">
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/layout.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/account.css">
+</head>
+<body>
+<div class="rs-page-shell">
+    <header class="rs-navbar" id="mainNavbar"></header>
+    <section class="rs-race-strip" id="raceStrip"></section>
+    <main class="rs-main rs-simple-page">
+        <div class="rs-container">
+            <header class="rs-page-head">
+                <h1>Administración</h1>
+                <p>Panel reservado para revisar usuarios, mensajes de contacto y actividad interna de RaceStream.</p>
+            </header>
+
+            <section id="adminSummary" class="rs-admin-summary" aria-live="polite"></section>
+
+            <section class="rs-simple-panel rs-admin-users-panel">
+                <div class="rs-admin-panel-head">
+                    <h2>Usuarios</h2>
+                    <form id="adminUserSearchForm" class="rs-admin-inline-form">
+                        <input name="email" type="search" placeholder="Buscar usuario" aria-label="Buscar usuario">
+                    </form>
+                </div>
+                <div id="adminUsers" class="rs-list"></div>
+            </section>
+
+            <section class="rs-simple-panel rs-admin-blocked-panel">
+                <div class="rs-admin-panel-head">
+                    <h2>Usuarios bloqueados</h2>
+                </div>
+                <div id="adminBlockedEmails" class="rs-admin-blocked-list"></div>
+            </section>
+
+            <section class="rs-simple-grid rs-admin-activity-grid">
+                <article class="rs-simple-panel">
+                    <h2>Contacto</h2>
+                    <div id="adminMessages" class="rs-list"></div>
+                </article>
+                <article class="rs-simple-panel">
+                    <h2>Foro</h2>
+                    <div id="adminForumPosts" class="rs-list"></div>
+                </article>
+            </section>
+        </div>
+    </main>
+    <footer class="rs-footer"></footer>
+</div>
+<script src="/js/nav.js"></script>
+<script src="/js/race-strip.js"></script>
+<script src="/js/admin.js"></script>
+</body>
+</html>

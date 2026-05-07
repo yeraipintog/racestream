@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.0
+ * @version 1.2.3
  * @created 04-05-2026
- * @modified 05-05-2026
+ * @modified 07-05-2026
  * @description Lógica de Clasificación con temporadas históricas, tablas de pilotos, escuderías, banderas y detalle por GP
  */
 class RaceStreamStandingsPage {
@@ -12,9 +12,9 @@ class RaceStreamStandingsPage {
         this.assets = window.RaceStreamF1Assets;
         this.params = new URLSearchParams(window.location.search);
         this.year = Number(this.params.get('year')) || new Date().getFullYear();
-        this.activeType = 'drivers';
-        this.selectedDriver = 'all';
-        this.selectedConstructor = 'all';
+        this.activeType = this.params.get('type') === 'constructors' ? 'constructors' : 'drivers';
+        this.selectedDriver = this.params.get('driverId') || 'all';
+        this.selectedConstructor = this.params.get('constructorId') || 'all';
         this.driverStandings = [];
         this.constructorStandings = [];
         this.meetings = [];
@@ -48,7 +48,7 @@ class RaceStreamStandingsPage {
             this.year = Number(this.yearInput.value);
             this.selectedDriver = 'all';
             this.selectedConstructor = 'all';
-            window.history.replaceState({}, '', `?year=${this.year}`);
+            this.updateUrl();
             this.loadSeason();
         });
         this.driversTab.addEventListener('click', () => this.setActiveType('drivers'));
@@ -59,6 +59,7 @@ class RaceStreamStandingsPage {
             } else {
                 this.selectedConstructor = this.entityFilter.value;
             }
+            this.updateUrl();
             this.renderActiveTable();
         });
     }
@@ -91,41 +92,84 @@ class RaceStreamStandingsPage {
         ]);
 
         if (requestId !== this.requestId) return;
-        this.driverStandings = drivers;
-        this.constructorStandings = constructors;
+        const fallbackResults = (!drivers.length || !constructors.length)
+            ? await this.fetchArray(`/api/f1/standings/race-results?year=${this.year}`, 4)
+            : [];
+        if (requestId !== this.requestId) return;
+        this.raceResults = fallbackResults.length ? fallbackResults : null;
+        this.driverStandings = drivers.length ? drivers : this.buildDriverStandingsFromResults(fallbackResults);
+        this.constructorStandings = constructors.length ? constructors : this.buildConstructorStandingsFromResults(fallbackResults);
         this.meetings = meetings;
+        this.syncTypeControls();
         this.populateEntityFilter();
+        this.updateUrl();
         this.entityFilter.disabled = false;
         this.renderActiveTable();
     }
 
     setActiveType(type) {
         this.activeType = type;
-        this.driversTab.classList.toggle('rs-standings-tab--active', type === 'drivers');
-        this.constructorsTab.classList.toggle('rs-standings-tab--active', type === 'constructors');
-        this.driversTab.setAttribute('aria-pressed', type === 'drivers');
-        this.constructorsTab.setAttribute('aria-pressed', type === 'constructors');
+        this.syncTypeControls();
         this.populateEntityFilter();
+        this.updateUrl();
         this.renderActiveTable();
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 07-05-2026
+     * @description Sincroniza los botones de tipo con la pestaña activa
+     */
+    syncTypeControls() {
+        this.driversTab.classList.toggle('rs-standings-tab--active', this.activeType === 'drivers');
+        this.constructorsTab.classList.toggle('rs-standings-tab--active', this.activeType === 'constructors');
+        this.driversTab.setAttribute('aria-pressed', this.activeType === 'drivers');
+        this.constructorsTab.setAttribute('aria-pressed', this.activeType === 'constructors');
     }
 
     populateEntityFilter() {
         if (this.activeType === 'drivers') {
             this.tableTitle.textContent = 'Clasificación de pilotos';
-            this.entityFilter.innerHTML = '<option value="all">Todos los pilotos</option>' + this.driverStandings.map((row) => {
+            const options = this.driverStandings.map((row) => {
                 const driver = row.Driver || {};
                 return `<option value="${this.assets.escape(driver.driverId)}">${this.assets.escape(this.assets.getDriverName(driver))}</option>`;
-            }).join('');
+            });
+            if (this.selectedDriver !== 'all' && !this.driverStandings.some((row) => row.Driver?.driverId === this.selectedDriver)) {
+                this.selectedDriver = 'all';
+            }
+            this.entityFilter.innerHTML = '<option value="all">Todos los pilotos</option>' + options.join('');
             this.entityFilter.value = this.selectedDriver;
             return;
         }
 
         this.tableTitle.textContent = 'Clasificación de escuderías';
-        this.entityFilter.innerHTML = '<option value="all">Todas las escuderías</option>' + this.constructorStandings.map((row) => {
+        const options = this.constructorStandings.map((row) => {
             const constructor = row.Constructor || {};
             return `<option value="${this.assets.escape(constructor.constructorId)}">${this.assets.escape(this.assets.getConstructorName(constructor))}</option>`;
-        }).join('');
+        });
+        if (this.selectedConstructor !== 'all' && !this.constructorStandings.some((row) => row.Constructor?.constructorId === this.selectedConstructor)) {
+            this.selectedConstructor = 'all';
+        }
+        this.entityFilter.innerHTML = '<option value="all">Todas las escuderías</option>' + options.join('');
         this.entityFilter.value = this.selectedConstructor;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 07-05-2026
+     * @description Conserva temporada, pestaña y filtro seleccionados al recargar
+     */
+    updateUrl() {
+        const params = new URLSearchParams();
+        params.set('year', this.year);
+        params.set('type', this.activeType);
+        if (this.activeType === 'drivers' && this.selectedDriver !== 'all') params.set('driverId', this.selectedDriver);
+        if (this.activeType === 'constructors' && this.selectedConstructor !== 'all') params.set('constructorId', this.selectedConstructor);
+        window.history.replaceState({}, '', `?${params.toString()}`);
     }
 
     async renderActiveTable() {
@@ -158,7 +202,7 @@ class RaceStreamStandingsPage {
 
     renderDriversTable() {
         if (!this.driverStandings.length) {
-            this.tableContent.innerHTML = '<p class="empty-state">No hay clasificación de pilotos disponible para esta temporada.</p>';
+            this.renderApiRetry('Pilotos');
             return;
         }
         this.tableContent.innerHTML = `
@@ -175,10 +219,16 @@ class RaceStreamStandingsPage {
     renderDriverStandingRow(row) {
         const driver = row.Driver || {};
         const constructor = (row.Constructors || [])[0] || {};
+        const driverUrl = `/drivers.html?year=${this.year}&driverId=${this.assets.escape(driver.driverId)}`;
         return `
             <tr>
                 <td><strong class="rs-standings-position">${this.assets.escape(row.position || '-')}</strong></td>
-                <td><a class="rs-standings-person-cell" href="/drivers.html?year=${this.year}&driverId=${this.assets.escape(driver.driverId)}">${this.assets.personAvatar(driver, 'rs-standings-avatar', { constructor, year: this.year })}<strong>${this.assets.escape(this.assets.getDriverName(driver))}</strong></a></td>
+                <td>
+                    <a class="rs-standings-person-cell" href="${driverUrl}">
+                        ${this.assets.personAvatar(driver, 'rs-standings-avatar', { constructor, year: this.year })}
+                        <strong>${this.assets.escape(this.assets.getDriverName(driver))}</strong>
+                    </a>
+                </td>
                 <td>${this.assets.nationalityBadge(driver.nationality)}</td>
                 <td><span class="rs-standings-team-cell">${this.assets.teamMark(constructor, this.year)}<span>${this.assets.escape(this.assets.getConstructorName(constructor))}</span></span></td>
                 <td><strong class="rs-standings-points">${this.assets.formatPoints(row.points)} pts</strong></td>
@@ -188,13 +238,13 @@ class RaceStreamStandingsPage {
 
     renderConstructorsTable() {
         if (!this.constructorStandings.length) {
-            this.tableContent.innerHTML = '<p class="empty-state">No hay clasificación de escuderías disponible para esta temporada.</p>';
+            this.renderApiRetry('Escuderías');
             return;
         }
         this.tableContent.innerHTML = `
             <div class="rs-standings-table-wrap">
                 <table class="rs-standings-table">
-                    <thead><tr><th>Posición</th><th>Escudería</th><th>Nacionalidad</th><th>Motor</th><th>Puntos</th></tr></thead>
+                    <thead><tr><th>Posición</th><th>Escudería</th><th>Nacionalidad</th><th>Pilotos</th><th>Puntos</th></tr></thead>
                     <tbody>${this.constructorStandings.map((row) => this.renderConstructorStandingRow(row)).join('')}</tbody>
                 </table>
             </div>
@@ -204,14 +254,94 @@ class RaceStreamStandingsPage {
     renderConstructorStandingRow(row) {
         const constructor = row.Constructor || {};
         const color = this.assets.getTeamColor(constructor, this.year);
+        const drivers = this.getConstructorDrivers(constructor.constructorId)
+            .map((driver) => this.assets.getDriverName(driver))
+            .join(' / ');
+        const teamUrl = `/teams.html?year=${this.year}&constructorId=${this.assets.escape(constructor.constructorId)}`;
         return `
             <tr style="--team-color:${color}">
                 <td><strong class="rs-standings-position">${this.assets.escape(row.position || '-')}</strong></td>
-                <td><a class="rs-standings-team-cell" href="/teams.html?year=${this.year}&constructorId=${this.assets.escape(constructor.constructorId)}">${this.assets.teamMark(constructor, this.year)}<strong>${this.assets.escape(this.assets.getConstructorName(constructor))}</strong></a></td>
+                <td>
+                    <a class="rs-standings-team-cell" href="${teamUrl}">
+                        ${this.assets.teamMark(constructor, this.year)}
+                        <strong>${this.assets.escape(this.assets.getConstructorName(constructor))}</strong>
+                    </a>
+                </td>
                 <td>${this.assets.nationalityBadge(constructor.nationality)}</td>
-                <td>${this.assets.escape(this.assets.getEngineName(constructor))}</td>
+                <td>${this.assets.escape(drivers || '-')}</td>
                 <td><strong class="rs-standings-points">${this.assets.formatPoints(row.points)} pts</strong></td>
             </tr>
+        `;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 07-05-2026
+     * @description Reconstruye pilotos desde resultados si Jolpica devuelve vacia la clasificacion agregada
+     * @param {Array} races Carreras con resultados
+     * @returns {Array} Clasificacion reconstruida
+     */
+    buildDriverStandingsFromResults(races) {
+        const rows = new Map();
+        (races || []).forEach((race) => (race.Results || []).forEach((result) => {
+            const driver = result.Driver || {};
+            const id = driver.driverId || this.assets.normalize(this.assets.getDriverName(driver));
+            if (!id) return;
+            const row = rows.get(id) || { Driver: driver, Constructors: [], points: 0, wins: 0 };
+            row.points += Number(result.points || 0);
+            row.wins += Number(result.positionOrder || result.position) === 1 ? 1 : 0;
+            if (result.Constructor && !row.Constructors.some((team) => team.constructorId === result.Constructor.constructorId)) {
+                row.Constructors = [result.Constructor, ...row.Constructors].slice(0, 2);
+            }
+            rows.set(id, row);
+        }));
+        return [...rows.values()]
+            .sort((left, right) => Number(right.points) - Number(left.points) || Number(right.wins) - Number(left.wins))
+            .map((row, index) => ({ ...row, position: String(index + 1), points: `${row.points}` }));
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 07-05-2026
+     * @description Reconstruye escuderias desde resultados si Jolpica devuelve vacia la clasificacion agregada
+     * @param {Array} races Carreras con resultados
+     * @returns {Array} Clasificacion reconstruida
+     */
+    buildConstructorStandingsFromResults(races) {
+        const rows = new Map();
+        (races || []).forEach((race) => (race.Results || []).forEach((result) => {
+            const constructor = result.Constructor || {};
+            const id = constructor.constructorId || this.assets.normalize(this.assets.getConstructorName(constructor));
+            if (!id) return;
+            const row = rows.get(id) || { Constructor: constructor, points: 0, wins: 0 };
+            row.points += Number(result.points || 0);
+            row.wins += Number(result.positionOrder || result.position) === 1 ? 1 : 0;
+            rows.set(id, row);
+        }));
+        return [...rows.values()]
+            .sort((left, right) => Number(right.points) - Number(left.points) || Number(right.wins) - Number(left.wins))
+            .map((row, index) => ({ ...row, position: String(index + 1), points: `${row.points}` }));
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 07-05-2026
+     * @description Muestra recarga manual cuando faltan datos obligatorios de API
+     * @param {string} label Datos esperados
+     */
+    renderApiRetry(label) {
+        this.tableContent.innerHTML = `
+            <div class="rs-api-retry empty-state">
+                <strong>${this.assets.escape(label)}</strong>
+                <span>Recarga forzada</span>
+                <button class="rs-button" type="button" onclick="window.location.reload()">Reintentar</button>
+            </div>
         `;
     }
 
@@ -221,7 +351,7 @@ class RaceStreamStandingsPage {
             .filter((item) => item.result);
 
         if (!selectedRows.length) {
-            this.tableContent.innerHTML = '<p class="empty-state">No hay resultados de carrera para este piloto en la temporada seleccionada.</p>';
+            this.renderApiRetry('Resultados');
             return;
         }
 
@@ -248,7 +378,7 @@ class RaceStreamStandingsPage {
             .filter((item) => item.results.length);
 
         if (!selectedRows.length) {
-            this.tableContent.innerHTML = '<p class="empty-state">No hay resultados de carrera para esta escuderia en la temporada seleccionada.</p>';
+            this.renderApiRetry('Resultados');
             return;
         }
 
@@ -335,11 +465,14 @@ class RaceStreamStandingsPage {
 
     findDriverRaceResult(race, driverId) {
         const selected = this.driverStandings.find((row) => row.Driver?.driverId === driverId)?.Driver || {};
+        const selectedName = this.assets.normalize(this.assets.getDriverName(selected));
         return (race.Results || []).find((result) => {
             const driver = result.Driver || {};
+            const resultName = this.assets.normalize(this.assets.getDriverName(driver));
             return driver.driverId === driverId
                 || (selected.code && driver.code === selected.code)
-                || (selected.familyName && this.assets.normalize(driver.familyName) === this.assets.normalize(selected.familyName));
+                || (selected.familyName && this.assets.normalize(driver.familyName) === this.assets.normalize(selected.familyName))
+                || (selectedName && resultName === selectedName);
         });
     }
 
@@ -355,8 +488,12 @@ class RaceStreamStandingsPage {
     }
 
     getConstructorDrivers(constructorId) {
+        const selected = this.constructorStandings.find((row) => row.Constructor?.constructorId === constructorId)?.Constructor || {};
+        const selectedSlug = this.assets.getTeamSlug(selected.constructorId || selected.name, this.year);
         return this.driverStandings
-            .filter((row) => (row.Constructors || []).some((constructor) => constructor.constructorId === constructorId))
+            .filter((row) => (row.Constructors || []).some((constructor) =>
+                constructor.constructorId === constructorId
+                || this.assets.getTeamSlug(constructor.constructorId || constructor.name, this.year) === selectedSlug))
             .map((row) => row.Driver)
             .filter(Boolean)
             .slice(0, 2);

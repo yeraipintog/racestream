@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.4
+ * @version 1.0.6
  * @created 03-05-2026
- * @modified 04-05-2026
+ * @modified 07-05-2026
  * @description Fórmula 1 En Vivo con estado visual, horarios dobles y datos agregados desde OpenF1
  */
 class RaceStreamLivePage {
@@ -53,6 +53,7 @@ class RaceStreamLivePage {
     bindMenus() {
         const profileDropdown = document.getElementById('profileDropdown');
         const mobileMenuDropdown = document.getElementById('mobileMenuDropdown');
+        if (profileDropdown?.dataset.rsDropdownBound && mobileMenuDropdown?.dataset.rsDropdownBound) return;
         profileDropdown?.querySelector('.rs-profile-dropdown__trigger')?.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -148,9 +149,15 @@ class RaceStreamLivePage {
      */
     renderRaceStripAction() {
         const live = this.isLive(this.session);
-        this.raceStripAction.innerHTML = live
-            ? '<span class="rs-race-strip__status">En vivo ahora</span>'
-            : `<span class="rs-race-strip__status">${this.translateSessionName(this.session?.session_name)} en ${this.getCountdown(this.session?.date_start)}</span>`;
+        const text = live
+            ? 'En vivo ahora'
+            : `${this.translateSessionName(this.session?.session_name)} en ${this.getCountdown(this.session?.date_start)}`;
+        const status = this.raceStripAction.querySelector('.rs-race-strip__status');
+        if (status) {
+            status.textContent = text;
+        } else {
+            this.raceStripAction.innerHTML = `<span class="rs-race-strip__status">${text}</span>`;
+        }
     }
 
     /**
@@ -407,7 +414,23 @@ class RaceStreamLivePage {
     }
     updateRaceStripClocks() {
         if (!this.meeting) return;
-        this.raceStripClocks.innerHTML = `<div class="rs-race-strip__clock-card"><div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-label">MI HORA</span><strong class="rs-race-strip__clock-value">${this.formatTime(new Date())}</strong></div><span class="rs-race-strip__clock-divider"></span><div class="rs-race-strip__clock-row"><span class="rs-race-strip__clock-subvalue">CIRCUITO</span><span class="rs-race-strip__clock-track-value">${this.getCircuitNowTime(this.meeting.gmt_offset)}</span></div></div>`;
+        if (!this.raceStripClocks.querySelector('.rs-race-strip__clock-card')) {
+            this.raceStripClocks.innerHTML = `
+                <div class="rs-race-strip__clock-card">
+                    <div class="rs-race-strip__clock-row">
+                        <span class="rs-race-strip__clock-label">MI HORA</span>
+                        <strong class="rs-race-strip__clock-value"></strong>
+                    </div>
+                    <span class="rs-race-strip__clock-divider"></span>
+                    <div class="rs-race-strip__clock-row">
+                        <span class="rs-race-strip__clock-subvalue">CIRCUITO</span>
+                        <span class="rs-race-strip__clock-track-value"></span>
+                    </div>
+                </div>
+            `;
+        }
+        this.raceStripClocks.querySelector('.rs-race-strip__clock-value').textContent = this.formatTime(new Date());
+        this.raceStripClocks.querySelector('.rs-race-strip__clock-track-value').textContent = this.getCircuitNowTime(this.meeting.gmt_offset);
         this.renderRaceStripAction();
     }
 

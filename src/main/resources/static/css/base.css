@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.2
+ * @version 1.0.4
  * @created 21-04-2026
- * @modified 27-04-2026
+ * @modified 06-05-2026
  * @description Estilos base globales de RaceStream documentados por bloques
  */
 
@@ -18,10 +18,13 @@
    DOCUMENTO
 ========================= */
 html {
+    min-height: 100%;
+    background: #06080d;
     scroll-behavior: smooth;
 }
 
 body {
+    min-height: 100vh;
     margin: 0;
     font-family: var(--rs-font-family);
     background:
@@ -29,6 +32,7 @@ body {
         radial-gradient(circle at top right, rgba(25, 60, 110, 0.18), transparent 30%),
         linear-gradient(180deg, #06080d 0%, #0a0f18 100%);
     color: var(--rs-text);
+    overflow-x: hidden;
 }
 
 /* =========================
@@ -172,15 +176,47 @@ ul {
    ESTADOS REUTILIZABLES
 ========================= */
 .empty-state {
+    max-width: 100%;
     padding: 28px 12px;
     text-align: center;
     color: var(--rs-text-muted);
     font-style: italic;
+    overflow-wrap: anywhere;
+    white-space: normal;
 }
 
 .loading-state {
+    max-width: 100%;
     padding: 20px 12px;
     text-align: center;
     color: var(--rs-primary);
     font-weight: 700;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+.rs-api-retry {
+    display: grid;
+    gap: 10px;
+    justify-items: center;
+    font-style: normal;
+}
+
+.rs-api-retry strong {
+    color: #fff;
+}
+
+@media (max-width: 560px) {
+    .empty-state,
+    .loading-state {
+        width: min(210px, calc(100vw - 48px)) !important;
+        max-width: 210px !important;
+        margin-right: auto;
+        margin-left: auto;
+        box-sizing: border-box;
+        font-size: 14px;
+        line-height: 1.45;
+        overflow-wrap: break-word !important;
+        white-space: normal !important;
+    }
 }

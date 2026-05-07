@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.0
+ * @version 1.2.1
  * @created 09-03-2026
- * @modified 05-05-2026
+ * @modified 06-05-2026
  * @description Configuracion de seguridad con zonas publicas, privadas y roles
  */
 package com.yerai.racestream.config;
@@ -22,9 +22,9 @@ public class SecurityConfig {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.2.0
+     * @version 1.2.1
      * @created 09-03-2026
-     * @modified 05-05-2026
+     * @modified 06-05-2026
      * @description Protege paginas privadas, APIs de usuario y administracion
      * @param http Constructor de seguridad HTTP
      * @return Cadena de filtros configurada
@@ -43,7 +43,7 @@ public class SecurityConfig {
                         .requestMatchers("/forum.html", "/contact.html", "/account.html", "/favorites.html",
                                 "/preferences.html", "/privacy.html", "/api/forum/**", "/api/contact/**",
                                 "/api/user/**", "/api/favorites/**").authenticated()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/admin.html", "/api/admin/**").hasRole("ADMIN")
                         .anyRequest().permitAll())
                 .formLogin(form -> form
                         .loginPage("/login.html")

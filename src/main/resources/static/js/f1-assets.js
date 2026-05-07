@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.0
+ * @version 1.3.1
  * @created 04-05-2026
- * @modified 05-05-2026
+ * @modified 06-05-2026
  * @description Utilidades visuales de Formula 1 para pilotos, escuderias, nacionalidades, banderas e imagenes
  */
 class RaceStreamF1Assets {
@@ -18,6 +18,7 @@ class RaceStreamF1Assets {
         astonmartin: '#006f62',
         haas: '#b6babd',
         kicksauber: '#52e252',
+        audi: '#c7d2fe',
         rb: '#315c88',
         racingbulls: '#315c88',
         alphatauri: '#5e8faa',
@@ -202,6 +203,19 @@ class RaceStreamF1Assets {
         return driver?.permanentNumber || driver?.permanent_number || driver?.driver_number || driver?.number || '';
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 06-05-2026
+     * @description Devuelve el codigo deportivo visible cuando no hay foto fiable del piloto
+     * @param {Object} driver Piloto
+     * @returns {string} Codigo del piloto
+     */
+    static getDriverCode(driver) {
+        return driver?.code || driver?.name_acronym || driver?.driver_code || this.getDriverInitials(driver);
+    }
+
     static getConstructorName(constructor) {
         return constructor?.name || 'Escudería';
     }
@@ -220,7 +234,11 @@ class RaceStreamF1Assets {
         }
         if (key.includes('aston-martin')) return 'astonmartin';
         if (key.includes('alfa-romeo')) return 'alfaromeo';
-        if (key.includes('kick') || key.includes('stake') || key.includes('sauber')) return year <= 2023 ? 'alfaromeo' : 'kicksauber';
+        if (key.includes('audi')) return 'audi';
+        if (key.includes('kick') || key.includes('stake') || key.includes('sauber')) {
+            if (year >= 2026) return 'audi';
+            return year <= 2023 ? 'alfaromeo' : 'kicksauber';
+        }
         if (key.includes('mercedes')) return 'mercedes';
         if (key.includes('ferrari')) return 'ferrari';
         if (key.includes('mclaren')) return 'mclaren';
@@ -250,6 +268,20 @@ class RaceStreamF1Assets {
 
     static getTeamInitials(constructor) {
         const name = this.getConstructorName(constructor);
+        return name.split(/\s+/).map((part) => part[0]).join('').slice(0, 3).toUpperCase();
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 06-05-2026
+     * @description Devuelve iniciales legibles como ultimo fallback de pilotos sin codigo
+     * @param {Object} driver Piloto
+     * @returns {string} Iniciales del piloto
+     */
+    static getDriverInitials(driver) {
+        const name = this.getDriverName(driver);
         return name.split(/\s+/).map((part) => part[0]).join('').slice(0, 3).toUpperCase();
     }
 
@@ -286,7 +318,7 @@ class RaceStreamF1Assets {
 
     static countryFlag(value, className = '') {
         const flag = this.flagUrl(this.getCountryIso2(value));
-        return flag ? `<img class="rs-flag-inline ${className}" src="${flag}" alt="Bandera de ${this.escape(value || 'pais')}" loading="lazy">` : '';
+        return flag ? `<img class="rs-flag-inline ${className}" src="${flag}" alt="Bandera de ${this.escape(value || 'país')}" loading="lazy">` : '';
     }
 
     static formatPoints(value) {
@@ -297,10 +329,25 @@ class RaceStreamF1Assets {
     static personAvatar(driver, className = '', options = {}) {
         const number = this.getDriverNumber(driver);
         const name = this.getDriverName(driver);
+        const year = Number(options.year || new Date().getFullYear());
+        if (!this.hasTrustedSeasonDriverImage(year)) {
+            return `
+                <span class="rs-person-avatar rs-person-avatar--code ${className}" title="${this.escape(name)}">
+                    <span>${this.escape(this.getDriverCode(driver))}</span>
+                </span>
+            `;
+        }
         const image = this.getDriverImage(driver, options.constructor, options.year, options.size || 64);
+        const mediaUrl = number && !image ? `/api/f1/media/driver?number=${number}` : '';
+        const fallbackClass = image ? '' : ' rs-person-avatar--fallback';
         return `
-            <span class="rs-person-avatar rs-person-avatar--fallback ${className}">
-                <img ${image ? `src="${image}"` : ''} ${number ? `data-media-url="/api/f1/media/driver?number=${number}"` : ''} alt="Foto de ${this.escape(name)}" loading="lazy" onerror="this.onerror=null;this.closest('.rs-person-avatar').classList.add('rs-person-avatar--fallback');this.removeAttribute('src');">
+            <span class="rs-person-avatar${fallbackClass} ${className}">
+                <img
+                    ${image ? `src="${image}"` : ''}
+                    ${mediaUrl ? `data-media-url="${mediaUrl}"` : ''}
+                    alt="Foto de ${this.escape(name)}"
+                    loading="lazy"
+                    onerror="this.onerror=null;this.closest('.rs-person-avatar').classList.add('rs-person-avatar--fallback');this.removeAttribute('src');">
             </span>
         `;
     }
@@ -311,7 +358,14 @@ class RaceStreamF1Assets {
         if (!assetId || !team) return '';
         const assetYear = assetId === 'jacdoo01' && year === 2024 ? 2025 : year;
         const assetTeam = assetId === 'jacdoo01' && year === 2024 ? 'alpine' : team;
-        return `https://media.formula1.com/image/upload/c_lfill,w_${width}/q_auto/d_common:f1:${assetYear}:fallback:driver:${assetYear}fallbackdriverright.webp/v1740000001/common/f1/${assetYear}/${assetTeam}/${assetId}/${assetYear}${assetTeam}${assetId}right.webp`;
+        return `https://media.formula1.com/image/upload/c_lfill,w_${width}/q_auto`
+            + `/d_common:f1:${assetYear}:fallback:driver:${assetYear}fallbackdriverright.webp`
+            + `/v1740000001/common/f1/${assetYear}/${assetTeam}/${assetId}/${assetYear}${assetTeam}${assetId}right.webp`;
+    }
+
+    static hasTrustedSeasonDriverImage(year) {
+        const season = Number(year || new Date().getFullYear());
+        return season >= 2024 && season <= 2026;
     }
 
     static getDriverAssetId(driver) {
@@ -319,18 +373,22 @@ class RaceStreamF1Assets {
         const given = rawGiven.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z\s-]/g, '').trim().split(/\s+/)[0] || '';
         const family = `${driver?.familyName || ''}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z\s-]/g, '').trim();
         if (!given || !family) return '';
+        if (family === 'antonelli' && /kimi|andrea/i.test(rawGiven)) return 'andant01';
         const parts = family.split(/\s+/).filter(Boolean);
         const particles = new Set(['da', 'de', 'del', 'do', 'dos', 'du', 'van', 'von']);
         const familyCode = parts.length > 1 && particles.has(parts[parts.length - 2]) ? `${parts[parts.length - 2]}${parts[parts.length - 1]}` : parts[parts.length - 1];
         return `${given.slice(0, 3)}${familyCode.slice(0, 3)}01`;
     }
 
-    static getEngineName(constructor) {
-        return constructor?.engine || constructor?.powerUnit || constructor?.motor || constructor?.chassisEngine || 'No disponible en API';
-    }
-
     static teamMark(constructor, year, className = '') {
         const name = this.getConstructorName(constructor);
+        if (Number(year || new Date().getFullYear()) < 2024) {
+            return `
+                <span class="rs-team-mark rs-team-mark--fallback ${className}" title="${this.escape(name)}">
+                    <span>${this.escape(this.getTeamInitials(constructor))}</span>
+                </span>
+            `;
+        }
         const logo = this.getTeamLogo(constructor, year);
         return `
             <span class="rs-team-mark ${className}">
@@ -352,24 +410,30 @@ class RaceStreamF1Assets {
      */
     static hydrateDriverImages(root, fetchJson, loadImage) {
         root.querySelectorAll('img[data-media-url^="/api/f1/media/driver"]').forEach(async (image) => {
-            if (image.getAttribute('src')) {
-                image.closest('.rs-person-avatar')?.classList.remove('rs-person-avatar--fallback');
-                return;
-            }
             const wrapper = image.closest('.rs-person-avatar');
+            const fallbackSrc = image.getAttribute('src');
+            if (fallbackSrc) {
+                wrapper?.classList.remove('rs-person-avatar--fallback');
+            }
             const media = await fetchJson(image.dataset.mediaUrl, {});
             if (!media?.headshotUrl) {
-                wrapper?.classList.add('rs-person-avatar--fallback');
+                if (!image.getAttribute('src')) wrapper?.classList.add('rs-person-avatar--fallback');
                 return;
             }
+            if (image.src === media.headshotUrl) return;
             loadImage(media.headshotUrl)
                 .then(() => {
                     image.src = media.headshotUrl;
                     wrapper?.classList.remove('rs-person-avatar--fallback');
                 })
                 .catch(() => {
-                    image.removeAttribute('src');
-                    wrapper?.classList.add('rs-person-avatar--fallback');
+                    if (fallbackSrc) {
+                        image.src = fallbackSrc;
+                        wrapper?.classList.remove('rs-person-avatar--fallback');
+                    } else {
+                        image.removeAttribute('src');
+                        wrapper?.classList.add('rs-person-avatar--fallback');
+                    }
                 });
         });
     }

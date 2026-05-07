@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.0
+ * @version 1.1.2
  * @created 05-05-2026
- * @modified 05-05-2026
- * @description Entidad persistente de usuario local con rol, proveedor y aceptacion legal
+ * @modified 07-05-2026
+ * @description Entidad persistente de usuario local con rol, proveedor, preferencias, recuperacion y aceptacion legal
  */
 package com.yerai.racestream.model;
 
@@ -55,7 +55,21 @@ public class AppUser {
     private boolean notificationsEnabled;
 
     @Column(nullable = false)
+    private boolean emailNotificationsEnabled;
+
+    @Column(nullable = false)
+    private boolean favoriteDigestEnabled;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean favoriteDigestEmailEnabled;
+
+    @Column(nullable = false)
     private boolean privateProfile = true;
+
+    @Column(length = 96)
+    private String passwordResetToken;
+
+    private Instant passwordResetExpiresAt;
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -90,8 +104,18 @@ public class AppUser {
     public void setCookieConsent(boolean cookieConsent) { this.cookieConsent = cookieConsent; }
     public boolean isNotificationsEnabled() { return notificationsEnabled; }
     public void setNotificationsEnabled(boolean notificationsEnabled) { this.notificationsEnabled = notificationsEnabled; }
+    public boolean isEmailNotificationsEnabled() { return emailNotificationsEnabled; }
+    public void setEmailNotificationsEnabled(boolean emailNotificationsEnabled) { this.emailNotificationsEnabled = emailNotificationsEnabled; }
+    public boolean isFavoriteDigestEnabled() { return favoriteDigestEnabled; }
+    public void setFavoriteDigestEnabled(boolean favoriteDigestEnabled) { this.favoriteDigestEnabled = favoriteDigestEnabled; }
+    public boolean isFavoriteDigestEmailEnabled() { return favoriteDigestEmailEnabled; }
+    public void setFavoriteDigestEmailEnabled(boolean favoriteDigestEmailEnabled) { this.favoriteDigestEmailEnabled = favoriteDigestEmailEnabled; }
     public boolean isPrivateProfile() { return privateProfile; }
     public void setPrivateProfile(boolean privateProfile) { this.privateProfile = privateProfile; }
+    public String getPasswordResetToken() { return passwordResetToken; }
+    public void setPasswordResetToken(String passwordResetToken) { this.passwordResetToken = passwordResetToken; }
+    public Instant getPasswordResetExpiresAt() { return passwordResetExpiresAt; }
+    public void setPasswordResetExpiresAt(Instant passwordResetExpiresAt) { this.passwordResetExpiresAt = passwordResetExpiresAt; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 }
