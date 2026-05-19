@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.4
+ * @version 1.2.6
  * @created 30-04-2026
- * @modified 07-05-2026
+ * @modified 13-05-2026
  * @description Logica de Inicio con contadores estables, ultima sesion, carga segura, placeholders de piloto y ayuda contextual
  */
 class RaceStreamHomePage {
@@ -25,7 +25,6 @@ class RaceStreamHomePage {
         this.driverStandingsApi = `/api/f1/standings/drivers?year=${this.year}`;
         this.constructorStandingsApi = `/api/f1/standings/constructors?year=${this.year}`;
         this.newsApi = '/api/news/f1?limit=10';
-        this.lastScrollY = window.scrollY;
         this.nextMeeting = null;
         this.nextSession = null;
         this.refreshingSession = false;
@@ -50,11 +49,6 @@ class RaceStreamHomePage {
      * @description Cachea los elementos usados por Inicio
      */
     cacheDom() {
-        this.navbar = document.getElementById('mainNavbar');
-        this.profileDropdown = document.getElementById('profileDropdown');
-        this.profileTrigger = this.profileDropdown?.querySelector('.rs-profile-dropdown__trigger');
-        this.mobileMenuDropdown = document.getElementById('mobileMenuDropdown');
-        this.mobileMenuTrigger = this.mobileMenuDropdown?.querySelector('.rs-navbar__menu-trigger');
         this.heroSessionStatus = document.getElementById('heroSessionStatus');
         this.heroSessionTitle = document.getElementById('heroSessionTitle');
         this.heroSessionMeta = document.getElementById('heroSessionMeta');
@@ -76,34 +70,12 @@ class RaceStreamHomePage {
      * @since 1.0
      * @version 1.0.0
      * @created 30-04-2026
-     * @description Asocia eventos de navegacion, scroll y glosario
+     * @description Asocia eventos propios de Inicio y glosario
      */
     bindEvents() {
-        if (!this.profileDropdown?.dataset.rsDropdownBound) this.profileTrigger?.addEventListener('click', (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            this.profileDropdown.classList.toggle('rs-profile-dropdown--open');
-            this.mobileMenuDropdown?.classList.remove('rs-navbar-mobile-menu--open');
-        });
-
-        if (!this.mobileMenuDropdown?.dataset.rsDropdownBound) this.mobileMenuTrigger?.addEventListener('click', (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            this.mobileMenuDropdown.classList.toggle('rs-navbar-mobile-menu--open');
-            this.profileDropdown?.classList.remove('rs-profile-dropdown--open');
-        });
-
-        if (!document.body.dataset.rsDropdownCloseBound) document.addEventListener('click', () => {
-            this.profileDropdown?.classList.remove('rs-profile-dropdown--open');
-            this.mobileMenuDropdown?.classList.remove('rs-navbar-mobile-menu--open');
-        });
-
         document.querySelectorAll('[data-term]').forEach((button) => {
             button.addEventListener('click', () => this.showGlossaryTerm(button.dataset.term));
         });
-
-        window.addEventListener('scroll', () => this.handleNavbarVisibility());
-        window.addEventListener('resize', () => this.updateNavbarOffset());
     }
 
     /**
@@ -114,7 +86,6 @@ class RaceStreamHomePage {
      * @description Inicializa la página y refresca relojes
      */
     init() {
-        this.updateNavbarOffset();
         this.renderFallbackBlocks();
         this.loadHomeData();
         this.loadLastSession();
@@ -136,29 +107,7 @@ class RaceStreamHomePage {
      * @returns {Promise<*>} Datos JSON o fallback
      */
     async fetchJson(url, fallback = null) {
-        const cacheKey = `rs-cache:${url}`;
-        for (let attempt = 0; attempt < 3; attempt++) {
-            try {
-                const response = await fetch(url, { cache: 'no-store' });
-                if (response.ok) {
-                    const data = await response.json();
-                    if (!(Array.isArray(data) && !data.length)) {
-                        localStorage.setItem(cacheKey, JSON.stringify(data));
-                    }
-                    return data;
-                }
-            } catch (error) {
-                await new Promise((resolve) => setTimeout(resolve, 180 * (attempt + 1)));
-            }
-        }
-        const cached = localStorage.getItem(cacheKey);
-        if (cached) {
-            const parsed = JSON.parse(cached);
-            if (!(Array.isArray(parsed) && !parsed.length)) {
-                return parsed;
-            }
-        }
-        return fallback;
+        return window.RaceStreamApi.fetchJson(url, fallback, { attempts: 3, delayBase: 180 });
     }
 
     /**
@@ -533,16 +482,6 @@ class RaceStreamHomePage {
         document.querySelectorAll('[data-term]').forEach((button) => {
             button.classList.toggle('rs-home-glossary__button--active', button.dataset.term === term);
         });
-    }
-
-    updateNavbarOffset() {
-        document.documentElement.style.setProperty('--rs-navbar-height', `${this.navbar?.offsetHeight || 74}px`);
-    }
-
-    handleNavbarVisibility() {
-        const currentY = window.scrollY;
-        document.body.classList.toggle('rs-nav-hidden', currentY > this.lastScrollY && currentY > 120);
-        this.lastScrollY = currentY;
     }
 
     formatClientDateTime(value) {

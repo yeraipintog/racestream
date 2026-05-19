@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.3
+ * @version 1.1.7
  * @created 05-05-2026
- * @modified 07-05-2026
- * @description Gestiona login, registro, recuperacion, pestañas y validacion de contrasenas
+ * @modified 14-05-2026
+ * @description Gestiona login, registro, recuperacion, hashes de panel sin scroll intermedio y validacion
  */
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
@@ -16,15 +16,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams(window.location.search);
     const redirect = params.get('redirect') || '/account.html';
     const resetToken = params.get('resetToken');
+    const PASSWORD_REQUIREMENTS_MESSAGE = 'La contraseña no cumple los requisitos';
+    const PASSWORD_MISMATCH_MESSAGE = 'Las contraseñas no coinciden';
 
     const postJson = async (url, body) => {
         const response = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            cache: 'no-store',
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
             body: JSON.stringify(body)
         });
         const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || 'Error');
+        if (!response.ok) {
+            const error = new Error(data.error || 'Error');
+            error.field = data.field || '';
+            error.status = response.status;
+            error.error = data.error || 'Error';
+            throw error;
+        }
         return data;
     };
 
@@ -32,8 +41,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const text = `${value || ''}`.toLowerCase();
         if (text.includes('bloque')) return 'Usuario bloqueado';
         if (text.includes('smtp')) return 'SMTP desactivado';
-        if (text.includes('contrase') && text.includes('coinc')) return 'No coinciden';
-        if (text.includes('requisito') || text.includes('caracter')) return 'Requisitos';
+        if (text.includes('contrase') && text.includes('coinc')) return PASSWORD_MISMATCH_MESSAGE;
+        if (text.includes('requisito') || text.includes('caracter')) return PASSWORD_REQUIREMENTS_MESSAGE;
         if (text.includes('pol')) return 'Políticas';
         if (text.includes('nombre')) return 'Nombre usado';
         if (text.includes('email')) return 'Email usado';
@@ -47,6 +56,44 @@ document.addEventListener('DOMContentLoaded', () => {
         && /[A-Z]/.test(password)
         && /\d/.test(password)
         && /[^A-Za-z0-9]/.test(password);
+
+    const fieldErrorId = (input) => `${input.closest('form')?.id || 'rs-form'}-${input.name || 'field'}-error`;
+
+    const setFieldError = (input, message) => {
+        const label = input?.closest('label');
+        if (!input || !label) return;
+        label.classList.add('rs-field--invalid');
+        input.setAttribute('aria-invalid', 'true');
+        let error = label.nextElementSibling?.classList.contains('rs-field-error') ? label.nextElementSibling : null;
+        if (!error) {
+            error = document.createElement('span');
+            error.className = 'rs-field-error';
+            label.insertAdjacentElement('afterend', error);
+        }
+        error.id = fieldErrorId(input);
+        error.textContent = message;
+        input.setAttribute('aria-describedby', error.id);
+    };
+
+    const clearFieldError = (input) => {
+        const label = input?.closest('label');
+        if (!input || !label) return;
+        label.classList.remove('rs-field--invalid');
+        input.removeAttribute('aria-invalid');
+        input.removeAttribute('aria-describedby');
+        const error = label.nextElementSibling;
+        if (error?.classList.contains('rs-field-error')) error.remove();
+    };
+
+    const clearFormFieldErrors = (form) => {
+        form?.querySelectorAll('input').forEach(clearFieldError);
+    };
+
+    const bindFieldErrorReset = (form) => {
+        form?.querySelectorAll('input').forEach((input) => {
+            input.addEventListener('input', () => clearFieldError(input));
+        });
+    };
 
     const updateRules = (form) => {
         const password = form?.querySelector('[name="password"]')?.value || '';
@@ -62,19 +109,54 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    const activatePanel = (id) => {
+    const panelHash = {
+        loginPanel: '#login',
+        registerPanel: '#registro',
+        resetPanel: '#reset'
+    };
+    const panelFromHash = () => ({
+        '#registro': 'registerPanel',
+        '#register': 'registerPanel',
+        '#login': 'loginPanel',
+        '#reset': 'resetPanel'
+    }[window.location.hash.toLowerCase()] || (resetToken ? 'resetPanel' : 'loginPanel'));
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 14-05-2026
+     * @modified 14-05-2026
+     * @description Mantiene login y registro visibles desde el inicio de la página tras cambiar de panel
+     */
+    const scrollToPageTop = () => {
+        window.setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 40);
+    };
+
+    const activatePanel = (id, options = {}) => {
         document.querySelectorAll('.rs-auth-tab').forEach((tab) => {
             tab.classList.toggle('rs-auth-tab--active', tab.dataset.authTarget === id);
         });
         document.querySelectorAll('.rs-auth-panel').forEach((panel) => {
             panel.classList.toggle('rs-auth-panel--active', panel.id === id);
         });
+        if (options.updateHash && panelHash[id] && window.location.hash !== panelHash[id]) {
+            window.history.replaceState({}, '', `${window.location.pathname}${window.location.search}${panelHash[id]}`);
+        }
+        if (options.scroll) {
+            scrollToPageTop();
+        }
     };
 
     document.querySelectorAll('[data-auth-target]').forEach((tab) => {
-        tab.addEventListener('click', () => activatePanel(tab.dataset.authTarget));
+        tab.addEventListener('click', () => activatePanel(tab.dataset.authTarget, { updateHash: true, scroll: true }));
     });
-    activatePanel(resetToken ? 'resetPanel' : window.location.hash === '#registro' ? 'registerPanel' : 'loginPanel');
+    window.addEventListener('hashchange', () => activatePanel(panelFromHash(), { scroll: true }));
+    activatePanel(panelFromHash());
+    bindFieldErrorReset(loginForm);
+    bindFieldErrorReset(registerForm);
 
     if (resetToken && resetConfirmForm) {
         if (resetRequestForm) resetRequestForm.hidden = true;
@@ -94,12 +176,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     registerForm?.querySelectorAll('[type="password"]').forEach((input) => {
-        input.addEventListener('input', () => updateRules(registerForm));
+        input.addEventListener('input', () => {
+            clearFieldError(input);
+            updateRules(registerForm);
+        });
+    });
+    resetConfirmForm?.querySelectorAll('[type="password"]').forEach((input) => {
+        input.addEventListener('input', () => clearFieldError(input));
     });
     updateRules(registerForm);
 
     loginForm?.addEventListener('submit', async (event) => {
         event.preventDefault();
+        clearFormFieldErrors(loginForm);
         loginAlert.textContent = 'Comprobando';
         const form = new FormData(loginForm);
         try {
@@ -107,7 +196,14 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionStorage.removeItem('rs-auth-me');
             window.location.href = redirect;
         } catch (error) {
-            loginAlert.textContent = shortAlert(error.message);
+            loginAlert.textContent = '';
+            if (error.field === 'email') {
+                setFieldError(loginForm.querySelector('[name="email"]'), error.error || 'Usuario o email no registrado');
+            } else if (error.field === 'password') {
+                setFieldError(loginForm.querySelector('[name="password"]'), error.error || 'Contraseña incorrecta');
+            } else {
+                loginAlert.textContent = shortAlert(error.message);
+            }
         }
     });
 
@@ -130,21 +226,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const form = new FormData(resetConfirmForm);
         const password = `${form.get('password') || ''}`;
         const confirmPassword = `${form.get('confirmPassword') || ''}`;
+        clearFormFieldErrors(resetConfirmForm);
         if (password !== confirmPassword) {
-            alert.textContent = 'No coinciden';
+            alert.textContent = '';
+            setFieldError(resetConfirmForm.querySelector('[name="confirmPassword"]'), PASSWORD_MISMATCH_MESSAGE);
             return;
         }
         if (!isStrongPassword(password)) {
-            alert.textContent = 'Requisitos';
+            alert.textContent = '';
+            setFieldError(resetConfirmForm.querySelector('[name="password"]'), PASSWORD_REQUIREMENTS_MESSAGE);
             return;
         }
         alert.textContent = 'Guardando';
         try {
-            await postJson('/api/auth/password-reset/confirm', { token: form.get('token'), password });
+            await postJson('/api/auth/password-reset/confirm', { token: form.get('token'), password, confirmPassword });
             alert.textContent = 'Actualizada';
             window.history.replaceState({}, '', '/login.html');
         } catch (error) {
-            alert.textContent = shortAlert(error.message);
+            const message = shortAlert(error.message);
+            if (message === PASSWORD_REQUIREMENTS_MESSAGE) {
+                alert.textContent = '';
+                setFieldError(resetConfirmForm.querySelector('[name="password"]'), message);
+            } else if (message === PASSWORD_MISMATCH_MESSAGE) {
+                alert.textContent = '';
+                setFieldError(resetConfirmForm.querySelector('[name="confirmPassword"]'), message);
+            } else {
+                alert.textContent = message;
+            }
         }
     });
 
@@ -154,12 +262,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const form = new FormData(registerForm);
         const password = `${form.get('password') || ''}`;
         const confirmPassword = `${form.get('confirmPassword') || ''}`;
+        clearFormFieldErrors(registerForm);
         if (password !== confirmPassword) {
-            registerAlert.textContent = 'No coinciden';
+            registerAlert.textContent = '';
+            setFieldError(registerForm.querySelector('[name="confirmPassword"]'), PASSWORD_MISMATCH_MESSAGE);
             return;
         }
         if (!isStrongPassword(password)) {
-            registerAlert.textContent = 'Requisitos';
+            registerAlert.textContent = '';
+            setFieldError(registerForm.querySelector('[name="password"]'), PASSWORD_REQUIREMENTS_MESSAGE);
             return;
         }
         try {
@@ -167,12 +278,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 name: form.get('name'),
                 email: form.get('email'),
                 password,
-                acceptPolicies: form.get('acceptPolicies') === 'on'
+                confirmPassword,
+                acceptPolicies: form.get('acceptPolicies') === 'on' || form.get('policyAccepted') === 'on'
             });
             sessionStorage.removeItem('rs-auth-me');
             window.location.href = redirect;
         } catch (error) {
-            registerAlert.textContent = shortAlert(error.message);
+            const message = shortAlert(error.message);
+            if (error.field === 'name') {
+                registerAlert.textContent = '';
+                setFieldError(registerForm.querySelector('[name="name"]'), error.error || 'Nombre de usuario ya registrado');
+            } else if (error.field === 'email') {
+                registerAlert.textContent = '';
+                setFieldError(registerForm.querySelector('[name="email"]'), error.error || 'Correo electrónico ya registrado');
+            } else if (error.field === 'password' || message === PASSWORD_REQUIREMENTS_MESSAGE) {
+                registerAlert.textContent = '';
+                setFieldError(registerForm.querySelector('[name="password"]'), message);
+            } else if (error.field === 'confirmPassword' || message === PASSWORD_MISMATCH_MESSAGE) {
+                registerAlert.textContent = '';
+                setFieldError(registerForm.querySelector('[name="confirmPassword"]'), message);
+            } else {
+                registerAlert.textContent = message;
+            }
         }
     });
 });

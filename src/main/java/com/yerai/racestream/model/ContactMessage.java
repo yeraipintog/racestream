@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.1
+ * @version 1.0.2
  * @created 05-05-2026
- * @modified 06-05-2026
+ * @modified 13-05-2026
  * @description Mensaje de contacto enviado por usuarios registrados
  */
 package com.yerai.racestream.model;
@@ -17,11 +17,14 @@ import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import java.time.Instant;
 
 @Entity
-@Table(name = "contact_messages")
+@Table(name = "contact_messages", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_contact_request", columnNames = {"user_id", "client_request_id"})
+})
 public class ContactMessage {
 
     @Id
@@ -36,6 +39,9 @@ public class ContactMessage {
 
     @Column(nullable = false, length = 1400)
     private String message;
+
+    @Column(name = "client_request_id", length = 80)
+    private String clientRequestId;
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -65,6 +71,8 @@ public class ContactMessage {
     public void setSubject(String subject) { this.subject = subject; }
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }
+    public String getClientRequestId() { return clientRequestId; }
+    public void setClientRequestId(String clientRequestId) { this.clientRequestId = clientRequestId; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public boolean isCompleted() { return completed; }

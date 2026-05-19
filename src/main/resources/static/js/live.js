@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.6
+ * @version 1.0.8
  * @created 03-05-2026
- * @modified 07-05-2026
+ * @modified 13-05-2026
  * @description Fórmula 1 En Vivo con estado visual, horarios dobles y datos agregados desde OpenF1
  */
 class RaceStreamLivePage {
@@ -28,7 +28,7 @@ class RaceStreamLivePage {
         this.drivers = new Map();
         this.overview = {};
         this.cacheDom();
-        this.bindMenus();
+        this.ownsRaceStrip = !window.raceStreamRaceStrip;
         this.init();
     }
 
@@ -46,42 +46,14 @@ class RaceStreamLivePage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 03-05-2026
-     * @description Activa menús de perfil y móvil
-     */
-    bindMenus() {
-        const profileDropdown = document.getElementById('profileDropdown');
-        const mobileMenuDropdown = document.getElementById('mobileMenuDropdown');
-        if (profileDropdown?.dataset.rsDropdownBound && mobileMenuDropdown?.dataset.rsDropdownBound) return;
-        profileDropdown?.querySelector('.rs-profile-dropdown__trigger')?.addEventListener('click', (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            profileDropdown.classList.toggle('rs-profile-dropdown--open');
-            mobileMenuDropdown?.classList.remove('rs-navbar-mobile-menu--open');
-        });
-        mobileMenuDropdown?.querySelector('.rs-navbar__menu-trigger')?.addEventListener('click', (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            mobileMenuDropdown.classList.toggle('rs-navbar-mobile-menu--open');
-            profileDropdown?.classList.remove('rs-profile-dropdown--open');
-        });
-        document.addEventListener('click', () => {
-            profileDropdown?.classList.remove('rs-profile-dropdown--open');
-            mobileMenuDropdown?.classList.remove('rs-navbar-mobile-menu--open');
-        });
-    }
-
-    /**
-     * @author Yerai Pinto
-     * @since 1.0
-     * @version 1.0.0
-     * @created 03-05-2026
-     * @description Carga datos iniciales y programa refrescos
+     * @modified 11-05-2026
+     * @description Carga datos iniciales y deja la franja comun al modulo compartido
      */
     async init() {
         await this.loadData();
-        setInterval(() => this.updateRaceStripClocks(), 1000);
+        if (this.ownsRaceStrip) setInterval(() => this.updateRaceStripClocks(), 1000);
         setInterval(() => this.refreshLiveData(), 30000);
     }
 
@@ -98,7 +70,7 @@ class RaceStreamLivePage {
         if (this.meeting?.meeting_key) this.sessions = await this.fetchJson(this.sessionsApi(this.meeting.meeting_key), []);
         if (!this.session && this.sessions.length) this.session = this.sessions.find((item) => new Date(item.date_end).getTime() >= Date.now()) || this.sessions[0];
         await this.refreshLiveData();
-        this.renderRaceStrip();
+        if (this.ownsRaceStrip) this.renderRaceStrip();
         this.renderStatus();
     }
 
@@ -131,7 +103,7 @@ class RaceStreamLivePage {
      * @description Renderiza la franja superior
      */
     renderRaceStrip() {
-        if (!this.meeting) return;
+        if (!this.ownsRaceStrip || !this.meeting) return;
         this.raceStripTitle.textContent = this.meeting.meeting_name || 'Gran Premio';
         this.raceStripMeta.textContent = this.formatDateRange(this.meeting.date_start, this.meeting.date_end);
         this.raceStripFlag.style.display = this.meeting.country_flag ? 'block' : 'none';
@@ -148,6 +120,7 @@ class RaceStreamLivePage {
      * @description Pinta estado de live o cuenta atrás de la sesión
      */
     renderRaceStripAction() {
+        if (!this.ownsRaceStrip || !this.raceStripAction) return;
         const live = this.isLive(this.session);
         const text = live
             ? 'En vivo ahora'
@@ -180,7 +153,7 @@ class RaceStreamLivePage {
                 </div>
                 <div class="rs-live-session-summary__row">
                     <div class="rs-live-metric"><span class="rs-live-metric__label">Sesión</span><strong>${this.translateSessionName(this.session?.session_name)}</strong></div>
-                    <div class="rs-live-metric"><span class="rs-live-metric__label">Hora cliente</span><strong>${this.formatDateTime(this.session?.date_start)}</strong></div>
+                    <div class="rs-live-metric"><span class="rs-live-metric__label">Mi hora</span><strong>${this.formatDateTime(this.session?.date_start)}</strong></div>
                     <div class="rs-live-metric"><span class="rs-live-metric__label">Hora circuito</span><strong>${this.formatCircuitDateTime(this.session?.date_start, this.meeting?.gmt_offset)}</strong></div>
                 </div>
             </div>
@@ -323,29 +296,9 @@ class RaceStreamLivePage {
     }
 
     async fetchJson(url, fallback) {
-        const cacheKey = `rs-cache:${url}`;
-        for (let attempt = 0; attempt < 3; attempt++) {
-            try {
-                const response = await fetch(url, { cache: 'no-store' });
-                if (response.ok) {
-                    const data = await response.json();
-                    if (!(Array.isArray(data) && !data.length)) {
-                        localStorage.setItem(cacheKey, JSON.stringify(data));
-                    }
-                    return data;
-                }
-            } catch {
-                await new Promise((resolve) => setTimeout(resolve, 180 * (attempt + 1)));
-            }
-        }
-        const cached = localStorage.getItem(cacheKey);
-        if (cached) {
-            const parsed = JSON.parse(cached);
-            if (!(Array.isArray(parsed) && !parsed.length)) {
-                return parsed;
-            }
-        }
-        return fallback;
+        return window.RaceStreamApi
+            ? window.RaceStreamApi.fetchJson(url, fallback, { attempts: 3, retryEmpty: true })
+            : fallback;
     }
 
     driverName(number) { return this.drivers.get(Number(number))?.name_acronym || this.drivers.get(Number(number))?.last_name || `#${number || '-'}`; }
@@ -413,7 +366,7 @@ class RaceStreamLivePage {
         return `${Math.floor(diff / 86400000)}d ${Math.floor((diff % 86400000) / 3600000)}h ${Math.floor((diff % 3600000) / 60000)}m`;
     }
     updateRaceStripClocks() {
-        if (!this.meeting) return;
+        if (!this.ownsRaceStrip || !this.meeting) return;
         if (!this.raceStripClocks.querySelector('.rs-race-strip__clock-card')) {
             this.raceStripClocks.innerHTML = `
                 <div class="rs-race-strip__clock-card">

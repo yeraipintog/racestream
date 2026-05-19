@@ -1,14 +1,14 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.6
+ * @version 1.2.9
  * @created 30-04-2026
- * @modified 07-05-2026
- * @description Estilos responsive de Inicio con última sesión, rankings compactos, placeholder de pilotos e imágenes F1 2026
+ * @modified 14-05-2026
+ * @description Estilos responsive de Inicio con offset de cabecera, ultima sesion, rankings e imagenes F1 2026
  */
 
 .rs-home {
-    padding-top: 0;
+    padding-top: var(--rs-header-offset, 132px);
 }
 
 .rs-home-hero {
@@ -55,14 +55,10 @@
     text-align: justify;
 }
 
-.rs-home-hero__actions,
-.rs-home-panel {
-    margin-top: 24px;
-}
-
 .rs-home-hero__actions {
     display: flex;
     gap: 12px;
+    margin-top: 24px;
     flex-wrap: wrap;
 }
 
@@ -244,13 +240,19 @@
 
 .rs-home-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
+    align-items: stretch;
     margin-top: 28px;
 }
 
 .rs-home-panel {
-    height: auto;
     padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.rs-home-grid > .rs-home-panel,
+.rs-home-standings > .rs-home-panel {
+    height: 100%;
 }
 
 .rs-home-panel--live {
@@ -266,8 +268,20 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-top: 18px;
-    padding-top: 0;
+    margin-top: auto;
+    padding-top: 16px;
+}
+
+@media (max-width: 640px) {
+    .rs-home-live-actions {
+        align-items: stretch;
+        flex-direction: column;
+        padding-top: 18px;
+    }
+
+    .rs-home-live-source {
+        align-self: flex-end;
+    }
 }
 
 .rs-home-live-source {
@@ -338,20 +352,22 @@
 }
 
 .rs-home-section {
-    margin-top: 42px;
+    margin-top: 38px;
+    display: grid;
+    gap: 14px;
 }
 
 .rs-home-grid + .rs-home-section,
 .rs-home-section + .rs-home-section {
-    margin-top: 48px;
+    margin-top: 34px;
 }
 
 .rs-home-section__title {
-    margin-bottom: 18px;
+    margin-bottom: 0;
 }
 
 .rs-home-section__title h2 {
-    margin: 6px 0 0;
+    margin: 0;
     font-size: clamp(26px, 3vw, 38px);
 }
 
@@ -361,6 +377,7 @@
 
 .rs-home-ranking {
     display: grid;
+    align-content: start;
     gap: 10px;
 }
 
@@ -529,7 +546,7 @@
 
 .rs-home-help__link {
     width: fit-content;
-    margin-top: 16px;
+    margin-top: auto;
 }
 
 @media (max-width: 1100px) {
@@ -567,7 +584,7 @@
 @media (max-width: 560px) {
     .rs-home-next-card,
     .rs-home-panel {
-        border-radius: 18px;
+        border-radius: 8px;
         padding: 16px;
     }
 

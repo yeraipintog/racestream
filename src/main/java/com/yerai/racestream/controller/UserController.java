@@ -1,7 +1,7 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.3
+ * @version 1.1.4
  * @created 05-05-2026
  * @modified 07-05-2026
  * @description API privada de cuenta, preferencias de avisos y privacidad
@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/user")
@@ -26,6 +27,8 @@ public class UserController {
 
     private final AppUserRepository appUserRepository;
     private final PasswordEncoder passwordEncoder;
+    private static final String PASSWORD_REQUIREMENTS_MESSAGE = "La contraseña no cumple los requisitos";
+    private static final String PASSWORD_MISMATCH_MESSAGE = "Las contraseñas no coinciden";
 
     public UserController(AppUserRepository appUserRepository, PasswordEncoder passwordEncoder) {
         this.appUserRepository = appUserRepository;
@@ -72,8 +75,9 @@ public class UserController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 05-05-2026
+     * @modified 12-05-2026
      * @description Cambia la contrasena de una cuenta local
      * @param request Contrasena nueva
      * @param authentication Sesion actual
@@ -81,8 +85,11 @@ public class UserController {
      */
     @PutMapping("/password")
     public ResponseEntity<?> password(@RequestBody PasswordRequest request, Authentication authentication) {
+        if (request.confirmPassword() != null && !Objects.equals(request.password(), request.confirmPassword())) {
+            return ResponseEntity.badRequest().body(Map.of("error", PASSWORD_MISMATCH_MESSAGE));
+        }
         if (!isStrongPassword(request.password())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "La contraseña debe tener 8 caracteres, mayúscula, minúscula, número y símbolo"));
+            return ResponseEntity.badRequest().body(Map.of("error", PASSWORD_REQUIREMENTS_MESSAGE));
         }
         AppUser user = currentUser(authentication);
         user.setPassword(passwordEncoder.encode(request.password()));
@@ -105,5 +112,5 @@ public class UserController {
 
     public record ProfileRequest(String name, String email, Boolean notificationsEnabled, Boolean emailNotificationsEnabled,
             Boolean favoriteDigestEnabled, Boolean favoriteDigestEmailEnabled, Boolean privateProfile) {}
-    public record PasswordRequest(String password) {}
+    public record PasswordRequest(String password, String confirmPassword) {}
 }

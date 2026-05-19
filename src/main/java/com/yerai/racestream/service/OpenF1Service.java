@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.5
+ * @version 1.0.7
  * @created 17-04-2026
- * @modified 03-05-2026
+ * @modified 13-05-2026
  * @description Servicio para obtener datos de OpenF1 de forma tolerante a errores externos
  * @see https://openf1.org
  */
@@ -19,6 +19,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 
+import java.time.LocalDate;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -42,15 +43,15 @@ public class OpenF1Service {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 17-04-2026
-     * @modified 27-04-2026
+     * @modified 13-05-2026
      * @description Obtener meetings
      * @param year
      * @return
      */
     public JsonNode getMeetings(Integer year) {
-        return fetchArray("/meetings", "year", year);
+        return fetchArray("/meetings", "year", year == null ? LocalDate.now().getYear() : year);
     }
 
     /**
@@ -83,15 +84,15 @@ public class OpenF1Service {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 21-04-2026
-     * @modified 30-04-2026
+     * @modified 13-05-2026
      * @description Obtener sesiones por anio
      * @param year Temporada
      * @return Sesiones
      */
     public JsonNode getSessionsByYear(Integer year) {
-        return fetchArray("/sessions", "year", year);
+        return fetchArray("/sessions", "year", year == null ? LocalDate.now().getYear() : year);
     }
 
     /**
@@ -355,14 +356,15 @@ public class OpenF1Service {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.3
+     * @version 1.0.5
      * @created 21-04-2026
-     * @modified 30-04-2026
-     * @description Obtener array JSON tolerando caidas externas y rate limit de OpenF1
+     * @modified 13-05-2026
+     * @description Obtener array JSON tolerando caidas externas, rate limit y respuestas vacias temporales de OpenF1
      * @param url URL completa de OpenF1
      * @return Array JSON
      */
     private ArrayNode fetchArray(String url) {
+        boolean receivedEmptyResponse = false;
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
                 JsonNode response = restTemplate.getForObject(url, JsonNode.class);
@@ -370,15 +372,19 @@ public class OpenF1Service {
                     ArrayNode result = (ArrayNode) response;
                     if (!result.isEmpty()) {
                         responseCache.put(url, result.deepCopy());
+                        return result.deepCopy();
                     }
-                    return result;
+                    receivedEmptyResponse = true;
+                    if (attempt < MAX_ATTEMPTS) {
+                        sleepBeforeRetry(attempt);
+                    }
                 }
             } catch (HttpClientErrorException.TooManyRequests ex) {
                 if (attempt < MAX_ATTEMPTS) {
                     sleepBeforeRetry(attempt + 2);
                 }
             } catch (HttpClientErrorException.NotFound ex) {
-                return objectMapper.createArrayNode();
+                return cachedOrEmpty(url);
             } catch (RestClientException ex) {
                 if (attempt < MAX_ATTEMPTS) {
                     sleepBeforeRetry(attempt);
@@ -386,6 +392,22 @@ public class OpenF1Service {
             }
         }
 
+        if (receivedEmptyResponse) {
+            return cachedOrEmpty(url);
+        }
+        return cachedOrEmpty(url);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 12-05-2026
+     * @description Devuelve la ultima respuesta valida si existe o un array vacio seguro
+     * @param url URL cacheada
+     * @return Array JSON seguro
+     */
+    private ArrayNode cachedOrEmpty(String url) {
         ArrayNode cached = responseCache.get(url);
         return cached == null ? objectMapper.createArrayNode() : cached.deepCopy();
     }

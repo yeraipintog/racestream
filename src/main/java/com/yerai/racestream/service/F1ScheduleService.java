@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.6
+ * @version 1.1.8
  * @created 21-04-2026
- * @modified 04-05-2026
+ * @modified 12-05-2026
  * @description Servicio para obtener calendario F1 con fallback Jolpica, cache y tolerancia a fallos externos
  */
 package com.yerai.racestream.service;
@@ -24,6 +24,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 @Service
 public class F1ScheduleService {
@@ -41,8 +42,7 @@ public class F1ScheduleService {
             OpenF1Service openF1Service,
             JolpicaService jolpicaService,
             F1DbService f1DbService,
-            ObjectMapper objectMapper
-    ) {
+            ObjectMapper objectMapper) {
         this.openF1Service = openF1Service;
         this.jolpicaService = jolpicaService;
         this.f1DbService = f1DbService;
@@ -68,7 +68,8 @@ public class F1ScheduleService {
      * @version 1.0.4
      * @created 28-04-2026
      * @modified 28-04-2026
-     * @description Obtener meetings enriquecidos evitando duplicar llamadas externas en cargas simultaneas
+     * @description Obtener meetings enriquecidos evitando duplicar llamadas
+     *              externas en cargas simultaneas
      * @param year Temporada
      * @return Meetings enriquecidos
      */
@@ -97,19 +98,21 @@ public class F1ScheduleService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 28-04-2026
-     * @modified 04-05-2026
-     * @description Construye el calendario enriquecido con APIs externas en paralelo
+     * @modified 12-05-2026
+     * @description Construye el calendario enriquecido con APIs externas en
+     *              paralelo sin romper toda la temporada si una fuente falla
      * @param selectedYear Temporada
      * @return Meetings enriquecidos
      */
     private ArrayNode buildCalendarMeetings(Integer selectedYear) {
-        CompletableFuture<ArrayNode> openMeetingsFuture = CompletableFuture.supplyAsync(
-                () -> (ArrayNode) openF1Service.getMeetings(selectedYear));
-        CompletableFuture<ArrayNode> jolpicaRacesFuture = CompletableFuture.supplyAsync(
+        CompletableFuture<ArrayNode> openMeetingsFuture = safeArrayFuture(
+                () -> asArrayNode(openF1Service.getMeetings(selectedYear)));
+        CompletableFuture<ArrayNode> jolpicaRacesFuture = safeArrayFuture(
                 () -> jolpicaService.getRacesByYear(selectedYear));
-        CompletableFuture<ArrayNode> f1DbCircuitsFuture = CompletableFuture.supplyAsync(() -> f1DbService.getCircuits(selectedYear));
+        CompletableFuture<ArrayNode> f1DbCircuitsFuture = safeArrayFuture(
+                () -> f1DbService.getCircuits(selectedYear));
 
         ArrayNode openMeetings = openMeetingsFuture.join();
         ArrayNode jolpicaRaces = jolpicaRacesFuture.join();
@@ -153,15 +156,140 @@ public class F1ScheduleService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
+     * @version 1.0.0
+     * @created 12-05-2026
+     * @description Ejecuta una fuente externa en paralelo devolviendo array vacio si falla
+     * @param supplier Fuente de datos
+     * @return Futuro tolerante a errores
+     */
+    private CompletableFuture<ArrayNode> safeArrayFuture(Supplier<ArrayNode> supplier) {
+        return CompletableFuture.supplyAsync(() -> safeArray(supplier));
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 12-05-2026
+     * @description Ejecuta una fuente de datos sin propagar errores externos al calendario
+     * @param supplier Fuente de datos
+     * @return Array seguro
+     */
+    private ArrayNode safeArray(Supplier<ArrayNode> supplier) {
+        try {
+            ArrayNode result = supplier.get();
+            return result == null ? objectMapper.createArrayNode() : result;
+        } catch (RuntimeException ex) {
+            return objectMapper.createArrayNode();
+        }
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 12-05-2026
+     * @description Convierte un JsonNode en ArrayNode sin lanzar errores si la fuente cambia de forma
+     * @param node Nodo recibido
+     * @return Array seguro
+     */
+    private ArrayNode asArrayNode(JsonNode node) {
+        return node != null && node.isArray() ? (ArrayNode) node : objectMapper.createArrayNode();
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.2
      * @created 21-04-2026
-     * @description Obtener meeting
+     * @modified 12-05-2026
+     * @description Obtener meeting real o sintetico con fallback contra calendario enriquecido
      * @param meetingKey Clave del meeting
      * @return Meeting
      */
     public JsonNode getMeetingByKey(Integer meetingKey) {
-        ArrayNode meetings = (ArrayNode) openF1Service.getMeeting(meetingKey);
-        return meetings.isEmpty() ? objectMapper.nullNode() : meetings.get(0);
+        if (meetingKey == null) {
+            return objectMapper.nullNode();
+        }
+        if (isSyntheticJolpicaMeetingKey(meetingKey)) {
+            int year = getSyntheticMeetingYear(meetingKey);
+            for (JsonNode meeting : getCalendarMeetingsByYear(year)) {
+                if (meeting.path("meeting_key").asInt() == meetingKey) {
+                    return meeting.deepCopy();
+                }
+            }
+            return objectMapper.nullNode();
+        }
+        ArrayNode meetings = safeArray(() -> asArrayNode(openF1Service.getMeeting(meetingKey)));
+        if (!meetings.isEmpty()) {
+            return meetings.get(0).deepCopy();
+        }
+
+        JsonNode fallbackMeeting = findMeetingInKnownCalendars(meetingKey);
+        return fallbackMeeting == null ? objectMapper.nullNode() : fallbackMeeting;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 12-05-2026
+     * @description Busca un meeting en calendarios enriquecidos ya cargados o en temporadas recientes
+     * @param meetingKey Clave OpenF1
+     * @return Meeting enriquecido o null
+     */
+    private JsonNode findMeetingInKnownCalendars(Integer meetingKey) {
+        JsonNode cachedMeeting = findMeetingInCachedCalendars(meetingKey);
+        if (cachedMeeting != null) {
+            return cachedMeeting;
+        }
+
+        int currentYear = LocalDate.now().getYear();
+        for (int year = currentYear + 1; year >= 2023; year--) {
+            JsonNode meeting = findMeetingInArray(asArrayNode(getCalendarMeetingsByYear(year)), meetingKey);
+            if (meeting != null) {
+                return meeting;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 12-05-2026
+     * @description Busca un meeting en la cache de calendarios sin nuevas llamadas externas
+     * @param meetingKey Clave OpenF1
+     * @return Meeting enriquecido o null
+     */
+    private JsonNode findMeetingInCachedCalendars(Integer meetingKey) {
+        for (ArrayNode meetings : calendarMeetingsCache.values()) {
+            JsonNode meeting = findMeetingInArray(meetings, meetingKey);
+            if (meeting != null) {
+                return meeting;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 12-05-2026
+     * @description Busca una clave dentro de un calendario concreto
+     * @param meetings   Calendario
+     * @param meetingKey Clave OpenF1
+     * @return Meeting enriquecido o null
+     */
+    private JsonNode findMeetingInArray(ArrayNode meetings, Integer meetingKey) {
+        for (JsonNode meeting : meetings) {
+            if (meeting.path("meeting_key").asInt(Integer.MIN_VALUE) == meetingKey) {
+                return meeting.deepCopy();
+            }
+        }
+        return null;
     }
 
     /**
@@ -170,7 +298,8 @@ public class F1ScheduleService {
      * @version 1.0.5
      * @created 21-04-2026
      * @modified 04-05-2026
-     * @description Obtener sesiones de OpenF1 completadas con Jolpica cuando falta alguna sesion oficial
+     * @description Obtener sesiones de OpenF1 completadas con Jolpica cuando falta
+     *              alguna sesion oficial
      * @param meetingKey Clave del meeting
      * @return Sesiones
      */
@@ -202,8 +331,9 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0.0
      * @created 03-05-2026
-     * @description Fusiona OpenF1 y Jolpica conservando session_key real y completando sesiones ausentes
-     * @param openSessions Sesiones OpenF1
+     * @description Fusiona OpenF1 y Jolpica conservando session_key real y
+     *              completando sesiones ausentes
+     * @param openSessions    Sesiones OpenF1
      * @param jolpicaSessions Sesiones Jolpica
      * @return Sesiones ordenadas y sin duplicados
      */
@@ -235,21 +365,15 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0.0
      * @created 03-05-2026
-     * @description Detecta duplicados por identidad deportiva o por misma hora oficial
-     * @param sessions Sesiones ya fusionadas
+     * @description Detecta duplicados por identidad deportiva o por misma hora
+     *              oficial
+     * @param sessions  Sesiones ya fusionadas
      * @param candidate Sesion candidata
      * @return Resultado
      */
     private boolean containsEquivalentSession(List<ObjectNode> sessions, JsonNode candidate) {
         String candidateIdentity = getSessionIdentity(candidate);
-        OffsetDateTime candidateStart = parseDate(getText(candidate, "date_start"));
-
-        return sessions.stream().anyMatch(session -> {
-            OffsetDateTime sessionStart = parseDate(getText(session, "date_start"));
-            return candidateIdentity.equals(getSessionIdentity(session))
-                    || (candidateStart != null && sessionStart != null
-                    && candidateStart.toInstant().equals(sessionStart.toInstant()));
-        });
+        return sessions.stream().anyMatch(session -> candidateIdentity.equals(getSessionIdentity(session)));
     }
 
     /**
@@ -257,7 +381,8 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0.0
      * @created 03-05-2026
-     * @description Normaliza nombres de sesiones entre OpenF1 y Jolpica
+     * @description Normaliza nombres de sesiones entre OpenF1 y Jolpica sin
+     *              fusionar variantes sprint distintas
      * @param session Sesion
      * @return Identidad normalizada
      */
@@ -274,8 +399,11 @@ public class F1ScheduleService {
         if (name.contains("practice 3") || name.contains("free practice 3")) {
             return "practice-3";
         }
-        if (name.contains("sprint qualifying") || name.contains("sprint shootout")) {
+        if (name.contains("sprint qualifying")) {
             return "sprint-qualifying";
+        }
+        if (name.contains("sprint shootout")) {
+            return "sprint-shootout";
         }
         if ("sprint".equals(name)) {
             return "sprint";
@@ -295,7 +423,8 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0.0
      * @created 29-04-2026
-     * @description Reconstruye sesiones desde Jolpica cuando OpenF1 no las publica para un meeting normal
+     * @description Reconstruye sesiones desde Jolpica cuando OpenF1 no las publica
+     *              para un meeting normal
      * @param meetingKey Clave OpenF1
      * @return Sesiones fallback
      */
@@ -400,16 +529,36 @@ public class F1ScheduleService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
+     * @version 1.0.1
      * @created 21-04-2026
-     * @description Obtener siguiente sesion
+     * @modified 12-05-2026
+     * @description Obtener siguiente sesion con fallback al calendario enriquecido
      * @param year Temporada
      * @return Sesion
      */
     public JsonNode getNextSession(Integer year) {
-        ArrayNode sessions = (ArrayNode) openF1Service.getSessionsByYear(year);
         OffsetDateTime now = OffsetDateTime.now();
+        ArrayNode sessions = safeArray(() -> asArrayNode(openF1Service.getSessionsByYear(year)));
+        JsonNode openF1Session = findCurrentOrNextSession(sessions, now);
 
+        if (!openF1Session.isNull()) {
+            return openF1Session;
+        }
+
+        return findCurrentOrNextSession(buildCalendarSessionsByYear(year), now);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 12-05-2026
+     * @description Busca la sesion actual o futura mas cercana dentro de un array seguro
+     * @param sessions Sesiones disponibles
+     * @param now      Fecha de comparacion
+     * @return Sesion encontrada o null JSON
+     */
+    private JsonNode findCurrentOrNextSession(ArrayNode sessions, OffsetDateTime now) {
         JsonNode bestSession = null;
         OffsetDateTime bestDate = null;
 
@@ -434,7 +583,39 @@ public class F1ScheduleService {
             }
         }
 
-        return bestSession != null ? bestSession : objectMapper.nullNode();
+        return bestSession != null ? bestSession.deepCopy() : objectMapper.nullNode();
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 12-05-2026
+     * @description Recorre el calendario enriquecido para obtener sesiones cuando OpenF1 no trae listado anual
+     * @param year Temporada
+     * @return Sesiones construidas desde la mejor fuente disponible
+     */
+    private ArrayNode buildCalendarSessionsByYear(Integer year) {
+        ArrayNode response = objectMapper.createArrayNode();
+        for (JsonNode meeting : getCalendarMeetingsByYear(year)) {
+            int meetingKey = meeting.path("meeting_key").asInt(0);
+            if (meetingKey == 0) {
+                continue;
+            }
+            ArrayNode sessions = safeArray(() -> asArrayNode(getSessionsByMeeting(meetingKey)));
+            for (JsonNode session : sessions) {
+                ObjectNode row = session.isObject()
+                        ? ((ObjectNode) session).deepCopy()
+                        : objectMapper.createObjectNode();
+                if (!row.hasNonNull("meeting_key")) {
+                    row.put("meeting_key", meetingKey);
+                }
+                putIfMissing(row, "meeting_name", getText(meeting, "meeting_name"));
+                putIfMissing(row, "country_name", getText(meeting, "country_name"));
+                response.add(row);
+            }
+        }
+        return response;
     }
 
     /**
@@ -443,7 +624,7 @@ public class F1ScheduleService {
      * @version 1.0
      * @created 28-04-2026
      * @description Enriquece un meeting con datos automaticos de Jolpica y F1DB
-     * @param meeting Meeting editable
+     * @param meeting      Meeting editable
      * @param jolpicaRaces Carreras Jolpica
      * @param f1DbCircuits Circuitos F1DB
      */
@@ -491,7 +672,7 @@ public class F1ScheduleService {
      * @version 1.0.0
      * @created 29-04-2026
      * @description Ajusta rango del GP usando inicio de primera y ultima sesion
-     * @param meeting Meeting editable
+     * @param meeting  Meeting editable
      * @param sessions Sesiones del GP
      */
     private void applyMeetingBoundariesFromSessions(ObjectNode meeting, ArrayNode sessions) {
@@ -509,9 +690,10 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0
      * @created 28-04-2026
-     * @description Construye un meeting compatible cuando OpenF1 no devuelve calendario
-     * @param year Temporada
-     * @param race Carrera Jolpica
+     * @description Construye un meeting compatible cuando OpenF1 no devuelve
+     *              calendario
+     * @param year         Temporada
+     * @param race         Carrera Jolpica
      * @param f1DbCircuits Circuitos F1DB
      * @return Meeting sintetico
      */
@@ -582,23 +764,23 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0
      * @created 28-04-2026
-     * @description Construye sesiones basicas desde Jolpica cuando OpenF1 no tiene meeting
+     * @description Construye sesiones basicas desde Jolpica cuando OpenF1 no tiene
+     *              meeting
      * @param race Carrera Jolpica
      * @return Sesiones sinteticas
      */
     private ArrayNode buildJolpicaSessions(JsonNode race) {
         List<ObjectNode> sessions = new ArrayList<>();
-        addJolpicaSession(sessions, race.path("FirstPractice"), "Practice 1", "Practice", 1);
-        addJolpicaSession(sessions, race.path("SecondPractice"), "Practice 2", "Practice", 1);
-        addJolpicaSession(sessions, race.path("ThirdPractice"), "Practice 3", "Practice", 1);
-        addJolpicaSession(sessions, race.path("SprintQualifying"), "Sprint Qualifying", "Qualifying", 1);
-        addJolpicaSession(sessions, race.path("SprintShootout"), "Sprint Shootout", "Qualifying", 1);
-        addJolpicaSession(sessions, race.path("Sprint"), "Sprint", "Sprint", 1);
-        addJolpicaSession(sessions, race.path("Qualifying"), "Qualifying", "Qualifying", 1);
-        addJolpicaSession(sessions, race, "Race", "Race", 2);
+        addJolpicaSession(sessions, race.path("FirstPractice"), "Practice 1", "Practice", 1, "11:30:00Z");
+        addJolpicaSession(sessions, race.path("SecondPractice"), "Practice 2", "Practice", 1, "15:00:00Z");
+        addJolpicaSession(sessions, race.path("ThirdPractice"), "Practice 3", "Practice", 1, "10:30:00Z");
+        addJolpicaSession(sessions, race.path("SprintQualifying"), "Sprint Qualifying", "Qualifying", 1, "14:30:00Z");
+        addJolpicaSession(sessions, race.path("SprintShootout"), "Sprint Shootout", "Qualifying", 1, "12:00:00Z");
+        addJolpicaSession(sessions, race.path("Sprint"), "Sprint", "Sprint", 1, "18:00:00Z");
+        addJolpicaSession(sessions, race.path("Qualifying"), "Qualifying", "Qualifying", 1, "16:00:00Z");
+        addJolpicaSession(sessions, race, "Race", "Race", 2, "14:00:00Z");
         sessions.sort(Comparator.comparing(session -> parseDate(getText(session, "date_start")),
                 Comparator.nullsLast(Comparator.naturalOrder())));
-
         ArrayNode response = objectMapper.createArrayNode();
         sessions.forEach(response::add);
         return response;
@@ -607,17 +789,19 @@ public class F1ScheduleService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
+     * @version 1.0.1
      * @created 28-04-2026
+     * @modified 12-05-2026
      * @description Anade una sesion sintetica si Jolpica expone fecha
-     * @param sessions Lista editable
-     * @param source Nodo de Jolpica
-     * @param name Nombre de sesion
-     * @param type Tipo de sesion
+     * @param sessions      Lista editable
+     * @param source        Nodo de Jolpica
+     * @param name          Nombre de sesion
+     * @param type          Tipo de sesion
      * @param durationHours Duracion aproximada
      */
-    private void addJolpicaSession(List<ObjectNode> sessions, JsonNode source, String name, String type, int durationHours) {
-        OffsetDateTime start = parseJolpicaDateTime(source);
+    private void addJolpicaSession(List<ObjectNode> sessions, JsonNode source, String name, String type,
+            int durationHours, String fallbackTime) {
+        OffsetDateTime start = parseJolpicaDateTime(source, fallbackTime);
 
         if (start == null) {
             return;
@@ -629,6 +813,9 @@ public class F1ScheduleService {
         session.put("date_start", start.toString());
         session.put("date_end", start.plusHours(durationHours).toString());
         session.put("is_jolpica_fallback", true);
+        session.put("source", "Jolpica");
+        session.put("synthetic_session_id", getSessionIdentity(session));
+        session.put("has_official_results", "Race".equals(type));
         sessions.add(session);
     }
 
@@ -688,7 +875,22 @@ public class F1ScheduleService {
      * @return Fecha parseada
      */
     private OffsetDateTime parseJolpicaDateTime(JsonNode node) {
-        return parseDate(buildJolpicaDateTime(node));
+        return parseJolpicaDateTime(node, "00:00:00Z");
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 11-05-2026
+     * @description Convierte fecha Jolpica usando una hora por defecto para evitar
+     *              que varias sesiones del mismo día se fusionen por error
+     * @param node         Nodo con fecha
+     * @param fallbackTime Hora de respaldo
+     * @return Fecha parseada
+     */
+    private OffsetDateTime parseJolpicaDateTime(JsonNode node, String fallbackTime) {
+        return parseDate(buildJolpicaDateTime(node, fallbackTime));
     }
 
     /**
@@ -701,6 +903,21 @@ public class F1ScheduleService {
      * @return Texto ISO
      */
     private String buildJolpicaDateTime(JsonNode node) {
+        return buildJolpicaDateTime(node, "00:00:00Z");
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 11-05-2026
+     * @description Construye texto ISO desde fecha Jolpica usando hora de respaldo
+     *              cuando no existe hora oficial
+     * @param node         Nodo con fecha
+     * @param fallbackTime Hora de respaldo
+     * @return Texto ISO
+     */
+    private String buildJolpicaDateTime(JsonNode node, String fallbackTime) {
         String date = getText(node, "date");
         String time = getText(node, "time");
 
@@ -709,7 +926,7 @@ public class F1ScheduleService {
         }
 
         if (time == null || time.isBlank()) {
-            time = "00:00:00Z";
+            time = fallbackTime == null || fallbackTime.isBlank() ? "00:00:00Z" : fallbackTime;
         } else if (!time.endsWith("Z") && !time.matches(".*[+-]\\d{2}:?\\d{2}$")) {
             time += "Z";
         }
@@ -723,7 +940,7 @@ public class F1ScheduleService {
      * @version 1.0
      * @created 28-04-2026
      * @description Crea una clave negativa y estable para meetings sin clave OpenF1
-     * @param year Temporada
+     * @param year  Temporada
      * @param round Ronda Jolpica
      * @return Clave sintetica
      */
@@ -777,7 +994,7 @@ public class F1ScheduleService {
      * @created 28-04-2026
      * @description Busca la carrera de Jolpica mas parecida al meeting de OpenF1
      * @param meeting Meeting
-     * @param races Carreras Jolpica
+     * @param races   Carreras Jolpica
      * @return Carrera Jolpica o null
      */
     private JsonNode findMatchingJolpicaRace(ObjectNode meeting, ArrayNode races) {
@@ -802,7 +1019,7 @@ public class F1ScheduleService {
      * @created 28-04-2026
      * @description Puntua la similitud entre un meeting y una carrera Jolpica
      * @param meeting Meeting OpenF1
-     * @param race Carrera Jolpica
+     * @param race    Carrera Jolpica
      * @return Puntuacion
      */
     private int getRaceMatchScore(ObjectNode meeting, JsonNode race) {
@@ -828,7 +1045,7 @@ public class F1ScheduleService {
      * @version 1.0
      * @created 28-04-2026
      * @description Busca el circuito de F1DB mas parecido al meeting
-     * @param meeting Meeting enriquecido
+     * @param meeting  Meeting enriquecido
      * @param circuits Circuitos F1DB
      * @return Circuito o null
      */
@@ -853,8 +1070,9 @@ public class F1ScheduleService {
      * @version 1.0.1
      * @created 29-04-2026
      * @modified 29-04-2026
-     * @description Fallback por localidad/pais para meetings especiales como test de pretemporada
-     * @param meeting Meeting
+     * @description Fallback por localidad/pais para meetings especiales como test
+     *              de pretemporada
+     * @param meeting  Meeting
      * @param circuits Circuitos F1DB
      * @return Circuito o null
      */
@@ -927,9 +1145,10 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0
      * @created 28-04-2026
-     * @description Comprueba si la fecha Jolpica cae dentro del rango del meeting OpenF1
+     * @description Comprueba si la fecha Jolpica cae dentro del rango del meeting
+     *              OpenF1
      * @param meeting Meeting
-     * @param race Carrera Jolpica
+     * @param race    Carrera Jolpica
      * @return Resultado
      */
     private boolean isRaceDateInsideMeeting(ObjectNode meeting, JsonNode race) {
@@ -953,8 +1172,8 @@ public class F1ScheduleService {
      * @version 1.0
      * @created 28-04-2026
      * @description Calcula puntuacion de coincidencia textual
-     * @param left Texto base
-     * @param right Texto candidato
+     * @param left   Texto base
+     * @param right  Texto candidato
      * @param points Puntos
      * @return Puntuacion
      */
@@ -969,8 +1188,8 @@ public class F1ScheduleService {
         return normalizedLeft.equals(normalizedRight)
                 || normalizedLeft.contains(normalizedRight)
                 || normalizedRight.contains(normalizedLeft)
-                ? points
-                : 0;
+                        ? points
+                        : 0;
     }
 
     /**
@@ -980,7 +1199,7 @@ public class F1ScheduleService {
      * @created 28-04-2026
      * @modified 29-04-2026
      * @description Evita duplicar GPs al mezclar OpenF1 y Jolpica
-     * @param meetings Meetings ya cargados
+     * @param meetings  Meetings ya cargados
      * @param candidate Meeting candidato
      * @return Resultado
      */
@@ -991,10 +1210,9 @@ public class F1ScheduleService {
         String candidateCountry = normalize(getText(candidate, "country_name"));
         LocalDate candidateDate = getLocalDate(candidate, "date_start");
 
-        return meetings.stream().anyMatch(meeting ->
-                normalize(getText(meeting, "meeting_name")).equals(candidateName)
-                        || hasSameCircuit(candidateCircuitId, candidateCircuit, meeting)
-                        || hasSameCountryAndCloseDate(candidateCountry, candidateDate, meeting));
+        return meetings.stream().anyMatch(meeting -> normalize(getText(meeting, "meeting_name")).equals(candidateName)
+                || hasSameCircuit(candidateCircuitId, candidateCircuit, meeting)
+                || hasSameCountryAndCloseDate(candidateCountry, candidateDate, meeting));
     }
 
     /**
@@ -1004,8 +1222,8 @@ public class F1ScheduleService {
      * @created 29-04-2026
      * @description Comprueba si dos meetings pertenecen al mismo circuito
      * @param candidateCircuitId Circuito Jolpica candidato
-     * @param candidateCircuit Circuito candidato
-     * @param meeting Meeting existente
+     * @param candidateCircuit   Circuito candidato
+     * @param meeting            Meeting existente
      * @return Resultado
      */
     private boolean hasSameCircuit(String candidateCircuitId, String candidateCircuit, JsonNode meeting) {
@@ -1015,10 +1233,12 @@ public class F1ScheduleService {
 
         return (!candidateCircuitId.isBlank() && candidateCircuitId.equals(existingCircuitId))
                 || (!candidateCircuit.isBlank()
-                && (candidateCircuit.equals(existingCircuit)
-                || candidateCircuit.equals(existingJolpicaCircuit)
-                || (!existingJolpicaCircuit.isBlank() && existingJolpicaCircuit.contains(candidateCircuit))
-                || (!existingJolpicaCircuit.isBlank() && candidateCircuit.contains(existingJolpicaCircuit))));
+                        && (candidateCircuit.equals(existingCircuit)
+                                || candidateCircuit.equals(existingJolpicaCircuit)
+                                || (!existingJolpicaCircuit.isBlank()
+                                        && existingJolpicaCircuit.contains(candidateCircuit))
+                                || (!existingJolpicaCircuit.isBlank()
+                                        && candidateCircuit.contains(existingJolpicaCircuit))));
     }
 
     /**
@@ -1026,10 +1246,11 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0.0
      * @created 29-04-2026
-     * @description Detecta duplicados por pais y fecha cercana aunque el nombre comercial cambie
+     * @description Detecta duplicados por pais y fecha cercana aunque el nombre
+     *              comercial cambie
      * @param candidateCountry Pais candidato
-     * @param candidateDate Fecha candidata
-     * @param meeting Meeting existente
+     * @param candidateDate    Fecha candidata
+     * @param meeting          Meeting existente
      * @return Resultado
      */
     private boolean hasSameCountryAndCloseDate(String candidateCountry, LocalDate candidateDate, JsonNode meeting) {
@@ -1049,8 +1270,9 @@ public class F1ScheduleService {
      * @version 1.0.1
      * @created 28-04-2026
      * @modified 28-04-2026
-     * @description Devuelve GP cancelados conocidos que las APIs de calendario no exponen como meeting completo
-     * @param year Temporada
+     * @description Devuelve GP cancelados conocidos que las APIs de calendario no
+     *              exponen como meeting completo
+     * @param year         Temporada
      * @param f1DbCircuits Circuitos F1DB
      * @return Meetings cancelados
      */
@@ -1090,16 +1312,21 @@ public class F1ScheduleService {
      * @version 1.0.1
      * @created 28-04-2026
      * @modified 28-04-2026
-     * @description Construye sesiones canceladas desde la fecha planificada de carrera
+     * @description Construye sesiones canceladas desde la fecha planificada de
+     *              carrera
      * @param raceDate Fecha planificada de carrera
      * @return Sesiones canceladas
      */
     private ArrayNode buildCancelledSessions(LocalDate raceDate) {
         ArrayNode sessions = objectMapper.createArrayNode();
-        addCancelledSession(sessions, "Practice 1", "Practice", raceDate.minusDays(2) + "T11:30:00+00:00", raceDate.minusDays(2) + "T12:30:00+00:00");
-        addCancelledSession(sessions, "Practice 2", "Practice", raceDate.minusDays(2) + "T15:00:00+00:00", raceDate.minusDays(2) + "T16:00:00+00:00");
-        addCancelledSession(sessions, "Practice 3", "Practice", raceDate.minusDays(1) + "T10:30:00+00:00", raceDate.minusDays(1) + "T11:30:00+00:00");
-        addCancelledSession(sessions, "Qualifying", "Qualifying", raceDate.minusDays(1) + "T14:00:00+00:00", raceDate.minusDays(1) + "T15:00:00+00:00");
+        addCancelledSession(sessions, "Practice 1", "Practice", raceDate.minusDays(2) + "T11:30:00+00:00",
+                raceDate.minusDays(2) + "T12:30:00+00:00");
+        addCancelledSession(sessions, "Practice 2", "Practice", raceDate.minusDays(2) + "T15:00:00+00:00",
+                raceDate.minusDays(2) + "T16:00:00+00:00");
+        addCancelledSession(sessions, "Practice 3", "Practice", raceDate.minusDays(1) + "T10:30:00+00:00",
+                raceDate.minusDays(1) + "T11:30:00+00:00");
+        addCancelledSession(sessions, "Qualifying", "Qualifying", raceDate.minusDays(1) + "T14:00:00+00:00",
+                raceDate.minusDays(1) + "T15:00:00+00:00");
         addCancelledSession(sessions, "Race", "Race", raceDate + "T13:00:00+00:00", raceDate + "T15:00:00+00:00");
         return sessions;
     }
@@ -1111,10 +1338,10 @@ public class F1ScheduleService {
      * @created 28-04-2026
      * @description Anade una sesion cancelada al listado sintetico
      * @param sessions Listado
-     * @param name Nombre
-     * @param type Tipo
-     * @param start Inicio
-     * @param end Fin
+     * @param name     Nombre
+     * @param type     Tipo
+     * @param start    Inicio
+     * @param end      Fin
      */
     private void addCancelledSession(ArrayNode sessions, String name, String type, String start, String end) {
         ObjectNode session = objectMapper.createObjectNode();
@@ -1214,7 +1441,8 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0.0
      * @created 30-04-2026
-     * @description Detecta test de pretemporada para no mezclarlo con datos de carrera de Bahrain GP
+     * @description Detecta test de pretemporada para no mezclarlo con datos de
+     *              carrera de Bahrain GP
      * @param meeting Meeting
      * @return Resultado
      */
@@ -1228,7 +1456,8 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0.0
      * @created 04-05-2026
-     * @description Marca meetings cancelados que OpenF1 devuelve solo en el nombre oficial
+     * @description Marca meetings cancelados que OpenF1 devuelve solo en el nombre
+     *              oficial
      * @param meeting Meeting editable
      */
     private void normalizeOpenF1MeetingState(ObjectNode meeting) {
@@ -1258,7 +1487,8 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0.0
      * @created 30-04-2026
-     * @description Detecta el circuito de Bahrain para corregir la vuelta rapida oficial de carrera
+     * @description Detecta el circuito de Bahrain para corregir la vuelta rapida
+     *              oficial de carrera
      * @param circuit Circuito F1DB
      * @return Resultado
      */
@@ -1273,7 +1503,8 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0.0
      * @created 03-05-2026
-     * @description Detecta Jeddah para completar datos cuando la temporada actual viene incompleta
+     * @description Detecta Jeddah para completar datos cuando la temporada actual
+     *              viene incompleta
      * @param circuit Circuito F1DB
      * @return Resultado
      */
@@ -1288,7 +1519,8 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0.0
      * @created 30-04-2026
-     * @description Completa datos oficiales conocidos cuando F1DB no los devuelve en temporadas futuras
+     * @description Completa datos oficiales conocidos cuando F1DB no los devuelve
+     *              en temporadas futuras
      * @param meeting Meeting editable
      * @param circuit Circuito F1DB
      */
@@ -1337,7 +1569,7 @@ public class F1ScheduleService {
      * @version 1.0
      * @created 28-04-2026
      * @description Convierte texto numerico a entero con valor por defecto
-     * @param value Texto
+     * @param value    Texto
      * @param fallback Valor por defecto
      * @return Numero
      */
@@ -1391,7 +1623,7 @@ public class F1ScheduleService {
      * @version 1.0.0
      * @created 29-04-2026
      * @description Extrae fecha local segura de un campo ISO
-     * @param node Nodo
+     * @param node      Nodo
      * @param fieldName Campo
      * @return Fecha local
      */
@@ -1407,7 +1639,7 @@ public class F1ScheduleService {
      * @created 21-04-2026
      * @modified 28-04-2026
      * @description Obtener texto seguro de un nodo
-     * @param node Nodo
+     * @param node      Nodo
      * @param fieldName Campo
      * @return Texto
      */
@@ -1422,7 +1654,7 @@ public class F1ScheduleService {
      * @version 1.0.0
      * @created 29-04-2026
      * @description Devuelve el primer texto no vacio entre varios campos
-     * @param node Nodo
+     * @param node       Nodo
      * @param fieldNames Campos
      * @return Texto o null
      */
@@ -1442,7 +1674,7 @@ public class F1ScheduleService {
      * @version 1.0
      * @created 28-04-2026
      * @description Escribe texto si existe
-     * @param node Nodo editable
+     * @param node  Nodo editable
      * @param field Campo
      * @param value Valor
      */
@@ -1459,7 +1691,7 @@ public class F1ScheduleService {
      * @created 28-04-2026
      * @modified 29-04-2026
      * @description Escribe texto solo cuando el campo esta vacio o sin definir
-     * @param node Nodo editable
+     * @param node  Nodo editable
      * @param field Campo
      * @param value Valor
      */

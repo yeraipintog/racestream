@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.6
+ * @version 1.0.8
  * @created 30-04-2026
- * @modified 06-05-2026
+ * @modified 11-05-2026
  * @description Carga y renderiza noticias completas de Fórmula 1 desde el backend RaceStream con filtro estricto
  */
 class RaceStreamNewsPage {
@@ -11,9 +11,10 @@ class RaceStreamNewsPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.2
      * @created 30-04-2026
-     * @description Constructor de la página de Noticias
+     * @modified 11-05-2026
+     * @description Constructor de Noticias con franja superior delegada al modulo comun
      */
     constructor() {
         this.newsApi = '/api/news/f1?limit=10';
@@ -28,43 +29,10 @@ class RaceStreamNewsPage {
         this.selectedIndex = null;
         this.nextMeeting = null;
         this.nextSession = null;
-        this.bindMenus();
-        this.loadNextMeeting();
+        this.ownsRaceStrip = !window.raceStreamRaceStrip;
+        if (this.ownsRaceStrip) this.loadNextMeeting();
         this.loadNews();
-        setInterval(() => this.updateRaceStripClocks(), 1000);
-    }
-
-    /**
-     * @author Yerai Pinto
-     * @since 1.0
-     * @version 1.0.0
-     * @created 30-04-2026
-     * @description Activa menús de perfil y navegación móvil en la página
-     */
-    bindMenus() {
-        const profileDropdown = document.getElementById('profileDropdown');
-        const profileTrigger = profileDropdown?.querySelector('.rs-profile-dropdown__trigger');
-        const mobileMenuDropdown = document.getElementById('mobileMenuDropdown');
-        const mobileMenuTrigger = mobileMenuDropdown?.querySelector('.rs-navbar__menu-trigger');
-
-        if (!profileDropdown?.dataset.rsDropdownBound) profileTrigger?.addEventListener('click', (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            profileDropdown.classList.toggle('rs-profile-dropdown--open');
-            mobileMenuDropdown?.classList.remove('rs-navbar-mobile-menu--open');
-        });
-
-        if (!mobileMenuDropdown?.dataset.rsDropdownBound) mobileMenuTrigger?.addEventListener('click', (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            mobileMenuDropdown.classList.toggle('rs-navbar-mobile-menu--open');
-            profileDropdown?.classList.remove('rs-profile-dropdown--open');
-        });
-
-        if (!document.body.dataset.rsDropdownCloseBound) document.addEventListener('click', () => {
-            profileDropdown?.classList.remove('rs-profile-dropdown--open');
-            mobileMenuDropdown?.classList.remove('rs-navbar-mobile-menu--open');
-        });
+        if (this.ownsRaceStrip) setInterval(() => this.updateRaceStripClocks(), 1000);
     }
 
     /**
@@ -99,7 +67,7 @@ class RaceStreamNewsPage {
      * @since 1.0
      * @version 1.0.1
      * @created 30-04-2026
-     * @modified 03-05-2026
+     * @modified 13-05-2026
      * @description Obtiene noticias del backend, descarta temas ajenos a F1 y pinta el listado completo
      */
     async loadNews() {
@@ -211,29 +179,9 @@ class RaceStreamNewsPage {
      * @returns {Promise<*>} JSON o fallback
      */
     async fetchJson(url, fallback) {
-        const cacheKey = `rs-cache:${url}`;
-        for (let attempt = 0; attempt < 3; attempt++) {
-            try {
-                const response = await fetch(url, { cache: 'no-store' });
-                if (response.ok) {
-                    const data = await response.json();
-                    if (!(Array.isArray(data) && !data.length)) {
-                        localStorage.setItem(cacheKey, JSON.stringify(data));
-                    }
-                    return data;
-                }
-            } catch (error) {
-                await new Promise((resolve) => setTimeout(resolve, 180 * (attempt + 1)));
-            }
-        }
-        const cached = localStorage.getItem(cacheKey);
-        if (cached) {
-            const parsed = JSON.parse(cached);
-            if (!(Array.isArray(parsed) && !parsed.length)) {
-                return parsed;
-            }
-        }
-        return fallback;
+        return window.RaceStreamApi
+            ? window.RaceStreamApi.fetchJson(url, fallback, { attempts: 3, retryEmpty: true })
+            : fallback;
     }
 
     formatDate(value) {

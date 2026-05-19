@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.5
+ * @version 1.0.11
  * @created 21-04-2026
- * @modified 06-05-2026
- * @description Layout global responsive de RaceStream con footer amplio, navbar consistente y estructura documentada
+ * @modified 18-05-2026
+ * @description Layout global responsive de RaceStream con footer amplio, race strip por areas y offset estable
  */
 
 /* =========================
@@ -16,6 +16,10 @@
     flex-direction: column;
 }
 
+html {
+    scroll-padding-top: calc(var(--rs-header-offset, 132px) + 18px);
+}
+
 .rs-container {
     width: 100%;
     max-width: 1280px;
@@ -24,24 +28,28 @@
 }
 
 /* =========================
-   CABECERA FIJA Y SCROLL
+   CABECERA FIJA
 ========================= */
-.rs-navbar,
 .rs-race-strip {
-    transition: transform .28s ease, top .28s ease, opacity .28s ease;
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    transition:
+        transform .8s ease-in-out,
+        opacity .62s ease-in-out;
+    will-change: transform, opacity;
 }
 
-.rs-nav-hidden .rs-navbar {
-    transform: translateY(-100%);
-}
-
-.rs-nav-hidden .rs-race-strip {
-    top: 0;
+.rs-race-strip-hidden .rs-race-strip {
+    opacity: 0;
+    transform: translate3d(0, calc(-100% - 2px), 0);
+    pointer-events: none;
 }
 
 .rs-navbar {
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
     z-index: 1200;
     background: rgba(7, 11, 20, .96);
     border-bottom: 1px solid rgba(255,255,255,.08);
@@ -88,23 +96,25 @@
    FRANJA PROXIMO GP
 ========================= */
 .rs-race-strip {
-    position: sticky;
+    position: fixed;
     top: var(--rs-navbar-height, 74px);
+    left: 0;
+    right: 0;
     z-index: 1100;
     background: linear-gradient(90deg, rgba(18, 27, 43, .98), rgba(10, 16, 28, .98));
     border-bottom: 1px solid rgba(255,255,255,.08);
 }
 
 .rs-race-strip__inner {
-    min-height: 64px;
+    min-height: 58px;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
     grid-template-areas:
-        "label side"
-        "main side";
+        "label action clocks"
+        "main action clocks";
     align-items: center;
     gap: 6px 18px;
-    padding-block: 7px;
+    padding-block: 6px;
 }
 
 .rs-race-strip__label {
@@ -161,12 +171,24 @@
     flex-wrap: wrap;
 }
 
+.rs-race-strip__action {
+    grid-area: action;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 0;
+}
+
+.rs-race-strip__clocks {
+    grid-area: clocks;
+}
+
 /* =========================
    CONTENIDO PRINCIPAL
 ========================= */
 .rs-main {
     flex: 1;
-    padding: 28px 0 36px;
+    padding: calc(var(--rs-header-offset, 132px) + 28px) 0 36px;
 }
 
 .rs-layout-2 {
@@ -310,7 +332,7 @@
     }
 
     .rs-main {
-        padding: 24px 0 28px;
+        padding: calc(var(--rs-header-offset, 132px) + 24px) 0 28px;
     }
 
     .rs-navbar__inner {

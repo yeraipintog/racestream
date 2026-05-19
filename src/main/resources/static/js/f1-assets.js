@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.3.1
+ * @version 1.3.2
  * @created 04-05-2026
- * @modified 06-05-2026
+ * @modified 11-05-2026
  * @description Utilidades visuales de Formula 1 para pilotos, escuderias, nacionalidades, banderas e imagenes
  */
 class RaceStreamF1Assets {
@@ -195,12 +195,16 @@ class RaceStreamF1Assets {
     }
 
     static getDriverName(driver) {
-        const name = [driver?.givenName, driver?.familyName].filter(Boolean).join(' ') || driver?.code || 'Piloto';
+        const name = [
+            driver?.givenName || driver?.first_name,
+            driver?.familyName || driver?.last_name
+        ].filter(Boolean).join(' ') || driver?.full_name || driver?.driver_name || driver?.name || driver?.code || driver?.name_acronym || 'Piloto';
         return name.replace(/^Andrea\s+Kimi\s+Antonelli$/i, 'Kimi Antonelli');
     }
 
     static getDriverNumber(driver) {
-        return driver?.permanentNumber || driver?.permanent_number || driver?.driver_number || driver?.number || '';
+        const number = driver?.seasonNumber || driver?.season_number || driver?.permanentNumber || driver?.permanent_number || driver?.driver_number || driver?.number || '';
+        return `${number}` === '\\N' ? '' : number;
     }
 
     /**
@@ -357,10 +361,27 @@ class RaceStreamF1Assets {
         const team = this.getTeamSlug(constructor?.constructorId || constructor?.name || constructor, year);
         if (!assetId || !team) return '';
         const assetYear = assetId === 'jacdoo01' && year === 2024 ? 2025 : year;
-        const assetTeam = assetId === 'jacdoo01' && year === 2024 ? 'alpine' : team;
+        const assetTeam = this.getDriverAssetTeam(assetId, team, year);
         return `https://media.formula1.com/image/upload/c_lfill,w_${width}/q_auto`
             + `/d_common:f1:${assetYear}:fallback:driver:${assetYear}fallbackdriverright.webp`
             + `/v1740000001/common/f1/${assetYear}/${assetTeam}/${assetId}/${assetYear}${assetTeam}${assetId}right.webp`;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 11-05-2026
+     * @description Corrige equipos de assets oficiales cuando el piloto cambio de escuderia esa temporada
+     * @param {string} assetId Identificador oficial de piloto
+     * @param {string} team Equipo calculado
+     * @param {number} year Temporada
+     * @returns {string} Equipo para la URL de imagen
+     */
+    static getDriverAssetTeam(assetId, team, year) {
+        if (assetId === 'jacdoo01' && year === 2024) return 'alpine';
+        if (assetId === 'lialaw01' && year === 2025) return 'racingbulls';
+        return team;
     }
 
     static hasTrustedSeasonDriverImage(year) {
@@ -369,9 +390,11 @@ class RaceStreamF1Assets {
     }
 
     static getDriverAssetId(driver) {
-        const rawGiven = `${driver?.givenName || ''}`.replace(/^Andrea\s+Kimi$/i, 'Kimi');
+        const fullName = this.getDriverName(driver);
+        const nameParts = fullName.split(/\s+/).filter(Boolean);
+        const rawGiven = `${driver?.givenName || driver?.first_name || nameParts[0] || ''}`.replace(/^Andrea\s+Kimi$/i, 'Kimi');
         const given = rawGiven.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z\s-]/g, '').trim().split(/\s+/)[0] || '';
-        const family = `${driver?.familyName || ''}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z\s-]/g, '').trim();
+        const family = `${driver?.familyName || driver?.last_name || nameParts.slice(1).join(' ')}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z\s-]/g, '').trim();
         if (!given || !family) return '';
         if (family === 'antonelli' && /kimi|andrea/i.test(rawGiven)) return 'andant01';
         const parts = family.split(/\s+/).filter(Boolean);

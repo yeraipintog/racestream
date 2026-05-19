@@ -1,12 +1,38 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.5
+ * @version 1.4.0
  * @created 04-05-2026
- * @modified 07-05-2026
- * @description Carga la franja común de próximo GP con cache para no repetir llamadas al cambiar de pagina
+ * @modified 18-05-2026
+ * @description Carga la franja comun de proximo GP mostrando pais, cache inmediata y refresco en segundo plano
  */
 class RaceStreamRaceStrip {
+
+    static CACHE_KEY = 'rs-race-strip-current-v1';
+    static CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
+    static COUNTRY_LABELS_ES = {
+        Australia: 'Australia',
+        Austria: 'Austria',
+        Azerbaijan: 'Azerbaiyán',
+        Bahrain: 'Baréin',
+        Belgium: 'Bélgica',
+        Brazil: 'Brasil',
+        Canada: 'Canadá',
+        China: 'China',
+        Hungary: 'Hungría',
+        Italy: 'Italia',
+        Japan: 'Japón',
+        Mexico: 'México',
+        Monaco: 'Mónaco',
+        Netherlands: 'Países Bajos',
+        Qatar: 'Catar',
+        Singapore: 'Singapur',
+        Spain: 'España',
+        'Saudi Arabia': 'Arabia Saudí',
+        'United Arab Emirates': 'Emiratos Árabes Unidos',
+        'United Kingdom': 'Reino Unido',
+        'United States': 'Estados Unidos'
+    };
 
     constructor() {
         this.year = new Date().getFullYear();
@@ -19,108 +45,99 @@ class RaceStreamRaceStrip {
         this.flag = document.getElementById('raceStripFlag');
         this.meeting = null;
         this.sessions = [];
-        this.bindNavbarDropdowns();
+        this.clockTimer = null;
         this.init();
     }
 
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
-     * @created 04-05-2026
-     * @description Inicializa carga y refresco de relojes
+     * @version 1.0.0
+     * @created 14-05-2026
+     * @modified 14-05-2026
+     * @description Pinta cache valida al instante y actualiza datos confirmados sin bloquear la pagina
      */
     async init() {
         if (!this.title) return;
-        this.meeting = await this.fetchJson(this.meetingApi, null);
-        if (this.meeting?.meeting_key) {
-            const sessions = await this.fetchJson(this.sessionsApi(this.meeting.meeting_key), []);
-            this.sessions = Array.isArray(sessions) ? sessions : [];
+        if (!this.renderCachedMeeting()) {
+            this.renderNeutral();
         }
+        this.startClockTimer();
+        await this.refresh();
+    }
+
+    renderCachedMeeting() {
+        const cached = this.readCache();
+        if (!cached || !this.isTrustedMeeting(cached.meeting, true)) {
+            return false;
+        }
+        this.meeting = cached.meeting;
+        this.sessions = Array.isArray(cached.sessions) ? cached.sessions : [];
         this.render();
-        this.renderClocks();
-        setInterval(() => {
-            this.renderClocks();
-            this.renderAction();
-        }, 1000);
+        return true;
     }
 
-    /**
-     * @author Yerai Pinto
-     * @since 1.0
-     * @version 1.0.0
-     * @created 04-05-2026
-     * @description Activa menús de perfil y hamburguesa si el layout común todavía no los ha enlazado
-     */
-    bindNavbarDropdowns() {
-        const profileDropdown = document.getElementById('profileDropdown');
-        const mobileMenuDropdown = document.getElementById('mobileMenuDropdown');
-        if (profileDropdown?.dataset.rsDropdownBound && mobileMenuDropdown?.dataset.rsDropdownBound) return;
-        profileDropdown?.querySelector('.rs-profile-dropdown__trigger')?.addEventListener('click', (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            profileDropdown.classList.toggle('rs-profile-dropdown--open');
-            mobileMenuDropdown?.classList.remove('rs-navbar-mobile-menu--open');
-        });
-        mobileMenuDropdown?.querySelector('.rs-navbar__menu-trigger')?.addEventListener('click', (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            mobileMenuDropdown.classList.toggle('rs-navbar-mobile-menu--open');
-            profileDropdown?.classList.remove('rs-profile-dropdown--open');
-        });
-        document.addEventListener('click', () => {
-            profileDropdown?.classList.remove('rs-profile-dropdown--open');
-            mobileMenuDropdown?.classList.remove('rs-navbar-mobile-menu--open');
-        });
-    }
-
-    async fetchJson(url, fallback) {
-        const cacheKey = `rs-cache:${url}`;
-        const timeKey = `${cacheKey}:time`;
-        const cached = localStorage.getItem(cacheKey);
-        const cachedAt = Number(localStorage.getItem(timeKey) || 0);
-        if (cached && Date.now() - cachedAt < 300000) {
-            return JSON.parse(cached);
+    async refresh() {
+        const meeting = await this.fetchJson(this.meetingApi, null, { attempts: 2, allowStaleOnError: false });
+        if (!this.isTrustedMeeting(meeting, false)) {
+            if (!this.meeting) this.renderNeutral('Calendario no disponible', 'Sin datos confirmados');
+            return;
         }
-        for (let attempt = 0; attempt < 3; attempt++) {
+        this.meeting = meeting;
+        this.sessions = meeting.meeting_key
+            ? await this.fetchJson(this.sessionsApi(meeting.meeting_key), [], { attempts: 2, retryEmpty: false })
+            : [];
+        if (!Array.isArray(this.sessions)) {
+            this.sessions = [];
+        }
+        this.writeCache();
+        this.render();
+    }
+
+    async fetchJson(url, fallback, options = {}) {
+        if (window.RaceStreamApi) {
+            return window.RaceStreamApi.fetchJson(url, fallback, options);
+        }
+        const attempts = options.attempts ?? 2;
+        for (let attempt = 0; attempt < attempts; attempt++) {
             try {
-                const response = await fetch(url, { cache: 'no-store' });
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data && !(Array.isArray(data) && !data.length)) {
-                        localStorage.setItem(cacheKey, JSON.stringify(data));
-                        localStorage.setItem(timeKey, String(Date.now()));
-                    }
-                    return data;
-                }
+                const response = await fetch(url, {
+                    cache: 'no-store',
+                    headers: { 'Cache-Control': 'no-cache' }
+                });
+                if (response.ok) return await response.json();
             } catch {
                 await this.wait(180 * (attempt + 1));
             }
         }
-        return cached ? JSON.parse(cached) : fallback;
+        return fallback;
+    }
+
+    renderNeutral(title = 'Pr\u00f3ximo GP', meta = 'Actualizando calendario') {
+        if (this.title) this.title.textContent = title;
+        if (this.meta) this.meta.textContent = meta;
+        if (this.action) this.action.innerHTML = '<span class="rs-race-strip__status">Sin datos</span>';
+        if (this.clocks) this.clocks.textContent = '-';
+        if (this.flag) this.flag.style.display = 'none';
     }
 
     render() {
-        if (!this.meeting || this.meeting.isMissingNode) {
-            this.title.textContent = 'Recarga forzada';
-            this.meta.textContent = 'Reintentar carga';
-            if (this.action) {
-                this.action.innerHTML = '<button class="rs-button" type="button" onclick="window.location.reload()">Reintentar</button>';
-            }
-            this.clocks.textContent = '-';
+        if (!this.isTrustedMeeting(this.meeting, false)) {
+            this.renderNeutral('Calendario no disponible', 'Sin datos confirmados');
             return;
         }
-        this.title.textContent = this.meeting.meeting_name || 'Gran Premio';
+        this.title.textContent = this.getMeetingCountryLabel(this.meeting);
         this.meta.textContent = this.formatDateRange(this.meeting.date_start, this.meeting.date_end);
-        this.renderAction();
-        this.flag.style.display = this.meeting.country_flag ? 'block' : 'none';
-        if (this.meeting.country_flag) {
-            this.flag.src = this.meeting.country_flag;
+        if (this.flag) {
+            this.flag.style.display = this.meeting.country_flag ? 'inline-block' : 'none';
+            if (this.meeting.country_flag) this.flag.src = this.meeting.country_flag;
         }
+        this.renderAction();
+        this.renderClocks();
     }
 
     renderClocks() {
-        if (!this.meeting) return;
+        if (!this.meeting || !this.clocks) return;
         if (!this.clocks.querySelector('.rs-race-strip__clock-card')) {
             this.clocks.innerHTML = `
                 <div class="rs-race-strip__clock-card">
@@ -142,13 +159,18 @@ class RaceStreamRaceStrip {
 
     renderAction() {
         if (!this.meeting || !this.action) return;
-        const session = this.sessions.find((item) => new Date(item.date_end).getTime() >= Date.now());
+        const session = [...this.sessions]
+            .filter((item) => !item?.is_cancelled)
+            .sort((left, right) => new Date(left.date_start).getTime() - new Date(right.date_start).getTime())
+            .find((item) => new Date(item.date_end).getTime() >= Date.now());
         const isLive = session && Date.now() >= new Date(session.date_start).getTime();
         if (isLive) {
             if (!this.action.querySelector('a')) this.action.innerHTML = '<a class="rs-button rs-button--primary" href="/live.html">En Vivo</a>';
             return;
         }
-        const label = `${this.translateSessionName(session?.session_name || 'GP')} en ${this.getCountdown(session?.date_start || this.meeting.date_start)}`;
+        const label = session
+            ? `${this.translateSessionName(session.session_name)} en ${this.getCountdown(session.date_start)}`
+            : this.getMeetingFallbackStatus();
         const status = this.action.querySelector('.rs-race-strip__status');
         if (status) {
             status.textContent = label;
@@ -157,15 +179,70 @@ class RaceStreamRaceStrip {
         }
     }
 
+    getMeetingFallbackStatus() {
+        const start = new Date(this.meeting?.date_start).getTime();
+        if (Number.isFinite(start) && start > Date.now()) {
+            return `GP en ${this.getCountdown(this.meeting.date_start)}`;
+        }
+        return 'Sesiones por confirmar';
+    }
+
     formatDateRange(startValue, endValue) {
-        if (!startValue || !endValue) return '-';
-        const start = new Date(startValue);
-        const end = new Date(endValue);
+        if (!startValue && !endValue) return '-';
+        const start = new Date(startValue || endValue);
+        const end = new Date(endValue || startValue);
+        if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) return '-';
         const startMonth = start.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
         const endMonth = end.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+        const sameDay = start.getFullYear() === end.getFullYear()
+            && start.getMonth() === end.getMonth()
+            && start.getDate() === end.getDate();
+        if (sameDay) return `${startMonth} ${start.getDate()}`;
         return startMonth === endMonth
             ? `${startMonth} ${start.getDate()}-${end.getDate()}`
             : `${startMonth} ${start.getDate()} - ${endMonth} ${end.getDate()}`;
+    }
+
+    isTrustedMeeting(meeting, fromCache) {
+        if (!meeting || meeting.isMissingNode || (!meeting.meeting_name && !meeting.date_start)) {
+            return false;
+        }
+        if (!fromCache) return true;
+        const end = new Date(meeting.date_end || meeting.date_start).getTime();
+        return !Number.isFinite(end) || end >= Date.now() - 60 * 60 * 1000;
+    }
+
+    readCache() {
+        try {
+            const cached = JSON.parse(localStorage.getItem(RaceStreamRaceStrip.CACHE_KEY) || 'null');
+            if (!cached?.meeting || Date.now() - Number(cached.savedAt || 0) > RaceStreamRaceStrip.CACHE_MAX_AGE) {
+                return null;
+            }
+            return cached;
+        } catch {
+            localStorage.removeItem(RaceStreamRaceStrip.CACHE_KEY);
+            return null;
+        }
+    }
+
+    writeCache() {
+        try {
+            localStorage.setItem(RaceStreamRaceStrip.CACHE_KEY, JSON.stringify({
+                savedAt: Date.now(),
+                meeting: this.meeting,
+                sessions: this.sessions
+            }));
+        } catch {
+            localStorage.removeItem(RaceStreamRaceStrip.CACHE_KEY);
+        }
+    }
+
+    startClockTimer() {
+        if (this.clockTimer) return;
+        this.clockTimer = window.setInterval(() => {
+            this.renderClocks();
+            this.renderAction();
+        }, 30000);
     }
 
     getNowTime() {
@@ -185,12 +262,11 @@ class RaceStreamRaceStrip {
 
     getCountdown(value) {
         const diff = new Date(value).getTime() - Date.now();
-        if (diff <= 0) return 'En curso';
+        if (!Number.isFinite(diff) || diff <= 0) return 'En curso';
         const days = Math.floor(diff / 86400000);
         const hours = Math.floor((diff % 86400000) / 3600000);
         const minutes = Math.floor((diff % 3600000) / 60000);
-        const seconds = Math.floor((diff % 60000) / 1000);
-        return `${days}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+        return `${days}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`;
     }
 
     translateSessionName(name) {
@@ -201,12 +277,52 @@ class RaceStreamRaceStrip {
             'Free Practice 1': 'Libres 1',
             'Free Practice 2': 'Libres 2',
             'Free Practice 3': 'Libres 3',
-            Qualifying: 'Clasificación',
+            Qualifying: 'Clasificaci\u00f3n',
             Race: 'Carrera',
             Sprint: 'Sprint',
             'Sprint Qualifying': 'Clasif. sprint',
             'Sprint Shootout': 'Clasif. sprint'
-        }[name] || name || 'Sesión';
+        }[name] || name || 'Sesi\u00f3n';
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 18-05-2026
+     * @modified 18-05-2026
+     * @description Devuelve el pais visible del GP evitando nombres largos de Gran Premio
+     * @param {Object} meeting GP confirmado
+     * @returns {string} Pais del GP
+     */
+    getMeetingCountryLabel(meeting) {
+        const country = `${meeting?.country_name || meeting?.jolpica_country || ''}`.trim();
+        if (country) {
+            return RaceStreamRaceStrip.COUNTRY_LABELS_ES[country] || country;
+        }
+        return this.simplifyMeetingName(meeting?.meeting_name) || 'Gran Premio';
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 18-05-2026
+     * @modified 18-05-2026
+     * @description Limpia prefijos habituales cuando solo existe el nombre largo del GP
+     * @param {string} name Nombre del GP
+     * @returns {string} Nombre compacto
+     */
+    simplifyMeetingName(name) {
+        const value = `${name || ''}`.trim();
+        if (!value) return '';
+        return value
+            .replace(/^formula 1\s+/i, '')
+            .replace(/^gran premio de\s+/i, '')
+            .replace(/^grand prix of\s+/i, '')
+            .replace(/\s+grand prix$/i, '')
+            .replace(/\s+gp$/i, '')
+            .trim();
     }
 
     wait(milliseconds) {
@@ -214,18 +330,8 @@ class RaceStreamRaceStrip {
     }
 }
 
-/**
- * @author Yerai Pinto
- * @since 1.0
- * @version 1.0.0
- * @created 07-05-2026
- * @description Evita doble refresco en paginas con franja superior propia
- * @returns {boolean} Resultado
- */
-const pageOwnsRaceStrip = () => Boolean(document.querySelector('.rs-live-page, .rs-sessions-page, .rs-news-page') || document.getElementById('calendarGrid'));
-
 const bootRaceStreamRaceStrip = () => {
-    if (!pageOwnsRaceStrip() && !window.raceStreamRaceStrip && document.getElementById('raceStripTitle')) {
+    if (!window.raceStreamRaceStrip && document.getElementById('raceStripTitle')) {
         window.raceStreamRaceStrip = new RaceStreamRaceStrip();
     }
 };

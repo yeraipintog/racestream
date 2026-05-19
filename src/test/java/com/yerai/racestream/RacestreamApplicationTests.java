@@ -10,10 +10,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(classes = RacestreamApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class RacestreamApplicationTests {
 
 	@Autowired
@@ -49,23 +50,31 @@ class RacestreamApplicationTests {
 
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 		assertThat(response.getBody()).containsEntry("role", "ADMIN");
+		assertThat(response.getBody()).containsEntry("cookieConsentStatus", "ACCEPTED");
 	}
 
 	/**
 	 * @author Yerai Pinto
 	 * @since 1.0
-	 * @version 1.0.0
+	 * @version 1.0.1
 	 * @created 06-05-2026
-	 * @description Verifica que el nombre de usuario visible tambien permite iniciar sesion
+	 * @modified 12-05-2026
+	 * @description Verifica que el nombre de usuario visible tambien permite
+	 *              iniciar sesion
 	 */
 	@Test
 	void registeredUserCanLoginWithUsername() {
+		String suffix = uniqueSuffix();
+		String username = "PilotoVisible" + suffix;
+		String email = "piloto.visible." + suffix + "@racestream.local";
+
 		ResponseEntity<Map> registerResponse = restTemplate.postForEntity(
 				"/api/auth/register",
 				Map.of(
-						"name", "PilotoVisible",
-						"email", "piloto.visible@racestream.local",
+						"name", username,
+						"email", email,
 						"password", "RaceStream1!",
+						"confirmPassword", "RaceStream1!",
 						"acceptPolicies", true),
 				Map.class);
 
@@ -73,37 +82,56 @@ class RacestreamApplicationTests {
 
 		ResponseEntity<Map> loginResponse = restTemplate.postForEntity(
 				"/api/auth/login",
-				Map.of("email", "PilotoVisible", "password", "RaceStream1!"),
+				Map.of("email", username, "password", "RaceStream1!"),
 				Map.class);
 
 		assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-		assertThat(loginResponse.getBody()).containsEntry("email", "piloto.visible@racestream.local");
+		assertThat(loginResponse.getBody()).containsEntry("email", email);
+		assertThat(loginResponse.getBody()).containsEntry("cookieConsentStatus", "UNDECIDED");
 	}
 
 	/**
 	 * @author Yerai Pinto
 	 * @since 1.0
-	 * @version 1.0.0
+	 * @version 1.0.1
 	 * @created 06-05-2026
+	 * @modified 12-05-2026
 	 * @description Verifica que un correo bloqueado no pueda registrarse de nuevo
 	 */
 	@Test
 	void blockedEmailCannotRegister() {
+		String suffix = uniqueSuffix();
+		String email = "bloqueado." + suffix + "@racestream.local";
+
 		BlockedEmail blockedEmail = new BlockedEmail();
-		blockedEmail.setEmail("bloqueado@racestream.local");
+		blockedEmail.setEmail(email);
 		blockedEmail.setReason("Test");
 		blockedEmailRepository.save(blockedEmail);
 
 		ResponseEntity<Map> response = restTemplate.postForEntity(
 				"/api/auth/register",
 				Map.of(
-						"name", "Usuario bloqueado",
-						"email", "bloqueado@racestream.local",
+						"name", "UsuarioBloqueado" + suffix,
+						"email", email,
 						"password", "RaceStream1!",
+						"confirmPassword", "RaceStream1!",
 						"acceptPolicies", true),
 				Map.class);
 
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
 		assertThat(response.getBody()).containsKey("error");
+	}
+
+	/**
+	 * @author Yerai Pinto
+	 * @since 1.0
+	 * @version 1.0.0
+	 * @created 12-05-2026
+	 * @modified 12-05-2026
+	 * @description Genera sufijos validos para que las pruebas de registro no
+	 *              dependan de datos previos
+	 */
+	private String uniqueSuffix() {
+		return UUID.randomUUID().toString().replace("-", "").substring(0, 12);
 	}
 }

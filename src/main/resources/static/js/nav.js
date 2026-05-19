@@ -1,28 +1,32 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.5
+ * @version 1.4.0
  * @created 30-04-2026
- * @modified 07-05-2026
- * @description Pinta navbar, footer, estructura comun y avisos web sin esperar a la carga de datos de cada pagina
+ * @modified 18-05-2026
+ * @description Pinta navbar, footer, estructura comun, cookies con estado explicito, ocultacion de race strip y avisos web
  */
 class RaceStreamSharedLayout {
 
     constructor() {
         this.renderLayout();
         this.navbar = document.getElementById('mainNavbar');
+        this.raceStrip = document.getElementById('raceStrip');
         this.profileMenu = document.querySelector('.rs-profile-dropdown__menu');
         this.path = window.location.pathname === '/' ? '/index.html' : window.location.pathname;
-        this.lastScrollY = window.scrollY;
+        this.lastScrollY = Math.max(window.scrollY, 0);
+        this.scrollTicking = false;
         this.bindNavigation();
         this.bindDropdowns();
+        this.bindLoginHashLinks();
+        this.bindNavbarVisibility();
         this.updateNavbarOffset();
+        this.observeHeaderHeights();
         this.syncAccountMenu();
         this.renderCookieBanner();
         this.syncCookiePage();
         window.addEventListener('load', () => this.updateNavbarOffset());
         window.addEventListener('resize', () => this.updateNavbarOffset());
-        window.addEventListener('scroll', () => this.handleNavbarVisibility(), { passive: true });
     }
 
     /**
@@ -47,8 +51,8 @@ class RaceStreamSharedLayout {
                     </a>
                     <nav class="rs-navbar__nav" aria-label="Navegación principal">
                         <a class="rs-navbar__link" href="/live.html">En Vivo</a>
-                        <a class="rs-navbar__link" href="/sessions.html">Sesiones</a>
                         <a class="rs-navbar__link" href="/calendar.html">Calendario</a>
+                        <a class="rs-navbar__link" href="/sessions.html">Sesiones</a>
                         <a class="rs-navbar__link" href="/standings.html">Clasificación</a>
                         <a class="rs-navbar__link rs-navbar__link--overflow" href="/drivers.html">Pilotos</a>
                         <a class="rs-navbar__link rs-navbar__link--overflow" href="/teams.html">Escuderías</a>
@@ -93,14 +97,12 @@ class RaceStreamSharedLayout {
                     <div class="rs-race-strip__main">
                         <div class="rs-race-strip__title-row">
                             <img id="raceStripFlag" class="rs-flag-inline rs-flag-inline--medium" src="" alt="Bandera del país" style="display:none;">
-                            <span id="raceStripTitle" class="rs-race-strip__title">Cargando calendario</span>
+                            <span id="raceStripTitle" class="rs-race-strip__title">Pr&oacute;ximo GP</span>
                         </div>
-                        <span id="raceStripMeta" class="rs-race-strip__meta">-</span>
+                        <span id="raceStripMeta" class="rs-race-strip__meta">Actualizando datos</span>
                     </div>
-                    <div class="rs-race-strip__side">
-                        <div id="raceStripAction"></div>
-                        <div id="raceStripClocks" class="rs-race-strip__clocks">-</div>
-                    </div>
+                    <div id="raceStripAction" class="rs-race-strip__action"></div>
+                    <div id="raceStripClocks" class="rs-race-strip__clocks">-</div>
                 </div>
             </section>
         `;
@@ -137,7 +139,7 @@ class RaceStreamSharedLayout {
                     <div class="rs-footer__bottom">
                         <span>&copy; 2026 RaceStream. Todos los derechos reservados.</span>
                         <div class="rs-footer__bottom-links">
-                            <a href="/terms.html">Términos y condiciones</a>
+                            <a href="/terms.html">Términos de servicio</a>
                             <a href="/privacy-policy.html">Política de privacidad</a>
                             <a href="/cookies.html">Política de cookies</a>
                         </div>
@@ -194,40 +196,138 @@ class RaceStreamSharedLayout {
         if (!document.body.dataset.rsDropdownCloseBound) {
             document.body.dataset.rsDropdownCloseBound = 'true';
             document.addEventListener('click', () => {
-                profileDropdown?.classList.remove('rs-profile-dropdown--open');
-                mobileMenuDropdown?.classList.remove('rs-navbar-mobile-menu--open');
+                this.closeDropdowns();
             });
         }
-    }
-
-    updateNavbarOffset() {
-        document.documentElement.style.setProperty('--rs-navbar-height', `${this.navbar?.offsetHeight || 74}px`);
-    }
-
-    handleNavbarVisibility() {
-        const currentY = window.scrollY;
-        document.body.classList.toggle('rs-nav-hidden', currentY > this.lastScrollY && currentY > 120);
-        this.lastScrollY = Math.max(currentY, 0);
     }
 
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.2
+     * @version 1.0.0
+     * @created 14-05-2026
+     * @modified 14-05-2026
+     * @description Cambia a registro desde login sin recargar y cerrando el desplegable de perfil
+     */
+    bindLoginHashLinks() {
+        document.querySelectorAll('a[href*="/login.html#"], a[href^="login.html#"]').forEach((link) => {
+            if (link.dataset.rsLoginHashBound) return;
+            link.dataset.rsLoginHashBound = 'true';
+            link.addEventListener('click', (event) => {
+                const url = new URL(link.getAttribute('href'), window.location.origin);
+                if (!window.location.pathname.endsWith('/login.html') || !url.hash) return;
+                event.preventDefault();
+                this.closeDropdowns();
+                if (window.location.hash === url.hash) {
+                    window.dispatchEvent(new Event('hashchange'));
+                } else {
+                    window.location.hash = url.hash;
+                }
+            });
+        });
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 14-05-2026
+     * @modified 14-05-2026
+     * @description Oculta solo la franja de próximo GP al bajar y la recupera al subir sin mover contenido
+     */
+    bindNavbarVisibility() {
+        if (document.body.dataset.rsNavbarScrollBound) return;
+        document.body.dataset.rsNavbarScrollBound = 'true';
+        window.addEventListener('scroll', () => {
+            if (this.scrollTicking) return;
+            this.scrollTicking = true;
+            window.requestAnimationFrame(() => {
+                this.handleNavbarVisibility();
+                this.scrollTicking = false;
+            });
+        }, { passive: true });
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 14-05-2026
+     * @modified 14-05-2026
+     * @description Sincroniza la clase global de cabecera oculta según dirección de scroll
+     */
+    handleNavbarVisibility() {
+        const currentScrollY = Math.max(window.scrollY, 0);
+        const delta = currentScrollY - this.lastScrollY;
+        if (currentScrollY <= 12 || delta < -6) {
+            document.body.classList.remove('rs-race-strip-hidden');
+        } else if (delta > 6 && currentScrollY > 120) {
+            document.body.classList.add('rs-race-strip-hidden');
+            this.closeDropdowns();
+        }
+        this.lastScrollY = currentScrollY;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 14-05-2026
+     * @modified 14-05-2026
+     * @description Cierra desplegables de navegación cuando cambia el contexto visual
+     */
+    closeDropdowns() {
+        document.getElementById('profileDropdown')?.classList.remove('rs-profile-dropdown--open');
+        document.getElementById('mobileMenuDropdown')?.classList.remove('rs-navbar-mobile-menu--open');
+    }
+
+    updateNavbarOffset() {
+        const navbarHeight = this.navbar?.offsetHeight || 74;
+        const raceStripHeight = this.raceStrip?.offsetHeight || 58;
+        document.documentElement.style.setProperty('--rs-navbar-height', `${navbarHeight}px`);
+        document.documentElement.style.setProperty('--rs-race-strip-height', `${raceStripHeight}px`);
+        document.documentElement.style.setProperty('--rs-header-offset', `${navbarHeight + raceStripHeight}px`);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 13-05-2026
+     * @modified 13-05-2026
+     * @description Observa cambios de altura del navbar y la franja de GP para no tapar contenido
+     */
+    observeHeaderHeights() {
+        if (!('ResizeObserver' in window)) {
+            return;
+        }
+        const observer = new ResizeObserver(() => this.updateNavbarOffset());
+        if (this.navbar) observer.observe(this.navbar);
+        if (this.raceStrip) observer.observe(this.raceStrip);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.1.0
      * @created 05-05-2026
-     * @modified 07-05-2026
-     * @description Sincroniza el menu de cuenta, avisos web y acceso admin cuando procede
+     * @modified 18-05-2026
+     * @description Sincroniza el menu de cuenta y restaura la decision de cookies guardada en BBDD
      */
     async syncAccountMenu() {
         if (!this.profileMenu) return;
         try {
             const cacheKey = 'rs-auth-me';
-            const cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
-            const user = cached && Date.now() - cached.savedAt < 60000
-                ? cached.user
-                : await fetch('/api/auth/me', { cache: 'no-store' }).then((response) => response.json());
-            if (!cached || Date.now() - cached.savedAt >= 60000) {
-                sessionStorage.setItem(cacheKey, JSON.stringify({ user, savedAt: Date.now() }));
+            sessionStorage.removeItem(cacheKey);
+            const user = await fetch('/api/auth/me', {
+                cache: 'no-store',
+                headers: { 'Cache-Control': 'no-cache' }
+            }).then((response) => response.json());
+            const localCookieStatus = this.readCookieConsentStatus();
+            const remoteCookieStatus = this.normalizeCookieConsentStatus(user.cookieConsentStatus || (user.cookieConsent ? 'ACCEPTED' : 'UNDECIDED'));
+            if (!localCookieStatus && (remoteCookieStatus === 'accepted' || remoteCookieStatus === 'rejected')) {
+                this.writeCookieConsent(remoteCookieStatus);
+                document.querySelector('.rs-cookie-banner')?.remove();
             }
             if (!user.authenticated) return;
             this.profileMenu.innerHTML = `
@@ -239,7 +339,11 @@ class RaceStreamSharedLayout {
             `;
             this.syncWebNotifications(user);
             this.profileMenu.querySelector('[data-logout]')?.addEventListener('click', async () => {
-                await fetch('/api/auth/logout', { method: 'POST' });
+                await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    cache: 'no-store',
+                    headers: { 'Cache-Control': 'no-cache' }
+                });
                 sessionStorage.removeItem(cacheKey);
                 window.location.href = '/login.html?logout';
             });
@@ -293,7 +397,7 @@ class RaceStreamSharedLayout {
     }
 
     renderCookieBanner() {
-        if (document.cookie.includes('rs_cookie_consent=')) return;
+        if (this.readCookieConsentStatus()) return;
         const banner = document.createElement('div');
         banner.className = 'rs-cookie-banner';
         banner.innerHTML = `
@@ -305,25 +409,25 @@ class RaceStreamSharedLayout {
             </div>
         `;
         document.body.appendChild(banner);
-        const save = async (accepted) => {
+        const save = async (status) => {
             await fetch('/api/auth/cookies', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accepted })
+                body: JSON.stringify({ accepted: status === 'accepted' })
             }).catch(() => {});
+            this.writeCookieConsent(status);
             banner.remove();
         };
-        banner.querySelector('[data-cookie-accept]').addEventListener('click', () => save(true));
-        banner.querySelector('[data-cookie-reject]').addEventListener('click', () => save(false));
+        banner.querySelector('[data-cookie-accept]').addEventListener('click', () => save('accepted'));
+        banner.querySelector('[data-cookie-reject]').addEventListener('click', () => save('rejected'));
     }
 
     syncCookiePage() {
         const panel = document.querySelector('[data-cookie-page]');
         if (!panel) return;
-        const match = document.cookie.match(/(?:^|;\s*)rs_cookie_consent=([^;]+)/);
-        const value = match ? decodeURIComponent(match[1]) : '';
-        const accepted = value === 'accepted';
-        const decided = value === 'accepted' || value === 'rejected';
+        const status = this.readCookieConsentStatus();
+        const accepted = status === 'accepted';
+        const decided = status === 'accepted' || status === 'rejected';
         panel.querySelector('[data-cookie-current]').textContent = decided
             ? `Elección actual: ${accepted ? 'aceptadas' : 'rechazadas'}`
             : 'Todavía no has elegido una opción.';
@@ -331,16 +435,66 @@ class RaceStreamSharedLayout {
         panel.querySelector('[data-cookie-reject]')?.toggleAttribute('hidden', decided && !accepted);
         panel.querySelectorAll('[data-cookie-accept], [data-cookie-reject]').forEach((button) => {
             button.addEventListener('click', async () => {
-                const acceptedChoice = button.hasAttribute('data-cookie-accept');
+                const statusChoice = button.hasAttribute('data-cookie-accept') ? 'accepted' : 'rejected';
                 await fetch('/api/auth/cookies', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accepted: acceptedChoice })
+                    body: JSON.stringify({ accepted: statusChoice === 'accepted' })
                 }).catch(() => {});
-                document.cookie = `rs_cookie_consent=${acceptedChoice ? 'accepted' : 'rejected'}; path=/; max-age=15552000; SameSite=Lax`;
+                this.writeCookieConsent(statusChoice);
                 window.location.reload();
             });
         });
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.1.0
+     * @created 12-05-2026
+     * @modified 18-05-2026
+     * @description Guarda accepted o rejected aunque la sincronizacion remota falle
+     * @param {boolean|string} value Preferencia del usuario
+     */
+    writeCookieConsent(value) {
+        const status = this.normalizeCookieConsentStatus(value);
+        if (!status || status === 'undecided') return;
+        document.cookie = `rs_cookie_consent=${status}; path=/; max-age=15552000; SameSite=Lax`;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 18-05-2026
+     * @modified 18-05-2026
+     * @description Lee la cookie tecnica local y descarta valores que no sean una decision real
+     * @returns {string} Estado accepted, rejected o cadena vacia
+     */
+    readCookieConsentStatus() {
+        const match = document.cookie.match(/(?:^|;\s*)rs_cookie_consent=([^;]+)/);
+        const status = this.normalizeCookieConsentStatus(match ? decodeURIComponent(match[1]) : '');
+        return status === 'accepted' || status === 'rejected' ? status : '';
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 18-05-2026
+     * @modified 18-05-2026
+     * @description Normaliza estados nuevos y booleanos legacy a valores seguros de navegador
+     * @param {boolean|string} value Estado recibido
+     * @returns {string} Estado normalizado
+     */
+    normalizeCookieConsentStatus(value) {
+        if (value === true) return 'accepted';
+        if (value === false) return 'rejected';
+        const normalized = `${value || ''}`.trim().toLowerCase();
+        if (normalized === 'accepted' || normalized === 'true') return 'accepted';
+        if (normalized === 'rejected' || normalized === 'false') return 'rejected';
+        if (normalized === 'undecided') return 'undecided';
+        return '';
     }
 
     static boot() {

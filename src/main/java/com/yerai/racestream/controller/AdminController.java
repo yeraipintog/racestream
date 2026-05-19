@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.1
+ * @version 1.1.4
  * @created 06-05-2026
- * @modified 06-05-2026
- * @description API privada de administracion para usuarios, bloqueos, contacto, foro y actividad interna
+ * @modified 14-05-2026
+ * @description API privada de administracion para usuarios, roles, bloqueos, contacto, foro y actividad interna
  */
 package com.yerai.racestream.controller;
 
@@ -36,6 +36,8 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -66,9 +68,9 @@ public class AdminController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 06-05-2026
-     * @modified 06-05-2026
+     * @modified 11-05-2026
      * @description Devuelve metricas internas solo visibles para admin
      * @return Totales de actividad privada
      */
@@ -149,9 +151,10 @@ public class AdminController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 06-05-2026
-     * @description Elimina un usuario y sus datos dependientes de la base de datos
+     * @modified 08-05-2026
+     * @description Elimina un usuario y sus datos dependientes, incluyendo hilos de foro asociados
      * @param id Identificador del usuario
      * @param authentication Sesion del administrador
      * @return Estado de borrado
@@ -165,11 +168,23 @@ public class AdminController {
                         return ResponseEntity.badRequest().body(Map.of("error", "No puedes eliminar esta cuenta de administración"));
                     }
                     List<ForumPost> userPosts = forumPostRepository.findByAuthor(user);
+                    List<ForumPost> repliesToUserPosts = userPosts.isEmpty()
+                            ? List.of()
+                            : forumPostRepository.findByParentPostIn(userPosts);
                     if (!userPosts.isEmpty()) {
                         forumPostLikeRepository.deleteByPostIn(userPosts);
                     }
+                    if (!repliesToUserPosts.isEmpty()) {
+                        forumPostLikeRepository.deleteByPostIn(repliesToUserPosts);
+                    }
                     forumPostLikeRepository.deleteByUser(user);
-                    forumPostRepository.deleteAll(userPosts);
+                    forumPostRepository.deleteAll(repliesToUserPosts);
+                    Set<Long> deletedReplyIds = repliesToUserPosts.stream()
+                            .map(ForumPost::getId)
+                            .collect(Collectors.toSet());
+                    forumPostRepository.deleteAll(userPosts.stream()
+                            .filter(post -> !deletedReplyIds.contains(post.getId()))
+                            .toList());
                     contactMessageRepository.deleteByUser(user);
                     userFavoriteRepository.deleteByUser(user);
                     appUserRepository.delete(user);
@@ -256,9 +271,10 @@ public class AdminController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 06-05-2026
-     * @description Elimina una publicacion o respuesta del foro desde administracion
+     * @modified 08-05-2026
+     * @description Elimina una publicacion o respuesta del foro desde administracion con sus dependencias
      * @param id Identificador del post
      * @return Estado de borrado
      */
@@ -267,6 +283,11 @@ public class AdminController {
     public ResponseEntity<?> deleteForumPost(@PathVariable Long id) {
         return forumPostRepository.findById(id)
                 .<ResponseEntity<?>>map(post -> {
+                    List<ForumPost> replies = forumPostRepository.findByParentPostOrderByCreatedAtAsc(post);
+                    if (!replies.isEmpty()) {
+                        forumPostLikeRepository.deleteByPostIn(replies);
+                        forumPostRepository.deleteAll(replies);
+                    }
                     forumPostLikeRepository.deleteByPost(post);
                     forumPostRepository.delete(post);
                     return ResponseEntity.ok(Map.of("deleted", true));
@@ -279,7 +300,7 @@ public class AdminController {
                 "id", user.getId(),
                 "name", user.getName(),
                 "email", user.getEmail(),
-                "provider", user.getProvider().name(),
+                "role", user.getRole().name(),
                 "createdAt", user.getCreatedAt(),
                 "blocked", blockedEmailRepository.existsByEmailIgnoreCase(user.getEmail()));
     }

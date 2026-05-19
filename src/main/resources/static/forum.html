@@ -21,23 +21,46 @@
                 <h1>Foro</h1>
                 <p>Comparte dudas, análisis y comentarios sobre Grandes Premios, sesiones, pilotos, escuderías y noticias.</p>
             </header>
-            <section class="rs-simple-grid">
-                <article class="rs-simple-panel">
-                    <h2>Publicaciones</h2>
+            <section class="rs-forum-layout">
+                <article class="rs-simple-panel rs-forum-panel">
+                    <div class="rs-forum-panel__head">
+                        <h2>Publicaciones</h2>
+                        <div class="rs-forum-tools">
+                            <input id="forumSearch" type="search" placeholder="Buscar mensajes" aria-label="Buscar mensajes">
+                            <button id="forumCreateToggle" class="rs-forum-create-button" type="button" aria-label="Crear publicación">+</button>
+                        </div>
+                    </div>
                     <div id="forumList" class="rs-list">
                         <p class="loading-state">Cargando foro...</p>
                     </div>
                 </article>
-                <article class="rs-simple-panel">
-                    <h2>Crear publicación</h2>
+            </section>
+            <section id="forumComposer" class="rs-forum-composer" hidden>
+                <div class="rs-simple-panel rs-forum-composer__panel">
+                    <div class="rs-forum-panel__head rs-forum-composer__head">
+                        <h2>Crear publicación</h2>
+                        <button id="forumCreateClose" class="rs-admin-delete-button" type="button" aria-label="Cerrar creador">×</button>
+                    </div>
                     <form id="forumForm" class="rs-form">
                         <label>Categoría<select name="category"><option>General</option><option>GP</option><option>Sesión</option><option>Noticias</option></select></label>
-                        <label>Título<input name="title" required></label>
-                        <label>Mensaje<textarea name="content" required></textarea></label>
+                        <label>
+                            Título
+                            <input name="title" maxlength="20" required>
+                            <small class="rs-char-counter" data-counter-for="title">0/20</small>
+                        </label>
+                        <label>
+                            Mensaje
+                            <textarea name="content" maxlength="1000" required></textarea>
+                            <small class="rs-char-counter" data-counter-for="content">0/1000</small>
+                        </label>
+                        <label class="rs-form__inline">
+                            <input name="policyAccepted" type="checkbox" required>
+                            <span>Acepto la <a href="/privacy-policy.html#forum-policy">política de privacidad</a> y las <a href="/terms.html#forum-policy">normas del foro</a> de RaceStream.</span>
+                        </label>
                         <button class="rs-button rs-button--primary" type="submit">Publicar</button>
                         <div id="forumAlert" class="rs-alert" aria-live="polite"></div>
                     </form>
-                </article>
+                </div>
             </section>
         </div>
     </main>

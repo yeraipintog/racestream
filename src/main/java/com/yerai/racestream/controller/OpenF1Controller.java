@@ -1,8 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0
+ * @version 1.0.1
  * @created 17-04-2026
+ * @modified 13-05-2026
  * @description Controlador de OpenF1
  * @see https://openf1.org
  */
@@ -28,14 +29,15 @@ public class OpenF1Controller {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
+     * @version 1.0.1
      * @created 17-04-2026
+     * @modified 13-05-2026
      * @description Obtener meetings
      * @param year
      * @return
      */
     @GetMapping("/meetings")
-    public JsonNode getMeetings(@RequestParam(defaultValue = "2026") Integer year) {
+    public JsonNode getMeetings(@RequestParam(required = false) Integer year) {
         return openF1Service.getMeetings(year);
     }
 

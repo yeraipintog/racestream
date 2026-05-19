@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.1
+ * @version 1.2.2
  * @created 09-03-2026
- * @modified 06-05-2026
- * @description Configuracion de seguridad con zonas publicas, privadas y roles
+ * @modified 18-05-2026
+ * @description Configuracion de seguridad con zonas publicas, privadas, roles y login JSON propio
  */
 package com.yerai.racestream.config;
 
@@ -22,10 +22,10 @@ public class SecurityConfig {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.2.1
+     * @version 1.2.2
      * @created 09-03-2026
-     * @modified 06-05-2026
-     * @description Protege paginas privadas, APIs de usuario y administracion
+     * @modified 18-05-2026
+     * @description Protege paginas privadas, APIs de usuario y administracion sin activar el formulario generico de Spring
      * @param http Constructor de seguridad HTTP
      * @return Cadena de filtros configurada
      * @throws Exception Si la configuracion no puede construirse
@@ -45,13 +45,7 @@ public class SecurityConfig {
                                 "/api/user/**", "/api/favorites/**").authenticated()
                         .requestMatchers("/admin.html", "/api/admin/**").hasRole("ADMIN")
                         .anyRequest().permitAll())
-                .formLogin(form -> form
-                        .loginPage("/login.html")
-                        .loginProcessingUrl("/api/auth/login-form")
-                        .usernameParameter("email")
-                        .passwordParameter("password")
-                        .defaultSuccessUrl("/account.html", true)
-                        .permitAll())
+                .formLogin(form -> form.disable())
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")
                         .logoutSuccessUrl("/login.html?logout")

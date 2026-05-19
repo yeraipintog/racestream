@@ -1,19 +1,19 @@
 ﻿/**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.3.1
+ * @version 1.3.7
  * @created 21-04-2026
- * @modified 07-05-2026
- * @description Lógica principal del calendario F1 RaceStream con resumen de GP, sesiones compactas y carga reforzada
+ * @modified 14-05-2026
+ * @description Lógica principal del calendario F1 RaceStream con fechas compactas, imagenes seguras y carga reforzada
  */
 class RaceStreamCalendarPage {
 
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.9
+     * @version 1.1.0
      * @created 21-04-2026
-     * @modified 30-04-2026
+     * @modified 08-05-2026
      * @description Constructor principal
      */
     constructor() {
@@ -32,26 +32,24 @@ class RaceStreamCalendarPage {
         this.selectedMeetingKey = null;
         this.currentMonthIndex = 0;
         this.lastValidTopMeeting = null;
-        this.lastScrollY = window.scrollY;
         this.params = new URLSearchParams(window.location.search);
-        this.currentSeason = new Date().getFullYear();
         const requestedYear = Number(this.params.get('year'));
+        this.currentSeason = Number.isInteger(requestedYear) && requestedYear >= 1950 ? requestedYear : new Date().getFullYear();
         const requestedMeetingKey = Number(this.params.get('meetingKey'));
-        this.selectedYear = Number.isInteger(requestedYear) && requestedYear >= 1950 ? requestedYear : this.currentSeason;
         this.pendingMeetingKey = Number.isInteger(requestedMeetingKey) && requestedMeetingKey !== 0 ? requestedMeetingKey : null;
         this.selectedSessions = [];
         this.topMeetingSessions = [];
+        this.ownsRaceStrip = !window.raceStreamRaceStrip;
         this.loadRequestId = 0;
         this.selectionRequestId = 0;
         this.circuitImages = [
-            [['madring', 'madrid grand prix', 'madrid'], '/assets/circuits/madring.png'],
-            [['circuit de barcelona catalunya', 'montmelo', 'catalunya', 'barcelona', 'spanish grand prix', 'spain'], '/assets/circuits/montmelo.png'],
-            [['circuit de monaco', 'montecarlo', 'monte carlo', 'monaco'], '/assets/circuits/montecarlo.png'],
-            [['hungaroring', 'hungarian grand prix', 'hungary', 'budapest'], '/assets/circuits/hungaroring.png']
+            [['madring'], '/assets/circuits/madring.png'],
+            [['montmelo', 'circuit de barcelona catalunya', 'barcelona catalunya'], '/assets/circuits/montmelo.png'],
+            [['montecarlo', 'circuit de monaco', 'monte carlo'], '/assets/circuits/montecarlo.png'],
+            [['hungaroring'], '/assets/circuits/hungaroring.png']
         ];
 
         this.cacheDom();
-        this.yearInput.value = String(this.selectedYear);
         this.bindEvents();
         this.init();
     }
@@ -59,15 +57,13 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.2
+     * @version 1.0.3
      * @created 21-04-2026
-     * @modified 28-04-2026
+     * @modified 08-05-2026
      * @description Cachea el DOM necesario
      */
     cacheDom() {
-        this.navbar = document.getElementById('mainNavbar');
-        this.yearInput = document.getElementById('yearInput');
-
+        this.yearInput = document.getElementById('calendarYearInput');
         this.topSelectedCircuit = document.getElementById('topSelectedCircuit');
 
         this.calendarMonthLabel = document.getElementById('calendarMonthLabel');
@@ -87,14 +83,6 @@ class RaceStreamCalendarPage {
         this.raceStripAction = document.getElementById('raceStripAction');
         this.raceStripFlag = document.getElementById('raceStripFlag');
 
-        this.profileDropdown = document.getElementById('profileDropdown');
-        this.profileTrigger = this.profileDropdown?.querySelector('.rs-profile-dropdown__trigger');
-        this.profileMenu = this.profileDropdown?.querySelector('.rs-profile-dropdown__menu');
-
-        this.mobileMenuDropdown = document.getElementById('mobileMenuDropdown');
-        this.mobileMenuTrigger = this.mobileMenuDropdown?.querySelector('.rs-navbar__menu-trigger');
-        this.mobileMenuPanel = this.mobileMenuDropdown?.querySelector('.rs-navbar-mobile-menu__panel');
-
         this.prevMonthButton = document.getElementById('prevMonthButton');
         this.nextMonthButton = document.getElementById('nextMonthButton');
     }
@@ -102,88 +90,40 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 21-04-2026
-     * @modified 24-04-2026
+     * @modified 08-05-2026
      * @description Asocia eventos
      */
     bindEvents() {
-        this.yearInput.addEventListener('change', () => {
+        this.yearInput?.addEventListener('change', () => {
+            this.currentSeason = Number(this.yearInput.value) || new Date().getFullYear();
             this.pendingMeetingKey = null;
             this.selectedMeetingKey = null;
-            this.updateUrl(Number(this.yearInput.value), null);
+            this.updateUrl(null);
             this.loadCalendar();
         });
-
         this.prevMonthButton.addEventListener('click', () => this.changeMonth(-1));
         this.nextMonthButton.addEventListener('click', () => this.changeMonth(1));
-
-        if (this.profileDropdown && this.profileTrigger && !this.profileDropdown.dataset.rsDropdownBound) {
-            this.profileTrigger.addEventListener('click', (event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                this.profileDropdown.classList.toggle('rs-profile-dropdown--open');
-                this.mobileMenuDropdown?.classList.remove('rs-navbar-mobile-menu--open');
-            });
-
-            this.profileMenu?.addEventListener('click', (event) => event.stopPropagation());
-        }
-
-        if (this.mobileMenuDropdown && this.mobileMenuTrigger && !this.mobileMenuDropdown.dataset.rsDropdownBound) {
-            this.mobileMenuTrigger.addEventListener('click', (event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                this.mobileMenuDropdown.classList.toggle('rs-navbar-mobile-menu--open');
-                this.profileDropdown?.classList.remove('rs-profile-dropdown--open');
-            });
-
-            this.mobileMenuPanel?.addEventListener('click', (event) => event.stopPropagation());
-        }
-
-        if (!document.body.dataset.rsDropdownCloseBound) document.addEventListener('click', () => {
-            this.profileDropdown?.classList.remove('rs-profile-dropdown--open');
-            this.mobileMenuDropdown?.classList.remove('rs-navbar-mobile-menu--open');
-        });
-
-        window.addEventListener('scroll', () => this.handleNavbarVisibility());
-        window.addEventListener('resize', () => this.updateNavbarOffset());
-        window.addEventListener('load', () => this.updateNavbarOffset());
     }
 
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
+     * @version 1.0.1
      * @created 21-04-2026
-     * @modified 22-04-2026
+     * @modified 08-05-2026
      * @description Inicializa la pagina
      */
     async init() {
-        this.updateNavbarOffset();
         await this.loadSeasons();
         await this.loadCalendar();
-        setInterval(() => {
-            this.updateDynamicClocks();
-            this.updateCountdown();
-        }, 1000);
-    }
-
-    /**
-     * @author Yerai Pinto
-     * @since 1.0
-     * @version 1.0.0
-     * @created 07-05-2026
-     * @description Carga todas las temporadas disponibles en el selector del calendario
-     * @returns {Promise<void>} Carga completada
-     */
-    async loadSeasons() {
-        const seasons = await this.fetchJson('/api/f1/standings/seasons', []);
-        const safeSeasons = Array.isArray(seasons) && seasons.length
-            ? seasons
-            : Array.from({ length: this.currentSeason - 1949 }, (_, index) => ({ season: this.currentSeason - index }));
-        this.yearInput.innerHTML = safeSeasons
-            .map((item) => `<option value="${item.season}" ${Number(item.season) === this.selectedYear ? 'selected' : ''}>${item.season}</option>`)
-            .join('');
+        if (this.ownsRaceStrip) {
+            setInterval(() => {
+                this.updateDynamicClocks();
+                this.updateCountdown();
+            }, 30000);
+        }
     }
 
     /**
@@ -198,52 +138,27 @@ class RaceStreamCalendarPage {
      * @returns {Promise<*>} JSON o fallback
      */
     async fetchJson(url, fallback = null) {
-        const cacheKey = `rs-cache:${url}`;
-        for (let attempt = 0; attempt < 3; attempt++) {
-            try {
-                const response = await fetch(url, { cache: 'no-store' });
-                if (response.ok) {
-                    const data = await response.json();
-                    if (!(Array.isArray(data) && !data.length)) {
-                        localStorage.setItem(cacheKey, JSON.stringify(data));
-                    }
-                    return data;
-                }
-            } catch (error) {
-                await new Promise((resolve) => setTimeout(resolve, 180 * (attempt + 1)));
-            }
-        }
-        const cached = localStorage.getItem(cacheKey);
-        if (cached) {
-            const parsed = JSON.parse(cached);
-            if (!(Array.isArray(parsed) && !parsed.length)) {
-                return parsed;
-            }
-        }
-        return fallback;
-    }
-
-    updateNavbarOffset() {
-        if (!this.navbar) {
-            return;
-        }
-
-        document.documentElement.style.setProperty('--rs-navbar-height', `${this.navbar.offsetHeight}px`);
+        return window.RaceStreamApi.fetchJson(url, fallback, { attempts: 3, delayBase: 180 });
     }
 
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
-     * @created 21-04-2026
-     * @modified 22-04-2026
-     * @description Oculta navbar al bajar
+     * @version 1.0.0
+     * @created 13-05-2026
+     * @modified 13-05-2026
+     * @description Carga temporadas disponibles para filtrar calendario
      */
-    handleNavbarVisibility() {
-        const currentY = window.scrollY;
-        const shouldHideNavbar = currentY > this.lastScrollY && currentY > 120;
-        document.body.classList.toggle('rs-nav-hidden', shouldHideNavbar);
-        this.lastScrollY = currentY;
+    async loadSeasons() {
+        if (!this.yearInput) return;
+        const currentYear = new Date().getFullYear();
+        const seasons = await this.fetchJson('/api/f1/standings/seasons', []);
+        const safeSeasons = Array.isArray(seasons) && seasons.length
+            ? seasons
+            : Array.from({ length: currentYear - 1949 }, (_, index) => ({ season: currentYear - index }));
+        this.yearInput.innerHTML = safeSeasons
+            .map((item) => `<option value="${item.season}" ${Number(item.season) === this.currentSeason ? 'selected' : ''}>${item.season}</option>`)
+            .join('');
     }
 
     /**
@@ -530,10 +445,10 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 22-04-2026
-     * @modified 06-05-2026
-     * @description Cuenta atras con segundos estables
+     * @modified 08-05-2026
+     * @description Cuenta atras compacta sin segundos para la franja comun
      * @param {string} startDate Fecha
      * @returns {string} Cuenta atras
      */
@@ -544,13 +459,11 @@ class RaceStreamCalendarPage {
             return 'En curso';
         }
 
-        const totalSeconds = Math.floor(diff / 1000);
-        const days = Math.floor(totalSeconds / 86400);
-        const hours = Math.floor((totalSeconds % 86400) / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
-        const seconds = totalSeconds % 60;
+        const days = Math.floor(diff / 86400000);
+        const hours = Math.floor((diff % 86400000) / 3600000);
+        const minutes = Math.floor((diff % 3600000) / 60000);
 
-        return `${days}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+        return `${days}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`;
     }
 
     /**
@@ -838,7 +751,7 @@ class RaceStreamCalendarPage {
     getSessionActionButton(status, session = null, meeting = null, sessionIndex = 0) {
         if (status === 'completed') {
             const params = new URLSearchParams();
-            params.set('year', this.selectedYear || this.yearInput.value);
+            params.set('year', this.currentSeason);
             if (meeting?.meeting_key) params.set('meetingKey', meeting.meeting_key);
             if (session?.session_key) params.set('sessionKey', session.session_key);
             params.set('sessionIndex', sessionIndex);
@@ -861,6 +774,7 @@ class RaceStreamCalendarPage {
      * @description Actualiza relojes superiores con el proximo GP
      */
     updateDynamicClocks() {
+        if (!this.ownsRaceStrip) return;
         const topMeeting = this.lastValidTopMeeting;
 
         if (!topMeeting) {
@@ -897,6 +811,7 @@ class RaceStreamCalendarPage {
      * @description Actualiza accion y cuenta atras segun la siguiente sesion del GP
      */
     updateCountdown() {
+        if (!this.ownsRaceStrip) return;
         if (!this.lastValidTopMeeting) {
             return;
         }
@@ -913,6 +828,7 @@ class RaceStreamCalendarPage {
      * @param {Object} meeting GP superior
      */
     async loadTopMeetingSessions(meeting) {
+        if (!this.ownsRaceStrip) return;
         if (!meeting?.meeting_key) {
             return;
         }
@@ -952,6 +868,7 @@ class RaceStreamCalendarPage {
      * @description Pinta boton En Vivo o cuenta atras de la siguiente sesion
      */
     renderRaceStripAction() {
+        if (!this.ownsRaceStrip) return;
         if (!this.lastValidTopMeeting) {
             return;
         }
@@ -986,6 +903,7 @@ class RaceStreamCalendarPage {
      * @param {Object} meeting Próximo GP
      */
     updateRaceStrip(meeting) {
+        if (!this.ownsRaceStrip) return;
         const referenceMeeting = meeting?.meeting_name ? meeting : this.lastValidTopMeeting;
 
         if (!referenceMeeting) {
@@ -1052,7 +970,7 @@ class RaceStreamCalendarPage {
                 'GP',
                 meeting.meeting_key,
                 meeting.meeting_name || 'Gran Premio',
-                `/calendar.html?year=${this.selectedYear}&meetingKey=${meeting.meeting_key}`,
+                `/calendar.html?year=${this.currentSeason}&meetingKey=${meeting.meeting_key}`,
                 `${this.formatGpDateRange(meeting)} · ${meeting.circuit_short_name || meeting.location || ''}`
             );
             window.RaceStreamFavorites?.bind(this.selectedGpFavorite);
@@ -1062,35 +980,38 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.2
      * @created 07-05-2026
-     * @description Conserva la temporada y el GP seleccionado al recargar la pagina
-     * @param {number} year Temporada
+     * @modified 08-05-2026
+     * @description Conserva el GP seleccionado al recargar la pagina de temporada actual
      * @param {number|null} meetingKey GP seleccionado
      */
-    updateUrl(year, meetingKey) {
+    updateUrl(meetingKey) {
         const params = new URLSearchParams();
-        params.set('year', year || this.selectedYear);
+        params.set('year', this.currentSeason);
         if (meetingKey) params.set('meetingKey', meetingKey);
-        window.history.replaceState({}, '', `?${params.toString()}`);
+        window.history.replaceState({}, '', params.toString() ? `?${params.toString()}` : window.location.pathname);
     }
 
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.4
+     * @version 1.0.5
      * @created 22-04-2026
-     * @modified 07-05-2026
+     * @modified 08-05-2026
      * @description Carga el calendario completo reutilizando los datos para no duplicar llamadas externas
      */
     async loadCalendar() {
         const requestId = ++this.loadRequestId;
         this.selectionRequestId++;
-        const year = parseInt(this.yearInput.value, 10);
-        this.selectedYear = year;
+        const year = this.currentSeason;
         this.selectedMeetingKey = this.pendingMeetingKey ?? this.selectedMeetingKey;
 
         this.calendarGrid.innerHTML = '<div class="loading-state">Cargando calendario...</div>';
+        if (this.yearInput) {
+            this.yearInput.disabled = true;
+            this.yearInput.setAttribute('aria-busy', 'true');
+        }
         this.calendarEvents.innerHTML = '';
         this.renderCalendarInsight([]);
         this.sessionsContent.innerHTML = '';
@@ -1102,6 +1023,10 @@ class RaceStreamCalendarPage {
             const meetings = await this.fetchJson(`${this.meetingsApi}?year=${year}`, []);
             if (requestId !== this.loadRequestId) {
                 return;
+            }
+            if (this.yearInput) {
+                this.yearInput.disabled = false;
+                this.yearInput.removeAttribute('aria-busy');
             }
             this.allMeetings = Array.isArray(meetings) ? meetings : [];
 
@@ -1136,6 +1061,10 @@ class RaceStreamCalendarPage {
         } catch (error) {
             if (requestId !== this.loadRequestId) {
                 return;
+            }
+            if (this.yearInput) {
+                this.yearInput.disabled = false;
+                this.yearInput.removeAttribute('aria-busy');
             }
             console.error('Error cargando calendario:', error);
             this.renderApiRetry(this.calendarGrid, 'Calendario');
@@ -1212,13 +1141,13 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 22-04-2026
-     * @modified 28-04-2026
+     * @modified 08-05-2026
      * @description Renderiza mini calendario
      */
     renderMiniCalendar() {
-        const year = parseInt(this.yearInput.value, 10);
+        const year = this.currentSeason;
         this.calendarMonthLabel.textContent = `${this.monthNames[this.currentMonthIndex]} ${year}`;
 
         const firstDay = new Date(year, this.currentMonthIndex, 1);
@@ -1265,7 +1194,7 @@ class RaceStreamCalendarPage {
             const spanDays = Math.max(1, Math.round((visibleEnd - visibleStart) / 86400000) + 1);
             html += `
                 <div class="rs-calendar-day rs-calendar-day--range rs-calendar-day--${status} ${isActive}" style="grid-column: span ${spanDays};" title="${meeting.meeting_name ?? ''} - ${this.getStatusLabel(status)}" onclick="window.raceStreamCalendarPage.selectMeeting(${meeting.meeting_key})">
-                    <span class="rs-calendar-day__number">${start.getDate()}-${end.getDate()}</span>
+                    <span class="rs-calendar-day__number">${this.formatCompactDayRange(start, end)}</span>
                     ${this.renderCountryFlag(meeting, 'rs-calendar-day__flag')}
                 </div>
             `;
@@ -1294,6 +1223,24 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
+     * @version 1.0.0
+     * @created 14-05-2026
+     * @modified 14-05-2026
+     * @description Devuelve rango compacto del mini calendario evitando duplicar el mismo día
+     * @param {Date} start Inicio
+     * @param {Date} end Fin
+     * @returns {string} Día o rango de días
+     */
+    formatCompactDayRange(start, end) {
+        const sameDay = start.getFullYear() === end.getFullYear()
+            && start.getMonth() === end.getMonth()
+            && start.getDate() === end.getDate();
+        return sameDay ? `${start.getDate()}` : `${start.getDate()}-${end.getDate()}`;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
      * @version 1.0
      * @created 28-04-2026
      * @description Renderiza un resumen visual del mes seleccionado
@@ -1309,13 +1256,13 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.2
+     * @version 1.0.3
      * @created 22-04-2026
-     * @modified 28-04-2026
+     * @modified 08-05-2026
      * @description Renderiza lista de eventos del mes y actualiza su resumen
      */
     renderMonthEvents() {
-        const year = parseInt(this.yearInput.value, 10);
+        const year = this.currentSeason;
         const monthStart = new Date(year, this.currentMonthIndex, 1);
         const monthEnd = new Date(year, this.currentMonthIndex + 1, 0);
         const meetingsOfMonth = this.allMeetings.filter(meeting => {
@@ -1353,27 +1300,27 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.5
+     * @version 1.1.0
      * @created 22-04-2026
-     * @modified 30-04-2026
-     * @description Devuelve imagen local del circuito segun datos del GP
+     * @modified 14-05-2026
+     * @description Devuelve imagen local solo cuando el identificador de circuito coincide de forma segura
      * @param {Object} meeting GP
      * @returns {string|null} Ruta
      */
     getCircuitImage(meeting) {
-        const text = this.normalizeCircuitText([
+        const values = [
             meeting?.f1db_circuit_id,
-            meeting?.f1db_grand_prix_id,
             meeting?.circuit_short_name,
             meeting?.jolpica_circuit_name,
-            meeting?.location,
-            meeting?.country_name,
-            meeting?.jolpica_country
-        ].filter(Boolean).join(' '));
+            meeting?.circuit_id,
+            meeting?.circuit_slug,
+            meeting?.circuitId
+        ].filter(Boolean).map((value) => this.normalizeCircuitText(value));
+        const localImage = this.circuitImages.find(([keys]) => values.some((value) => keys.includes(value)))?.[1];
+        if (localImage) return localImage;
 
-        return this.circuitImages.find(([keys]) => keys.some(key => text.includes(key)))?.[1]
-            ?? meeting?.circuit_image
-            ?? null;
+        const providedImage = meeting?.circuit_image || '';
+        return providedImage && !providedImage.includes('/assets/circuits/') ? providedImage : null;
     }
 
     /**
@@ -1381,7 +1328,7 @@ class RaceStreamCalendarPage {
      * @since 1.0
      * @version 1.0.0
      * @created 30-04-2026
-     * @description Normaliza nombres de circuito para resolver imagenes locales aunque vengan con acentos o guiones
+     * @description Normaliza nombres de circuito para resolver imágenes locales aunque vengan con acentos o guiones
      * @param {string} value Texto original
      * @returns {string} Texto normalizado
      */
@@ -1390,7 +1337,9 @@ class RaceStreamCalendarPage {
             .toLowerCase()
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[-_]/g, ' ');
+            .replace(/[-_]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
     }
 
     /**
@@ -1544,7 +1493,7 @@ class RaceStreamCalendarPage {
         }
 
         this.pendingMeetingKey = null;
-        this.updateUrl(this.selectedYear, meetingKey);
+        this.updateUrl(meetingKey);
         this.updateTopSelectedCircuit(selectedMeeting);
         this.renderSelectedCircuitCard(selectedMeeting);
         this.sessionsContent.innerHTML = '<div class="loading-state">Cargando sesiones del GP...</div>';
@@ -1604,7 +1553,7 @@ class RaceStreamCalendarPage {
      * @returns {Promise<void>} Promesa resuelta tras la espera
      */
     wait(milliseconds) {
-        return new Promise((resolve) => setTimeout(resolve, milliseconds));
+        return window.RaceStreamApi.wait(milliseconds);
     }
 
     /**
@@ -1713,7 +1662,7 @@ class RaceStreamCalendarPage {
 
     renderFavoriteButton(type, externalId, title, url, description) {
         return window.RaceStreamFavorites
-            ? window.RaceStreamFavorites.button({ type, externalId, title, url, description })
+            ? window.RaceStreamFavorites.button({ type, externalId, seasonYear: this.currentSeason, title, url, description })
             : '';
     }
 }

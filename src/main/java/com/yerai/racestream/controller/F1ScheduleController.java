@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.2
+ * @version 1.0.3
  * @created 21-04-2026
- * @modified 30-04-2026
+ * @modified 13-05-2026
  * @description Controlador de F1Schedule con calendario enriquecido por Jolpica
  * @see https://openf1.org
  */
@@ -27,36 +27,39 @@ public class F1ScheduleController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
+     * @version 1.0.1
      * @created 21-04-2026
+     * @modified 13-05-2026
      * @description Obtener meetings
      * @param year
      * @return
      */
     @GetMapping("/meetings")
-    public JsonNode getMeetings(@RequestParam(defaultValue = "2026") Integer year) {
+    public JsonNode getMeetings(@RequestParam(required = false) Integer year) {
         return f1ScheduleService.getMeetingsByYear(year);
     }
 
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
+     * @version 1.0.1
      * @created 28-04-2026
+     * @modified 13-05-2026
      * @description Obtener meetings enriquecidos para la pagina Calendario
      * @param year
      * @return
      */
     @GetMapping("/calendar-meetings")
-    public JsonNode getCalendarMeetings(@RequestParam(defaultValue = "2026") Integer year) {
+    public JsonNode getCalendarMeetings(@RequestParam(required = false) Integer year) {
         return f1ScheduleService.getCalendarMeetingsByYear(year);
     }
 
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
+     * @version 1.0.1
      * @created 21-04-2026
+     * @modified 13-05-2026
      * @description Obtener meeting por clave
      * @param meetingKey
      * @return
@@ -90,35 +93,37 @@ public class F1ScheduleController {
      * @return
      */
     @GetMapping("/next-meeting")
-    public JsonNode getNextMeeting(@RequestParam(defaultValue = "2026") Integer year) {
+    public JsonNode getNextMeeting(@RequestParam(required = false) Integer year) {
         return f1ScheduleService.getNextMeeting(year);
     }
 
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
+     * @version 1.0.1
      * @created 21-04-2026
+     * @modified 13-05-2026
      * @description Obtener meeting actual o siguiente
      * @param year
      * @return
      */
     @GetMapping("/current-or-next-meeting")
-    public JsonNode getCurrentOrNextMeeting(@RequestParam(defaultValue = "2026") Integer year) {
+    public JsonNode getCurrentOrNextMeeting(@RequestParam(required = false) Integer year) {
         return f1ScheduleService.getCurrentOrNextMeeting(year);
     }
 
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
+     * @version 1.0.1
      * @created 21-04-2026
+     * @modified 13-05-2026
      * @description Obtener siguiente sesión
      * @param year
      * @return
      */
     @GetMapping("/next-session")
-    public JsonNode getNextSession(@RequestParam(defaultValue = "2026") Integer year) {
+    public JsonNode getNextSession(@RequestParam(required = false) Integer year) {
         return f1ScheduleService.getNextSession(year);
     }
 }

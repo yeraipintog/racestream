@@ -24,7 +24,8 @@ public class RestTemplateConfig {
      * @version 1.0.1
      * @created 21-04-2026
      * @modified 28-04-2026
-     * @description Crea un cliente HTTP con limites cortos para no bloquear la web si una API externa falla
+     * @description Crea un cliente HTTP con limites cortos para no bloquear la web
+     *              si una API externa falla
      * @param builder Constructor de RestTemplate
      * @return Cliente HTTP
      */

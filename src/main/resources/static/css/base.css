@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.4
+ * @version 1.0.6
  * @created 21-04-2026
- * @modified 06-05-2026
- * @description Estilos base globales de RaceStream documentados por bloques
+ * @modified 14-05-2026
+ * @description Estilos base globales de RaceStream con estados y avisos reutilizables
  */
 
 /* =========================
@@ -206,11 +206,28 @@ ul {
     color: #fff;
 }
 
+.rs-historical-notice {
+    width: 100%;
+    margin: 0 0 16px;
+    padding: 14px 16px;
+    border: 1px solid rgba(245, 158, 11, .28);
+    border-radius: 8px;
+    background: rgba(245, 158, 11, .10);
+    color: #fde68a;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.45;
+    text-align: justify;
+    overflow-wrap: anywhere;
+    grid-column: 1 / -1;
+}
+
 @media (max-width: 560px) {
     .empty-state,
-    .loading-state {
-        width: min(210px, calc(100vw - 48px)) !important;
-        max-width: 210px !important;
+    .loading-state,
+    .rs-historical-notice {
+        width: 100% !important;
+        max-width: 100% !important;
         margin-right: auto;
         margin-left: auto;
         box-sizing: border-box;

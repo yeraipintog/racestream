@@ -1,9 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0
+ * @version 1.0.1
  * @created 09-03-2026
- * @description API para gestionar campeonatos de carreras
+ * @modified 18-05-2026
+ * @description Punto de arranque principal de RaceStream
  */
 package com.yerai.racestream;
 
@@ -13,8 +14,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class RacestreamApplication {
 	/**
-	 * @description Método principal de la aplicación
-	 * @param args Argumentos de la línea de comandos
+	 * @author Yerai Pinto
+	 * @since 1.0
+	 * @version 1.0.1
+	 * @created 09-03-2026
+	 * @modified 18-05-2026
+	 * @description Arranca la aplicacion Spring Boot de RaceStream
+	 * @param args Argumentos de la linea de comandos
 	 */
 	public static void main(String[] args) {
 		SpringApplication.run(RacestreamApplication.class, args);

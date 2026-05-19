@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.3
+ * @version 1.0.4
  * @created 29-04-2026
- * @modified 30-04-2026
+ * @modified 13-05-2026
  * @description Servicio para obtener datos tecnicos de circuitos desde F1DB sin introducir datos manuales
  * @see https://github.com/f1db/f1db
  */
@@ -20,6 +20,7 @@ import org.springframework.web.client.RestTemplate;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,14 +46,15 @@ public class F1DbService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 29-04-2026
+     * @modified 13-05-2026
      * @description Devuelve circuitos enriquecidos por temporada desde F1DB
      * @param year Temporada
      * @return Circuitos normalizados para RaceStream
      */
     public synchronized ArrayNode getCircuits(Integer year) {
-        Integer selectedYear = year == null ? 2026 : year;
+        Integer selectedYear = year == null ? LocalDate.now().getYear() : year;
         ArrayNode cached = circuitsCache.get(selectedYear);
         if (cached != null) {
             return cached.deepCopy();

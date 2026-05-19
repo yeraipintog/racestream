@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.2
+ * @version 1.2.0
  * @created 05-05-2026
- * @modified 07-05-2026
- * @description Entidad persistente de usuario local con rol, proveedor, preferencias, recuperacion y aceptacion legal
+ * @modified 18-05-2026
+ * @description Entidad persistente de usuario local con rol, proveedor, preferencias, recuperacion y consentimiento de cookies
  */
 package com.yerai.racestream.model;
 
@@ -16,6 +16,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
@@ -28,7 +29,7 @@ public class AppUser {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 80)
+    @Column(nullable = false, unique = true, length = 80)
     private String name;
 
     @Column(nullable = false, unique = true, length = 160)
@@ -50,6 +51,10 @@ public class AppUser {
 
     @Column(nullable = false)
     private boolean cookieConsent;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private CookieConsentStatus cookieConsentStatus = CookieConsentStatus.UNDECIDED;
 
     @Column(nullable = false)
     private boolean notificationsEnabled;
@@ -77,13 +82,35 @@ public class AppUser {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.1.0
      * @created 05-05-2026
-     * @description Inicializa fechas antes de guardar el usuario
+     * @modified 18-05-2026
+     * @description Inicializa fechas y sincroniza el estado explicito de cookies antes de persistir
      */
     @PrePersist
     void prePersist() {
         createdAt = Instant.now();
+        syncCookieConsentState();
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 18-05-2026
+     * @modified 18-05-2026
+     * @description Mantiene compatibilidad con el boolean legacy sin perder el estado sin decision
+     */
+    @PreUpdate
+    void preUpdate() {
+        syncCookieConsentState();
+    }
+
+    private void syncCookieConsentState() {
+        if (cookieConsentStatus == null) {
+            cookieConsentStatus = cookieConsent ? CookieConsentStatus.ACCEPTED : CookieConsentStatus.UNDECIDED;
+        }
+        cookieConsent = cookieConsentStatus == CookieConsentStatus.ACCEPTED;
     }
 
     public Long getId() { return id; }
@@ -100,8 +127,25 @@ public class AppUser {
     public void setProvider(AuthProvider provider) { this.provider = provider; }
     public boolean isPoliciesAccepted() { return policiesAccepted; }
     public void setPoliciesAccepted(boolean policiesAccepted) { this.policiesAccepted = policiesAccepted; }
-    public boolean isCookieConsent() { return cookieConsent; }
-    public void setCookieConsent(boolean cookieConsent) { this.cookieConsent = cookieConsent; }
+    public boolean isCookieConsent() { return getCookieConsentStatus() == CookieConsentStatus.ACCEPTED; }
+    public void setCookieConsent(boolean cookieConsent) {
+        this.cookieConsent = cookieConsent;
+        if (cookieConsent) {
+            this.cookieConsentStatus = CookieConsentStatus.ACCEPTED;
+        } else if (this.cookieConsentStatus == null) {
+            this.cookieConsentStatus = CookieConsentStatus.UNDECIDED;
+        }
+    }
+    public CookieConsentStatus getCookieConsentStatus() {
+        if (cookieConsentStatus != null) {
+            return cookieConsentStatus;
+        }
+        return cookieConsent ? CookieConsentStatus.ACCEPTED : CookieConsentStatus.UNDECIDED;
+    }
+    public void setCookieConsentStatus(CookieConsentStatus cookieConsentStatus) {
+        this.cookieConsentStatus = cookieConsentStatus == null ? CookieConsentStatus.UNDECIDED : cookieConsentStatus;
+        this.cookieConsent = this.cookieConsentStatus == CookieConsentStatus.ACCEPTED;
+    }
     public boolean isNotificationsEnabled() { return notificationsEnabled; }
     public void setNotificationsEnabled(boolean notificationsEnabled) { this.notificationsEnabled = notificationsEnabled; }
     public boolean isEmailNotificationsEnabled() { return emailNotificationsEnabled; }

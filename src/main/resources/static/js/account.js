@@ -1,18 +1,21 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.5
+ * @version 1.2.1
  * @created 05-05-2026
- * @modified 07-05-2026
- * @description Gestiona cuenta, favoritos, preferencias, avisos web/correo, foro y contacto
+ * @modified 14-05-2026
+ * @description Gestiona cuenta, favoritos, preferencias, notificaciones de GP, foro y contacto
  */
 document.addEventListener('DOMContentLoaded', () => {
     const page = document.body.dataset.rsPrivatePage;
+    const PASSWORD_REQUIREMENTS_MESSAGE = 'La contraseña no cumple los requisitos';
+    const PASSWORD_MISMATCH_MESSAGE = 'Las contraseñas no coinciden';
 
     const api = async (url, options = {}) => {
         const response = await fetch(url, {
             ...options,
-            headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+            cache: 'no-store',
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', ...(options.headers || {}) }
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || 'Error');
@@ -23,8 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const text = `${value || ''}`.toLowerCase();
         if (text.includes('bloque')) return 'Usuario bloqueado';
         if (text.includes('smtp')) return 'SMTP desactivado';
-        if (text.includes('contrase') && text.includes('coinc')) return 'No coinciden';
-        if (text.includes('requisito') || text.includes('caracter')) return 'Requisitos';
+        if (text.includes('contrase') && text.includes('coinc')) return PASSWORD_MISMATCH_MESSAGE;
+        if (text.includes('requisito') || text.includes('caracter')) return PASSWORD_REQUIREMENTS_MESSAGE;
         if (text.includes('nombre')) return 'Nombre usado';
         if (text.includes('email')) return 'Email usado';
         return value && `${value}`.length <= 18 ? value : 'Error';
@@ -36,6 +39,38 @@ document.addEventListener('DOMContentLoaded', () => {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+
+    const bindAutoGrowTextarea = (textarea) => {
+        if (!textarea) return;
+        const update = () => {
+            textarea.style.height = 'auto';
+            textarea.style.height = `${textarea.scrollHeight}px`;
+        };
+        if (!textarea.dataset.autogrowBound) {
+            textarea.addEventListener('input', update);
+            textarea.dataset.autogrowBound = 'true';
+        }
+        window.requestAnimationFrame(update);
+    };
+
+    const bindCharCounter = (field, counter, max) => {
+        if (!field || !counter) return;
+        const update = () => {
+            const length = field.value.length;
+            counter.textContent = `${length}/${max}`;
+            counter.classList.toggle('rs-char-counter--limit', length >= max);
+        };
+        if (!field.dataset.counterBound) {
+            field.addEventListener('input', update);
+            field.dataset.counterBound = 'true';
+        }
+        update();
+    };
+
+    const bindTextAreaTools = (field, counter, max) => {
+        bindAutoGrowTextarea(field);
+        bindCharCounter(field, counter, max);
+    };
 
     const loadMe = async () => {
         const user = await api('/api/auth/me');
@@ -59,30 +94,73 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const getFavoriteUrl = (item) => {
-        if (item.url) return item.url;
+        if (item.url) return ensureFavoriteYear(item.url, item.seasonYear);
         const id = encodeURIComponent(item.externalId || '');
-        if (item.type === 'Piloto') return `/drivers.html?driverId=${id}`;
-        if (item.type === 'Escudería') return `/teams.html?constructorId=${id}`;
+        const year = item.seasonYear ? `year=${encodeURIComponent(item.seasonYear)}&` : '';
+        if (item.type === 'Piloto') return `/drivers.html?${year}driverId=${id}`;
+        if (item.type === 'Escudería') return `/teams.html?${year}constructorId=${id}`;
         return '/calendar.html';
     };
+    const ensureFavoriteYear = (url, seasonYear) => {
+        if (!seasonYear || !url || !/\.html/.test(url) || url.includes('year=')) return url;
+        const separator = url.includes('?') ? '&' : '?';
+        return `${url}${separator}year=${encodeURIComponent(seasonYear)}`;
+    };
+    const favoriteSeasonLabel = (item) => item.seasonYear ? `Temporada ${item.seasonYear}` : 'Temporada no indicada';
 
     const isSessionFavorite = (item) => `${item.type || ''}`.toLowerCase().includes('ses');
     const isGpFavorite = (item) => `${item.type || ''}`.toLowerCase() === 'gp';
+    const canNotifySession = (session) => {
+        const end = new Date(session?.date_end).getTime();
+        return !session?.is_cancelled && (!Number.isFinite(end) || Date.now() <= end);
+    };
     const getNotificationKey = (meetingKey, session) => {
         const id = session.session_key || `${meetingKey}-${session.session_name || ''}-${session.date_start || ''}`;
         return `${meetingKey}|${id}`;
     };
-    const readSessionNotifications = () => JSON.parse(localStorage.getItem('rs-session-notifications') || '{}');
+    const readSessionNotifications = () => {
+        try {
+            return JSON.parse(localStorage.getItem('rs-session-notifications') || '{}');
+        } catch {
+            return {};
+        }
+    };
     const saveSessionNotifications = (state) => localStorage.setItem('rs-session-notifications', JSON.stringify(state));
+    const clearGpSessionNotifications = (meetingKey) => {
+        if (!meetingKey) return;
+        const state = readSessionNotifications();
+        const prefix = `${meetingKey}|`;
+        let changed = false;
+        Object.keys(state).forEach((key) => {
+            if (!key.startsWith(prefix)) return;
+            delete state[key];
+            changed = true;
+        });
+        if (changed) saveSessionNotifications(state);
+    };
+    let favoriteRows = null;
+    const gpSessionsCache = new Map();
 
-    const renderFavorites = async () => {
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 11-05-2026
+     * @description Reutiliza favoritos ya cargados para no repetir API al eliminar tarjetas
+     */
+    const loadFavoriteRows = async () => {
+        if (!favoriteRows) favoriteRows = await api('/api/favorites');
+        return favoriteRows;
+    };
+
+    const renderFavorites = async (rows = null) => {
         const target = document.getElementById('favoritesList');
         if (!target) return;
-        const rows = await api('/api/favorites');
+        rows = rows || await loadFavoriteRows();
         target.innerHTML = rows.length ? rows.map((item) => `
             <article class="rs-favorite-card ${isSessionFavorite(item) ? 'rs-favorite-card--static' : ''}" ${isSessionFavorite(item) ? '' : `data-favorite-open="${escape(getFavoriteUrl(item))}"`}>
                 <strong>${escape(item.title)}</strong>
-                <span>${escape(item.type)} · ${escape(item.description || item.externalId)}</span>
+                <span>${escape(item.type)} · ${escape(favoriteSeasonLabel(item))} · ${escape(item.description || item.externalId)}</span>
                 ${isGpFavorite(item) ? '<div class="rs-favorite-card__sessions" data-gp-sessions></div>' : ''}
                 ${isSessionFavorite(item) ? '<span>Las sesiones se gestionan como notificaciones dentro del GP favorito.</span>' : ''}
                 <button class="rs-favorite-card__remove" type="button" data-remove-favorite="${item.id}" aria-label="Quitar favorito">×</button>
@@ -95,13 +173,29 @@ document.addEventListener('DOMContentLoaded', () => {
             button.addEventListener('click', async (event) => {
                 event.preventDefault();
                 event.stopPropagation();
+                const favorite = (favoriteRows || rows).find((item) => `${item.id}` === `${button.dataset.removeFavorite}`);
                 await api(`/api/favorites/${button.dataset.removeFavorite}`, { method: 'DELETE' });
-                renderFavorites();
+                if (isGpFavorite(favorite)) {
+                    const params = new URLSearchParams((favorite.url || '').split('?')[1] || '');
+                    clearGpSessionNotifications(params.get('meetingKey') || favorite.externalId);
+                }
+                favoriteRows = (favoriteRows || rows).filter((item) => `${item.id}` !== `${button.dataset.removeFavorite}`);
+                renderFavorites(favoriteRows);
             });
         });
         hydrateGpSessionNotifications(target, rows);
     };
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 14-05-2026
+     * @modified 14-05-2026
+     * @description Carga sesiones de GP favoritos y conserva la decisión manual del usuario
+     * @param {HTMLElement} target Contenedor de favoritos
+     * @param {Array} rows Favoritos cargados
+     */
     const hydrateGpSessionNotifications = async (target, rows) => {
         const gpFavorites = rows.filter(isGpFavorite);
         [...target.querySelectorAll('[data-gp-sessions]')].forEach(async (container, index) => {
@@ -111,26 +205,52 @@ document.addEventListener('DOMContentLoaded', () => {
             const meetingKey = params.get('meetingKey') || favorite.externalId;
             if (!meetingKey) return;
             container.innerHTML = '<span class="loading-state">Cargando sesiones para notificar...</span>';
-            const sessions = await fetch(`/api/f1/schedule/meetings/${meetingKey}/sessions`, { cache: 'no-store' })
-                .then((response) => response.ok ? response.json() : [])
-                .catch(() => []);
-            if (!Array.isArray(sessions) || !sessions.length) {
-                container.innerHTML = '<span class="empty-state">No hay sesiones disponibles para notificar.</span>';
+            const sessions = gpSessionsCache.has(meetingKey)
+                ? gpSessionsCache.get(meetingKey)
+                : await fetch(`/api/f1/schedule/meetings/${encodeURIComponent(meetingKey)}/sessions`, { cache: 'no-store' })
+                    .then((response) => response.ok ? response.json() : null)
+                    .catch(() => null);
+            gpSessionsCache.set(meetingKey, sessions);
+            if (!Array.isArray(sessions)) {
+                container.innerHTML = '<span class="empty-state">No se han podido cargar las sesiones para notificar.</span>';
+                return;
+            }
+            const notifiableSessions = (Array.isArray(sessions) ? sessions : []).filter(canNotifySession);
+            if (!notifiableSessions.length) {
+                container.innerHTML = '<span class="empty-state">Este GP ya no tiene sesiones pendientes.</span>';
                 return;
             }
             const state = readSessionNotifications();
-            const sessionByKey = new Map(sessions.map((session) => [getNotificationKey(meetingKey, session), session]));
-            container.innerHTML = sessions.map((session) => {
+            const sessionByKey = new Map(notifiableSessions.map((session) => [getNotificationKey(meetingKey, session), session]));
+            let changed = false;
+            notifiableSessions.forEach((session) => {
+                const key = getNotificationKey(meetingKey, session);
+                const item = {
+                    enabled: true,
+                    title: `${session.session_name || 'Sesión'} · ${favorite.title || 'GP favorito'}`,
+                    dateStart: session.date_start || ''
+                };
+                if (state[key] === true) {
+                    state[key] = item;
+                    changed = true;
+                    return;
+                }
+                if (state[key] !== undefined) return;
+                state[key] = item;
+                changed = true;
+            });
+            if (changed) saveSessionNotifications(state);
+            container.innerHTML = notifiableSessions.map((session) => {
                 const key = getNotificationKey(meetingKey, session);
                 const date = session.date_start
                     ? new Date(session.date_start).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })
                     : 'Horario pendiente';
-                const checked = typeof state[key] === 'object' ? state[key].enabled : state[key];
+                const checked = typeof state[key] === 'object' ? state[key].enabled !== false : state[key] !== false;
                 return `
-                    <label class="rs-notification-option">
+                    <div class="rs-notification-option">
                         <input type="checkbox" data-session-notify="${escape(key)}" ${checked ? 'checked' : ''}>
                         <span>${escape(session.session_name || 'Sesión')} · ${escape(date)}</span>
-                    </label>
+                    </div>
                 `;
             }).join('');
             container.querySelectorAll('[data-session-notify]').forEach((checkbox) => {
@@ -155,6 +275,38 @@ document.addEventListener('DOMContentLoaded', () => {
         && /[A-Z]/.test(password)
         && /\d/.test(password)
         && /[^A-Za-z0-9]/.test(password);
+
+    const fieldErrorId = (input) => `${input.closest('form')?.id || 'rs-form'}-${input.name || 'field'}-error`;
+
+    const setFieldError = (input, message) => {
+        const label = input?.closest('label');
+        if (!input || !label) return;
+        label.classList.add('rs-field--invalid');
+        input.setAttribute('aria-invalid', 'true');
+        let error = label.nextElementSibling?.classList.contains('rs-field-error') ? label.nextElementSibling : null;
+        if (!error) {
+            error = document.createElement('span');
+            error.className = 'rs-field-error';
+            label.insertAdjacentElement('afterend', error);
+        }
+        error.id = fieldErrorId(input);
+        error.textContent = message;
+        input.setAttribute('aria-describedby', error.id);
+    };
+
+    const clearFieldError = (input) => {
+        const label = input?.closest('label');
+        if (!input || !label) return;
+        label.classList.remove('rs-field--invalid');
+        input.removeAttribute('aria-invalid');
+        input.removeAttribute('aria-describedby');
+        const error = label.nextElementSibling;
+        if (error?.classList.contains('rs-field-error')) error.remove();
+    };
+
+    const clearFormFieldErrors = (form) => {
+        form?.querySelectorAll('input').forEach(clearFieldError);
+    };
 
     const updatePasswordRules = (form) => {
         const password = form?.querySelector('[name="password"]')?.value || '';
@@ -207,28 +359,43 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         passwordForm?.querySelectorAll('[type="password"]').forEach((input) => {
-            input.addEventListener('input', () => updatePasswordRules(passwordForm));
+            input.addEventListener('input', () => {
+                clearFieldError(input);
+                updatePasswordRules(passwordForm);
+            });
         });
         passwordForm?.addEventListener('submit', async (event) => {
             event.preventDefault();
             const data = new FormData(passwordForm);
             const password = `${data.get('password') || ''}`;
             const confirmPassword = `${data.get('confirmPassword') || ''}`;
+            clearFormFieldErrors(passwordForm);
             if (password !== confirmPassword) {
-                alert.textContent = 'No coinciden';
+                alert.textContent = '';
+                setFieldError(passwordForm.querySelector('[name="confirmPassword"]'), PASSWORD_MISMATCH_MESSAGE);
                 return;
             }
             if (!isStrongPassword(password)) {
-                alert.textContent = 'Requisitos';
+                alert.textContent = '';
+                setFieldError(passwordForm.querySelector('[name="password"]'), PASSWORD_REQUIREMENTS_MESSAGE);
                 return;
             }
             try {
-                await api('/api/user/password', { method: 'PUT', body: JSON.stringify({ password }) });
+                await api('/api/user/password', { method: 'PUT', body: JSON.stringify({ password, confirmPassword }) });
                 passwordForm.reset();
                 updatePasswordRules(passwordForm);
                 alert.textContent = 'Actualizada';
             } catch (error) {
-                alert.textContent = shortAlert(error.message);
+                const message = shortAlert(error.message);
+                if (message === PASSWORD_REQUIREMENTS_MESSAGE) {
+                    alert.textContent = '';
+                    setFieldError(passwordForm.querySelector('[name="password"]'), message);
+                } else if (message === PASSWORD_MISMATCH_MESSAGE) {
+                    alert.textContent = '';
+                    setFieldError(passwordForm.querySelector('[name="confirmPassword"]'), message);
+                } else {
+                    alert.textContent = message;
+                }
             }
         });
         updatePasswordRules(passwordForm);
@@ -249,28 +416,88 @@ document.addEventListener('DOMContentLoaded', () => {
         const list = document.getElementById('forumList');
         const form = document.getElementById('forumForm');
         const alert = document.getElementById('forumAlert');
+        const search = document.getElementById('forumSearch');
+        const composer = document.getElementById('forumComposer');
+        const openComposer = document.getElementById('forumCreateToggle');
+        const closeComposer = document.getElementById('forumCreateClose');
+        const maxTitleLength = 20;
+        const maxContentLength = 1000;
+        let posts = [];
+        let highlightedPostId = null;
+
+        const normalizeForumSearch = (value) => `${value || ''}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const truncate = (value, max) => `${value || ''}`.slice(0, max);
+        const postMatches = (post, query) => {
+            if (!query) return true;
+            const source = normalizeForumSearch([post.category, post.title, post.author, post.content].join(' '));
+            const replySource = normalizeForumSearch((post.replies || []).map((reply) => [reply.author, reply.content].join(' ')).join(' '));
+            return source.includes(query) || replySource.includes(query);
+        };
+        const renderForumContent = (content) => `
+            <p class="rs-forum-text" data-forum-text>${escape(content)}</p>
+            <button class="rs-forum-more" type="button" data-forum-more hidden>Ver más <span aria-hidden="true">▾</span></button>
+        `;
+        const renderReply = (reply) => `
+            <article class="rs-forum-reply-card" data-post-id="${escape(reply.id)}">
+                ${reply.canDelete ? '<button class="rs-forum-card__delete" type="button" aria-label="Eliminar respuesta del foro" data-delete-post>×</button>' : ''}
+                <span>${escape(reply.author)} · ${new Date(reply.createdAt).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                ${renderForumContent(reply.content)}
+            </article>
+        `;
+        const renderPost = (post) => `
+            <article class="rs-forum-card ${`${post.id}` === highlightedPostId ? 'rs-forum-card--highlight' : ''}" data-post-id="${escape(post.id)}">
+                ${post.canDelete ? '<button class="rs-forum-card__delete" type="button" aria-label="Eliminar mensaje del foro" data-delete-post>×</button>' : ''}
+                <strong class="rs-forum-card__title">${escape(post.title)}</strong>
+                <span>${escape(post.category)} · <b>${escape(post.author)}</b> · ${new Date(post.createdAt).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                ${renderForumContent(post.content)}
+                <div class="rs-forum-card__actions">
+                    <button class="rs-forum-like ${post.likedByMe ? 'rs-forum-like--active' : ''}" type="button" data-like-post="${post.id}" aria-pressed="${post.likedByMe}">
+                        <span class="rs-forum-like__icon" aria-hidden="true">${post.likedByMe ? '♥' : '♡'}</span>
+                        <span>${post.likes}</span>
+                    </button>
+                    <button class="rs-link-chip" type="button" data-reply-toggle="${post.id}">Responder</button>
+                </div>
+                <div class="rs-forum-replies">${(post.replies || []).map(renderReply).join('')}</div>
+                <form class="rs-forum-reply" data-reply-form="${post.id}" hidden>
+                    <textarea name="content" placeholder="Escribe tu respuesta..." maxlength="${maxContentLength}" required></textarea>
+                    <small class="rs-char-counter" data-reply-counter>0/${maxContentLength}</small>
+                    <label class="rs-form__inline">
+                        <input name="policyAccepted" type="checkbox" required>
+                        <span>Acepto las <a href="/terms.html#forum-policy">normas del foro</a> y la <a href="/privacy-policy.html#forum-policy">política de privacidad</a>.</span>
+                    </label>
+                    <button class="rs-button" type="submit">Responder</button>
+                </form>
+            </article>
+        `;
+        const paint = () => {
+            if (!list) return;
+            const query = normalizeForumSearch(search?.value || '').trim();
+            const visiblePosts = posts.filter((post) => postMatches(post, query));
+            list.innerHTML = visiblePosts.length ? visiblePosts.map(renderPost).join('') : '<p class="empty-state">No hay publicaciones que coincidan.</p>';
+            bindForumListEvents();
+            bindForumTextToggles();
+            list.querySelectorAll('[data-reply-form]').forEach((replyForm) => {
+                bindTextAreaTools(
+                    replyForm.querySelector('textarea[name="content"]'),
+                    replyForm.querySelector('[data-reply-counter]'),
+                    maxContentLength
+                );
+            });
+            if (highlightedPostId) {
+                const target = list.querySelector(`[data-post-id="${CSS.escape(highlightedPostId)}"]`);
+                target?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                window.setTimeout(() => {
+                    target?.classList.remove('rs-forum-card--highlight');
+                    highlightedPostId = null;
+                }, 3000);
+            }
+        };
         const load = async () => {
             if (!list) return;
-            const posts = await api('/api/forum');
-            list.innerHTML = posts.length ? posts.map((post) => `
-                <article class="rs-forum-card" data-post-id="${escape(post.id)}">
-                    ${post.canDelete ? '<button class="rs-forum-card__delete" type="button" aria-label="Eliminar mensaje del foro" data-delete-post>×</button>' : ''}
-                    <strong>${escape(post.title)}</strong>
-                    <span>${escape(post.category)} · ${escape(post.author)} · ${new Date(post.createdAt).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}</span>
-                    <p>${escape(post.content)}</p>
-                    <div class="rs-forum-card__actions">
-                        <button class="rs-forum-like ${post.likedByMe ? 'rs-forum-like--active' : ''}" type="button" data-like-post="${post.id}" aria-pressed="${post.likedByMe}">
-                            <span class="rs-forum-like__icon" aria-hidden="true">${post.likedByMe ? '♥' : '♡'}</span>
-                            <span>${post.likes}</span>
-                        </button>
-                        <button class="rs-link-chip" type="button" data-reply-toggle="${post.id}">Responder</button>
-                    </div>
-                    <form class="rs-forum-reply" data-reply-form="${post.id}" hidden>
-                        <textarea name="content" placeholder="Escribe tu respuesta..." required></textarea>
-                        <button class="rs-button" type="submit">Responder</button>
-                    </form>
-                </article>
-            `).join('') : '<p class="empty-state">Sé el primero en abrir debate.</p>';
+            posts = await api('/api/forum');
+            paint();
+        };
+        const bindForumListEvents = () => {
             list.querySelectorAll('[data-like-post]').forEach((button) => {
                 button.addEventListener('click', async () => {
                     await api(`/api/forum/${button.dataset.likePost}/like`, { method: 'POST' });
@@ -287,64 +514,200 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             list.querySelectorAll('[data-reply-toggle]').forEach((button) => {
                 button.addEventListener('click', () => {
-                    const replyForm = list.querySelector(`[data-reply-form="${button.dataset.replyToggle}"]`);
+                    const replyForm = list.querySelector(`[data-reply-form="${CSS.escape(button.dataset.replyToggle)}"]`);
                     replyForm?.toggleAttribute('hidden');
+                    bindAutoGrowTextarea(replyForm?.querySelector('textarea[name="content"]'));
                 });
             });
             list.querySelectorAll('[data-reply-form]').forEach((replyForm) => {
                 replyForm.addEventListener('submit', async (event) => {
                     event.preventDefault();
+                    if (replyForm.dataset.pending === 'true') return;
                     const post = posts.find((item) => `${item.id}` === replyForm.dataset.replyForm);
                     const data = new FormData(replyForm);
-                    await api('/api/forum', {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            category: 'Respuesta',
-                            title: `Re: ${post?.title || 'publicación'}`,
-                            content: data.get('content')
-                        })
-                    });
-                    load();
+                    const content = `${data.get('content') || ''}`.trim();
+                    const policyAccepted = data.get('policyAccepted') === 'on';
+                    if (!content || content.length > maxContentLength) {
+                        alert.textContent = `Máximo ${maxContentLength} caracteres`;
+                        return;
+                    }
+                    if (!policyAccepted) {
+                        alert.textContent = 'Debes aceptar las normas del foro y la política de privacidad';
+                        return;
+                    }
+                    const button = replyForm.querySelector('button[type="submit"]');
+                    const previousText = button?.textContent || 'Responder';
+                    replyForm.dataset.pending = 'true';
+                    replyForm.setAttribute('aria-busy', 'true');
+                    if (button) {
+                        button.disabled = true;
+                        button.textContent = 'Publicando...';
+                    }
+                    try {
+                        await api('/api/forum', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                category: post?.category || 'Respuesta',
+                                title: truncate(`Re: ${post?.title || 'publicación'}`, maxTitleLength),
+                                content,
+                                parentId: post?.id,
+                                policyAccepted,
+                                clientRequestId: crypto.randomUUID()
+                            })
+                        });
+                        alert.textContent = '';
+                        load();
+                    } catch (error) {
+                        alert.textContent = shortAlert(error.message);
+                    } finally {
+                        replyForm.dataset.pending = 'false';
+                        replyForm.removeAttribute('aria-busy');
+                        if (button) {
+                            button.disabled = false;
+                            button.textContent = previousText;
+                        }
+                    }
                 });
             });
         };
+        /**
+         * @author Yerai Pinto
+         * @since 1.0
+         * @version 1.0.0
+         * @created 11-05-2026
+         * @description Activa Ver mas solo cuando el mensaje supera tres lineas reales
+         */
+        const bindForumTextToggles = () => {
+            window.requestAnimationFrame(() => {
+                list.querySelectorAll('[data-forum-text]').forEach((text) => {
+                    const button = text.nextElementSibling;
+                    if (!button?.matches('[data-forum-more]')) return;
+                    button.hidden = text.scrollHeight <= text.clientHeight + 1;
+                    button.addEventListener('click', () => {
+                        const expanded = text.classList.toggle('rs-forum-text--expanded');
+                        button.innerHTML = expanded ? 'Ver menos <span aria-hidden="true">▴</span>' : 'Ver más <span aria-hidden="true">▾</span>';
+                    });
+                });
+            });
+        };
+        openComposer?.addEventListener('click', () => {
+            alert.textContent = '';
+            composer?.removeAttribute('hidden');
+        });
+        closeComposer?.addEventListener('click', () => {
+            alert.textContent = '';
+            composer?.setAttribute('hidden', '');
+        });
+        search?.addEventListener('input', paint);
         form?.addEventListener('submit', async (event) => {
             event.preventDefault();
+            if (form.dataset.pending === 'true') return;
             const data = new FormData(form);
+            const title = `${data.get('title') || ''}`.trim();
+            const content = `${data.get('content') || ''}`.trim();
+            const policyAccepted = data.get('policyAccepted') === 'on';
+            if (!title || !content || title.length > maxTitleLength || content.length > maxContentLength) {
+                alert.textContent = `Título máximo ${maxTitleLength} caracteres y mensaje máximo ${maxContentLength} caracteres`;
+                return;
+            }
+            if (!policyAccepted) {
+                alert.textContent = 'Debes aceptar las normas del foro y la política de privacidad';
+                return;
+            }
+            const button = form.querySelector('button[type="submit"]');
+            const previousText = button?.textContent || 'Publicar';
+            form.dataset.pending = 'true';
+            form.setAttribute('aria-busy', 'true');
+            if (button) {
+                button.disabled = true;
+                button.textContent = 'Publicando...';
+            }
             try {
-                await api('/api/forum', {
+                const created = await api('/api/forum', {
                     method: 'POST',
                     body: JSON.stringify({
                         category: data.get('category'),
-                        title: data.get('title'),
-                        content: data.get('content')
+                        title,
+                        content,
+                        policyAccepted,
+                        clientRequestId: crypto.randomUUID()
                     })
                 });
                 form.reset();
-                alert.textContent = 'Publicado';
-                load();
+                bindCharCounter(form.elements.title, form.querySelector('[data-counter-for="title"]'), maxTitleLength);
+                bindTextAreaTools(form.elements.content, form.querySelector('[data-counter-for="content"]'), maxContentLength);
+                composer?.setAttribute('hidden', '');
+                alert.textContent = '';
+                highlightedPostId = `${created.id}`;
+                await load();
             } catch (error) {
                 alert.textContent = shortAlert(error.message);
+            } finally {
+                form.dataset.pending = 'false';
+                form.removeAttribute('aria-busy');
+                if (button) {
+                    button.disabled = false;
+                    button.textContent = previousText;
+                }
             }
         });
+        bindCharCounter(form?.elements.title, form?.querySelector('[data-counter-for="title"]'), maxTitleLength);
+        bindTextAreaTools(form?.elements.content, form?.querySelector('[data-counter-for="content"]'), maxContentLength);
         await load();
     };
 
     const bindContact = () => {
         const form = document.getElementById('contactForm');
         const alert = document.getElementById('contactAlert');
+        const maxSubjectLength = 20;
+        const maxMessageLength = 1000;
+        let pending = false;
+        let clientRequestId = null;
+        bindCharCounter(form?.elements.subject, form?.querySelector('[data-counter-for="subject"]'), maxSubjectLength);
+        bindTextAreaTools(form?.elements.message, form?.querySelector('[data-counter-for="message"]'), maxMessageLength);
         form?.addEventListener('submit', async (event) => {
             event.preventDefault();
+            if (pending) return;
             const data = new FormData(form);
+            const subject = `${data.get('subject') || ''}`.trim();
+            const message = `${data.get('message') || ''}`.trim();
+            const policyAccepted = data.get('policyAccepted') === 'on';
+            if (!subject || !message || subject.length > maxSubjectLength || message.length > maxMessageLength) {
+                alert.textContent = 'Asunto máximo 20 caracteres y mensaje máximo 1000 caracteres';
+                return;
+            }
+            if (!policyAccepted) {
+                alert.textContent = 'Debes aceptar la política de privacidad y las normas de contacto';
+                return;
+            }
+            pending = true;
+            clientRequestId = clientRequestId || crypto.randomUUID();
+            const button = form.querySelector('button[type="submit"]');
+            const previousText = button?.textContent || 'Enviar';
+            if (button) {
+                button.disabled = true;
+                button.textContent = 'Enviando...';
+            }
+            form.setAttribute('aria-busy', 'true');
             try {
                 const response = await api('/api/contact', {
                     method: 'POST',
-                    body: JSON.stringify({ subject: data.get('subject'), message: data.get('message') })
+                    body: JSON.stringify({ subject, message, policyAccepted, clientRequestId })
                 });
                 form.reset();
-                alert.textContent = response.mailSent ? 'Enviado' : 'Guardado';
+                clientRequestId = null;
+                bindCharCounter(form.elements.subject, form.querySelector('[data-counter-for="subject"]'), maxSubjectLength);
+                bindTextAreaTools(form.elements.message, form.querySelector('[data-counter-for="message"]'), maxMessageLength);
+                alert.textContent = response.duplicate ? 'Solicitud ya procesada' : (response.mailSent ? 'Enviado' : 'Guardado');
             } catch (error) {
                 alert.textContent = shortAlert(error.message);
+            } finally {
+                pending = false;
+                form.removeAttribute('aria-busy');
+                if (button) {
+                    button.disabled = false;
+                    button.textContent = previousText;
+                }
             }
         });
     };

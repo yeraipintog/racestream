@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.1
+ * @version 1.1.1
  * @created 30-04-2026
- * @modified 04-05-2026
+ * @modified 13-05-2026
  * @description Controlador REST para exponer clasificaciones, temporadas y resultados de Formula 1 desde Jolpica
  */
 package com.yerai.racestream.controller;
@@ -26,8 +26,9 @@ public class F1StandingsController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 30-04-2026
+     * @modified 13-05-2026
      * @description Constructor con servicio Jolpica
      * @param jolpicaService Servicio de datos Jolpica
      */
@@ -45,29 +46,31 @@ public class F1StandingsController {
      * @return Pilotos ordenados por puntos
      */
     @GetMapping("/drivers")
-    public JsonNode getDriverStandings(@RequestParam(defaultValue = "2026") Integer year) {
+    public JsonNode getDriverStandings(@RequestParam(required = false) Integer year) {
         return jolpicaService.getDriverStandingsByYear(year);
     }
 
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 30-04-2026
+     * @modified 13-05-2026
      * @description Devuelve clasificacion de constructores
      * @param year Temporada
      * @return Constructores ordenados por puntos
      */
     @GetMapping("/constructors")
-    public JsonNode getConstructorStandings(@RequestParam(defaultValue = "2026") Integer year) {
+    public JsonNode getConstructorStandings(@RequestParam(required = false) Integer year) {
         return jolpicaService.getConstructorStandingsByYear(year);
     }
 
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 04-05-2026
+     * @modified 13-05-2026
      * @description Devuelve las temporadas disponibles para filtros historicos
      * @return Temporadas disponibles
      */
@@ -86,7 +89,35 @@ public class F1StandingsController {
      * @return Carreras con resultados oficiales
      */
     @GetMapping("/race-results")
-    public JsonNode getRaceResults(@RequestParam(defaultValue = "2026") Integer year) {
+    public JsonNode getRaceResults(@RequestParam(required = false) Integer year) {
         return jolpicaService.getRaceResultsByYear(year);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 13-05-2026
+     * @modified 13-05-2026
+     * @description Devuelve mundiales de pilotos cerrados hasta la temporada anterior
+     * @return Pilotos campeones agregados
+     */
+    @GetMapping("/driver-titles")
+    public JsonNode getDriverTitles() {
+        return jolpicaService.getDriverWorldTitles();
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 13-05-2026
+     * @modified 13-05-2026
+     * @description Devuelve mundiales de constructores cerrados hasta la temporada anterior
+     * @return Constructores campeones agregados
+     */
+    @GetMapping("/constructor-titles")
+    public JsonNode getConstructorTitles() {
+        return jolpicaService.getConstructorWorldTitles();
     }
 }

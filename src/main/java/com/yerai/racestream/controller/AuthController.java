@@ -1,15 +1,16 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.5
+ * @version 1.2.0
  * @created 05-05-2026
- * @modified 07-05-2026
- * @description API de registro, login, recuperacion, sesion, cookies, bloqueo de correos y acceso admin de RaceStream
+ * @modified 18-05-2026
+ * @description API de registro, login, recuperacion, sesion, cookies con estado explicito, bloqueo de correos y acceso admin
  */
 package com.yerai.racestream.controller;
 
 import com.yerai.racestream.model.AppUser;
 import com.yerai.racestream.model.AuthProvider;
+import com.yerai.racestream.model.CookieConsentStatus;
 import com.yerai.racestream.model.UserRole;
 import com.yerai.racestream.config.AdminUserInitializer;
 import com.yerai.racestream.repository.AppUserRepository;
@@ -20,9 +21,13 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -41,12 +46,16 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final String COOKIE_CONSENT_COOKIE_NAME = "rs_cookie_consent";
+    private static final String PASSWORD_REQUIREMENTS_MESSAGE = "La contraseña no cumple los requisitos";
+    private static final String PASSWORD_MISMATCH_MESSAGE = "Las contraseñas no coinciden";
 
     private final AppUserRepository appUserRepository;
     private final BlockedEmailRepository blockedEmailRepository;
@@ -70,10 +79,10 @@ public class AuthController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.3
+     * @version 1.0.7
      * @created 05-05-2026
-     * @modified 06-05-2026
-     * @description Registra un usuario local con nombre visible, password cifrada, aceptacion legal y bloqueo administrativo
+     * @modified 18-05-2026
+     * @description Registra un usuario local con nombre visible, password cifrada, aceptacion legal, cookies sin decidir y bloqueo administrativo
      * @param request Datos del formulario de registro
      * @param servletRequest Peticion HTTP para abrir sesion
      * @return Usuario registrado sin exponer la contrasena
@@ -88,17 +97,20 @@ public class AuthController {
         if (blockedEmailRepository.existsByEmailIgnoreCase(email)) {
             return ResponseEntity.status(403).body(Map.of("error", "Este correo electrónico está bloqueado por administración"));
         }
+        if (request.confirmPassword() != null && !Objects.equals(request.password(), request.confirmPassword())) {
+            return ResponseEntity.badRequest().body(Map.of("error", PASSWORD_MISMATCH_MESSAGE));
+        }
         if (!isStrongPassword(request.password())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "La contraseña debe tener 8 caracteres, mayúscula, minúscula, número y símbolo"));
+            return ResponseEntity.badRequest().body(Map.of("error", PASSWORD_REQUIREMENTS_MESSAGE));
         }
         if (!Boolean.TRUE.equals(request.acceptPolicies())) {
             return ResponseEntity.badRequest().body(Map.of("error", "Debes aceptar las políticas para registrarte"));
         }
         if (appUserRepository.existsByEmailIgnoreCase(email)) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Ya existe una cuenta con ese email"));
+            return fieldError(400, "email", "Correo electrónico ya registrado");
         }
         if (appUserRepository.existsByNameIgnoreCase(username)) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Ya existe una cuenta con ese nombre de usuario"));
+            return fieldError(400, "name", "Nombre de usuario ya registrado");
         }
 
         AppUser user = new AppUser();
@@ -108,8 +120,12 @@ public class AuthController {
         user.setRole(UserRole.USER);
         user.setProvider(AuthProvider.LOCAL);
         user.setPoliciesAccepted(true);
-        user.setCookieConsent(false);
-        appUserRepository.save(user);
+        user.setCookieConsentStatus(CookieConsentStatus.UNDECIDED);
+        try {
+            appUserRepository.save(user);
+        } catch (DataIntegrityViolationException ex) {
+            return resolveDuplicatedUserField(username, email);
+        }
         authenticate(user.getEmail(), request.password(), servletRequest);
         return ResponseEntity.ok(toResponse(user));
     }
@@ -117,8 +133,9 @@ public class AuthController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.3
      * @created 05-05-2026
+     * @modified 13-05-2026
      * @description Inicia sesion por email, nombre de usuario o alias admin usando Spring Security
      * @param request Credenciales
      * @param servletRequest Peticion HTTP para almacenar la sesion
@@ -127,16 +144,26 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletRequest servletRequest) {
         String login = resolveLogin(request.email());
-        String emailToCheck = appUserRepository.findByEmailIgnoreCase(login)
+        AppUser candidate = appUserRepository.findByEmailIgnoreCase(normalizeEmail(login))
                 .or(() -> appUserRepository.findByNameIgnoreCase(login))
-                .map(AppUser::getEmail)
-                .orElse(normalizeEmail(login));
-        if (blockedEmailRepository.existsByEmailIgnoreCase(emailToCheck)) {
-            return ResponseEntity.status(403).body(Map.of("error", "Cuenta bloqueada por administración"));
+                .orElse(null);
+        if (candidate == null) {
+            return fieldError(404, "email", "Usuario o email no registrado");
         }
-        Authentication authentication = authenticate(login, request.password(), servletRequest);
-        AppUser user = appUserRepository.findByEmailIgnoreCase(authentication.getName()).orElseThrow();
-        return ResponseEntity.ok(toResponse(user));
+        if (blockedEmailRepository.existsByEmailIgnoreCase(candidate.getEmail())) {
+            return fieldError(403, "email", "Cuenta bloqueada por administración");
+        }
+        try {
+            Authentication authentication = authenticate(login, request.password(), servletRequest);
+            AppUser user = appUserRepository.findByEmailIgnoreCase(authentication.getName()).orElse(candidate);
+            return ResponseEntity.ok(toResponse(user));
+        } catch (BadCredentialsException ex) {
+            return fieldError(401, "password", "Contraseña incorrecta");
+        } catch (DisabledException ex) {
+            return fieldError(403, "email", "Cuenta bloqueada por administración");
+        } catch (AuthenticationException ex) {
+            return fieldError(401, "password", "Contraseña incorrecta");
+        }
     }
 
     /**
@@ -168,14 +195,21 @@ public class AuthController {
      * @since 1.0
      * @version 1.0.0
      * @created 07-05-2026
+     * @modified 12-05-2026
      * @description Valida el token recibido por correo y guarda una contrasena nueva cifrada
      * @param request Token y contrasena nueva
      * @return Estado de guardado
      */
     @PostMapping("/password-reset/confirm")
     public ResponseEntity<?> confirmPasswordReset(@RequestBody PasswordResetConfirmRequest request) {
-        if (isBlank(request.token()) || !isStrongPassword(request.password())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "El enlace no es válido o la contraseña no cumple los requisitos"));
+        if (request.confirmPassword() != null && !Objects.equals(request.password(), request.confirmPassword())) {
+            return ResponseEntity.badRequest().body(Map.of("error", PASSWORD_MISMATCH_MESSAGE));
+        }
+        if (!isStrongPassword(request.password())) {
+            return ResponseEntity.badRequest().body(Map.of("error", PASSWORD_REQUIREMENTS_MESSAGE));
+        }
+        if (isBlank(request.token())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "El enlace no es válido"));
         }
         AppUser user = appUserRepository.findByPasswordResetToken(request.token())
                 .filter(candidate -> candidate.getPasswordResetExpiresAt() != null
@@ -210,9 +244,10 @@ public class AuthController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.1.0
      * @created 05-05-2026
-     * @description Guarda consentimiento de cookies en cookie tecnica y, si hay usuario, en BBDD
+     * @modified 18-05-2026
+     * @description Guarda decision aceptada o rechazada en cookie tecnica y, si hay usuario, en BBDD
      * @param request Preferencia de cookies
      * @param principal Usuario opcional
      * @param response Respuesta HTTP
@@ -223,18 +258,23 @@ public class AuthController {
             @RequestBody CookieRequest request,
             @AuthenticationPrincipal Object principal,
             HttpServletResponse response) {
-        boolean accepted = Boolean.TRUE.equals(request.accepted());
+        CookieConsentStatus status = resolveCookieConsentStatus(request);
+        if (status == CookieConsentStatus.UNDECIDED) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Debes aceptar o rechazar las cookies"));
+        }
         currentUser(principal).ifPresent(user -> {
-            user.setCookieConsent(accepted);
+            user.setCookieConsentStatus(status);
             appUserRepository.save(user);
         });
-        ResponseCookie cookie = ResponseCookie.from("rs_cookie_consent", accepted ? "accepted" : "rejected")
+        ResponseCookie cookie = ResponseCookie.from(COOKIE_CONSENT_COOKIE_NAME, cookieValue(status))
                 .path("/")
                 .sameSite("Lax")
                 .maxAge(Duration.ofDays(180))
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-        return ResponseEntity.ok(Map.of("accepted", accepted));
+        return ResponseEntity.ok(Map.of(
+                "accepted", status == CookieConsentStatus.ACCEPTED,
+                "cookieConsentStatus", status.name()));
     }
 
     private Authentication authenticate(String email, String password, HttpServletRequest request) {
@@ -244,6 +284,43 @@ public class AuthController {
         SecurityContextHolder.setContext(context);
         request.getSession(true).setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
         return authentication;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 13-05-2026
+     * @modified 13-05-2026
+     * @description Resuelve duplicados detectados por la base de datos tras una carrera de registro
+     * @param username Nombre normalizado
+     * @param email Email normalizado
+     * @return Error asociado al campo correcto
+     */
+    private ResponseEntity<?> resolveDuplicatedUserField(String username, String email) {
+        if (appUserRepository.existsByEmailIgnoreCase(email)) {
+            return fieldError(400, "email", "Correo electrónico ya registrado");
+        }
+        if (appUserRepository.existsByNameIgnoreCase(username)) {
+            return fieldError(400, "name", "Nombre de usuario ya registrado");
+        }
+        return ResponseEntity.badRequest().body(Map.of("error", "No se ha podido crear la cuenta"));
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 13-05-2026
+     * @modified 13-05-2026
+     * @description Construye errores JSON asociados a un campo de formulario
+     * @param status Estado HTTP
+     * @param field Campo afectado
+     * @param error Mensaje visible
+     * @return Respuesta JSON
+     */
+    private ResponseEntity<?> fieldError(int status, String field, String error) {
+        return ResponseEntity.status(status).body(Map.of("field", field, "error", error));
     }
 
     private String resolveLogin(String login) {
@@ -264,7 +341,39 @@ public class AuthController {
         return appUserRepository.findByEmailIgnoreCase(email);
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 18-05-2026
+     * @modified 18-05-2026
+     * @description Convierte la peticion legacy accepted en un estado explicito de cookies
+     * @param request Peticion recibida
+     * @return Estado de consentimiento
+     */
+    private CookieConsentStatus resolveCookieConsentStatus(CookieRequest request) {
+        if (request == null || request.accepted() == null) {
+            return CookieConsentStatus.UNDECIDED;
+        }
+        return Boolean.TRUE.equals(request.accepted()) ? CookieConsentStatus.ACCEPTED : CookieConsentStatus.REJECTED;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 18-05-2026
+     * @modified 18-05-2026
+     * @description Traduce el estado persistente al valor de cookie tecnica usado por el navegador
+     * @param status Estado persistente
+     * @return Valor de cookie
+     */
+    private String cookieValue(CookieConsentStatus status) {
+        return status == CookieConsentStatus.ACCEPTED ? "accepted" : "rejected";
+    }
+
     private Map<String, Object> toResponse(AppUser user) {
+        CookieConsentStatus cookieConsentStatus = user.getCookieConsentStatus();
         return Map.ofEntries(
                 Map.entry("authenticated", true),
                 Map.entry("id", user.getId()),
@@ -272,7 +381,9 @@ public class AuthController {
                 Map.entry("email", user.getEmail()),
                 Map.entry("role", user.getRole().name()),
                 Map.entry("provider", user.getProvider().name()),
-                Map.entry("cookieConsent", user.isCookieConsent()),
+                Map.entry("cookieConsent", cookieConsentStatus == CookieConsentStatus.ACCEPTED),
+                Map.entry("cookieConsentStatus", cookieConsentStatus.name()),
+                Map.entry("cookieConsentDecided", cookieConsentStatus != CookieConsentStatus.UNDECIDED),
                 Map.entry("notificationsEnabled", user.isNotificationsEnabled()),
                 Map.entry("emailNotificationsEnabled", user.isEmailNotificationsEnabled()),
                 Map.entry("favoriteDigestEnabled", user.isFavoriteDigestEnabled()),
@@ -365,9 +476,9 @@ public class AuthController {
                 && password.matches(".*[^A-Za-z0-9].*");
     }
 
-    public record RegisterRequest(String name, String email, String password, Boolean acceptPolicies) {}
+    public record RegisterRequest(String name, String email, String password, String confirmPassword, Boolean acceptPolicies) {}
     public record LoginRequest(String email, String password) {}
     public record PasswordResetRequest(String email) {}
-    public record PasswordResetConfirmRequest(String token, String password) {}
+    public record PasswordResetConfirmRequest(String token, String password, String confirmPassword) {}
     public record CookieRequest(Boolean accepted) {}
 }

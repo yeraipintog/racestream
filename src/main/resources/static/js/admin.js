@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.2
+ * @version 1.1.5
  * @created 06-05-2026
- * @modified 06-05-2026
- * @description Gestiona usuarios, bloqueos, contacto y foro desde el panel privado de administracion
+ * @modified 14-05-2026
+ * @description Gestiona usuarios, roles, bloqueos y mensajes de contacto desde el panel privado de administracion
  */
 document.addEventListener('DOMContentLoaded', () => {
     const summary = document.getElementById('adminSummary');
@@ -13,7 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const userSearchForm = document.getElementById('adminUserSearchForm');
     const userSearchInput = userSearchForm?.querySelector('[name="email"]');
     const messages = document.getElementById('adminMessages');
-    const forumPosts = document.getElementById('adminForumPosts');
 
     const escape = (value) => `${value ?? ''}`
         .replace(/&/g, '&amp;')
@@ -62,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <article class="rs-admin-user-card ${user.blocked ? 'rs-admin-user-card--blocked' : ''}" data-user-id="${escape(user.id)}">
                 <div class="rs-admin-card__body">
                     <strong>${escape(user.name)}</strong>
-                    <span>${escape(user.email)} · ${escape(user.provider)} · ${formatDate(user.createdAt)}</span>
+                    <span>${escape(user.email)} · ${escape(user.role || 'USER')} · ${formatDate(user.createdAt)}</span>
                 </div>
                 <div class="rs-admin-card__actions">
                     ${user.blocked ? '' : '<button class="rs-button" type="button" data-user-block>Bloquear</button>'}
@@ -77,60 +76,63 @@ document.addEventListener('DOMContentLoaded', () => {
             <article class="rs-admin-blocked-card">
                 <div class="rs-admin-card__body">
                     <strong>${escape(row.email)}</strong>
-                    <span>${escape(row.reason || 'Bloqueado')} · ${formatDate(row.createdAt)}</span>
+                    <span>${escape(row.reason || 'Bloqueado')} ${formatDate(row.createdAt)}</span>
                 </div>
                 <button type="button" aria-label="Desbloquear ${escape(row.email)}" data-unblock-email="${escape(row.email)}">Desbloquear</button>
             </article>
         `).join('') : '<p class="empty-state">No hay usuarios bloqueados.</p>';
     };
 
-    const renderMessages = (rows) => {
-        messages.innerHTML = rows.length ? rows.map((message) => `
-            <article class="rs-admin-message-card" data-message-id="${escape(message.id)}">
-                <div class="rs-admin-card__body">
-                    <strong>${escape(message.subject)}</strong>
-                    <span>${escape(message.userName)} · ${escape(message.userEmail)} · ${formatDate(message.createdAt)}</span>
-                    <p>${escape(message.message)}</p>
-                </div>
-                <div class="rs-admin-card__actions">
-                    ${message.completed
-                        ? `<span class="rs-admin-status">Completado ${formatDate(message.completedAt)}</span>`
-                        : '<button class="rs-button" type="button" data-contact-complete>Marcar completado</button>'}
-                    <button class="rs-admin-delete-button" type="button" aria-label="Eliminar mensaje de contacto" data-contact-delete>×</button>
-                </div>
-            </article>
-        `).join('') : '<p class="empty-state">No hay mensajes de contacto.</p>';
-    };
+    const renderMessageCard = (message) => `
+        <article class="rs-admin-message-card" data-message-id="${escape(message.id)}">
+            <div class="rs-admin-message-card__title">
+                <strong>${escape(message.subject)}</strong>
+            </div>
 
-    const renderForumPosts = (rows) => {
-        forumPosts.innerHTML = rows.length ? rows.map((post) => `
-            <article class="rs-admin-forum-card" data-post-id="${escape(post.id)}">
-                <div class="rs-admin-card__body">
-                    <strong>${escape(post.title)}</strong>
-                    <span>${escape(post.category)} · ${escape(post.author)} · ${escape(post.authorEmail)} · ${formatDate(post.createdAt)} · ${Number(post.likes || 0)} likes</span>
-                    <p>${escape(post.content)}</p>
-                </div>
-                <div class="rs-admin-card__actions">
-                    <button class="rs-admin-delete-button" type="button" aria-label="Eliminar mensaje del foro" data-forum-delete>×</button>
-                </div>
-            </article>
-        `).join('') : '<p class="empty-state">No hay mensajes del foro.</p>';
+            <div class="rs-admin-card__actions">
+                ${message.completed
+                    ? ''
+                    : '<button class="rs-admin-complete-button" type="button" aria-label="Marcar mensaje como completado" data-contact-complete>✓</button>'}
+                <button class="rs-admin-delete-button" type="button" aria-label="Eliminar mensaje de contacto" data-contact-delete>×</button>
+            </div>
+
+            <div class="rs-admin-card__body">
+                <span>
+                    ${escape(message.userName)} ${formatDate(message.createdAt)}
+                    ${message.completed ? ` · <strong class="rs-admin-status">Completado ${formatDate(message.completedAt)}</strong>` : ''}
+                </span>
+                <p>${escape(message.message)}</p>
+            </div>
+        </article>
+    `;
+
+    const renderMessages = (rows) => {
+        const pending = rows.filter((message) => !message.completed);
+        const completed = rows.filter((message) => message.completed);
+        messages.innerHTML = `
+            <section class="rs-admin-contact-column">
+                <h3>Sin completar</h3>
+                ${pending.length ? pending.map(renderMessageCard).join('') : '<p class="empty-state">No hay mensajes pendientes.</p>'}
+            </section>
+            <section class="rs-admin-contact-column">
+                <h3>Completados</h3>
+                ${completed.length ? completed.map(renderMessageCard).join('') : '<p class="empty-state">No hay mensajes completados.</p>'}
+            </section>
+        `;
     };
 
     const init = async () => {
         summary.innerHTML = '<p class="loading-state">Cargando panel...</p>';
-        const [summaryData, userRows, blockedRows, messageRows, forumRows] = await Promise.all([
+        const [summaryData, userRows, blockedRows, messageRows] = await Promise.all([
             api('/api/admin/summary'),
             api(usersUrl()),
             api('/api/admin/blocked-emails'),
-            api('/api/admin/contact-messages'),
-            api('/api/admin/forum-posts')
+            api('/api/admin/contact-messages')
         ]);
         renderSummary(summaryData);
         renderUsers(userRows);
         renderBlockedEmails(blockedRows);
         renderMessages(messageRows);
-        renderForumPosts(forumRows);
     };
 
     const showError = (error) => {
@@ -183,17 +185,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    forumPosts.addEventListener('click', async (event) => {
-        const card = event.target.closest('[data-post-id]');
-        if (!card || !event.target.closest('[data-forum-delete]') || !confirm('¿Eliminar este mensaje del foro?')) return;
-        try {
-            await api(`/api/admin/forum-posts/${card.dataset.postId}`, { method: 'DELETE' });
-            await init();
-        } catch (error) {
-            showError(error);
-        }
-    });
-
     userSearchForm?.addEventListener('submit', (event) => event.preventDefault());
 
     let searchTimer = 0;
@@ -209,6 +200,5 @@ document.addEventListener('DOMContentLoaded', () => {
         users.innerHTML = '';
         blockedEmails.innerHTML = '';
         messages.innerHTML = '';
-        forumPosts.innerHTML = '';
     });
 });

@@ -1,14 +1,16 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.0
+ * @version 1.0.1
  * @created 06-05-2026
- * @description Inicializa el acceso especial de administrador local para RaceStream
+ * @modified 18-05-2026
+ * @description Inicializa el acceso especial de administrador local para RaceStream con cookies tecnicas aceptadas
  */
 package com.yerai.racestream.config;
 
 import com.yerai.racestream.model.AppUser;
 import com.yerai.racestream.model.AuthProvider;
+import com.yerai.racestream.model.CookieConsentStatus;
 import com.yerai.racestream.model.UserRole;
 import com.yerai.racestream.repository.AppUserRepository;
 import org.springframework.boot.CommandLineRunner;
@@ -42,7 +44,7 @@ public class AdminUserInitializer {
             admin.setRole(UserRole.ADMIN);
             admin.setProvider(AuthProvider.LOCAL);
             admin.setPoliciesAccepted(true);
-            admin.setCookieConsent(true);
+            admin.setCookieConsentStatus(CookieConsentStatus.ACCEPTED);
             appUserRepository.save(admin);
         };
     }

@@ -1,7 +1,7 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.4
+ * @version 1.0.5
  * @created 04-05-2026
  * @modified 05-05-2026
  * @description Estilos responsive de Clasificación con filtros, tablas, banderas y detalle por GP
@@ -115,6 +115,7 @@
 }
 
 .rs-standings-table-wrap {
+    width: 100%;
     max-width: 100%;
     overflow-x: auto;
     border: 1px solid rgba(255, 255, 255, .08);
@@ -252,8 +253,8 @@ a.rs-standings-team-cell {
     }
 
     .rs-standings-switch {
-        width: calc(100vw - 24px) !important;
-        max-width: 320px !important;
+        width: 100% !important;
+        max-width: 100% !important;
         display: grid !important;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         gap: 4px;
@@ -269,13 +270,13 @@ a.rs-standings-team-cell {
     }
 
     .rs-standings-panel {
-        width: calc(100vw - 24px);
-        max-width: 336px;
+        width: 100%;
+        max-width: 100%;
     }
 
     #standingsTableContent > .empty-state,
     #standingsTableContent > .loading-state {
-        width: calc(100vw - 56px);
+        width: 100%;
         max-width: 100%;
         box-sizing: border-box;
     }

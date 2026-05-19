@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.0
+ * @version 1.1.1
  * @created 05-05-2026
- * @modified 05-05-2026
+ * @modified 13-05-2026
  * @description API privada de favoritos de RaceStream
  */
 package com.yerai.racestream.controller;
@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -64,16 +65,20 @@ public class FavoritesController {
      */
     @PostMapping
     public ResponseEntity<?> create(@RequestBody FavoriteRequest request, Authentication authentication) {
+        if (request == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Datos del favorito obligatorios"));
+        }
         if (isBlank(request.type()) || isBlank(request.externalId()) || isBlank(request.title())) {
             return ResponseEntity.badRequest().body(Map.of("error", "Tipo, identificador y título son obligatorios"));
         }
         AppUser user = currentUser(authentication);
         UserFavorite favorite = favoriteRepository
-                .findByUserAndTypeIgnoreCaseAndExternalIdIgnoreCase(user, request.type().trim(), request.externalId().trim())
+                .findByUserAndTypeIgnoreCaseAndExternalIdIgnoreCaseAndSeasonYear(user, request.type().trim(), request.externalId().trim(), request.seasonYear())
                 .orElseGet(UserFavorite::new);
         favorite.setUser(user);
         favorite.setType(request.type().trim());
         favorite.setExternalId(request.externalId().trim());
+        favorite.setSeasonYear(request.seasonYear());
         favorite.setTitle(request.title().trim());
         favorite.setUrl(blankToNull(request.url()));
         favorite.setDescription(blankToNull(request.description()));
@@ -100,14 +105,16 @@ public class FavoritesController {
     }
 
     private Map<String, Object> toResponse(UserFavorite favorite) {
-        return Map.of(
-                "id", favorite.getId(),
-                "type", favorite.getType(),
-                "externalId", favorite.getExternalId(),
-                "title", favorite.getTitle(),
-                "url", favorite.getUrl() == null ? "" : favorite.getUrl(),
-                "description", favorite.getDescription() == null ? "" : favorite.getDescription(),
-                "createdAt", favorite.getCreatedAt().toString());
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("id", favorite.getId());
+        response.put("type", favorite.getType());
+        response.put("externalId", favorite.getExternalId());
+        response.put("seasonYear", favorite.getSeasonYear());
+        response.put("title", favorite.getTitle());
+        response.put("url", favorite.getUrl() == null ? "" : favorite.getUrl());
+        response.put("description", favorite.getDescription() == null ? "" : favorite.getDescription());
+        response.put("createdAt", favorite.getCreatedAt().toString());
+        return response;
     }
 
     private AppUser currentUser(Authentication authentication) {
@@ -122,5 +129,5 @@ public class FavoritesController {
         return isBlank(value) ? null : value.trim();
     }
 
-    public record FavoriteRequest(String type, String externalId, String title, String url, String description) {}
+    public record FavoriteRequest(String type, String externalId, Integer seasonYear, String title, String url, String description) {}
 }

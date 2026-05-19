@@ -50,7 +50,10 @@
                             <li data-password-rule="number">Un número</li>
                             <li data-password-rule="symbol">Un símbolo</li>
                         </ul>
-                        <label class="rs-form__inline"><input name="acceptPolicies" type="checkbox" required> Acepto los términos, privacidad y cookies.</label>
+                        <label class="rs-form__inline">
+                            <input name="acceptPolicies" type="checkbox" required>
+                            <span>Acepto la <a href="/privacy-policy.html">política de privacidad</a> y los <a href="/terms.html">términos de servicio</a> de RaceStream.</span>
+                        </label>
                         <button class="rs-button rs-button--primary" type="submit">Crear cuenta</button>
                         <div id="registerAlert" class="rs-alert" aria-live="polite"></div>
                     </form>

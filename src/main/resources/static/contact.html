@@ -23,18 +23,30 @@
             </header>
             <section class="rs-simple-grid">
                 <article class="rs-simple-panel">
-                    <h2>Soporte RaceStream</h2>
-                    <p>Cuenta activa: <strong data-user-email>-</strong></p>
-                    <p>El reporte se asignará a <strong>contact.racestream@gmail.com</strong>. Incluye el contexto: página, temporada, GP o sesión afectada.</p>
-                </article>
-                <article class="rs-simple-panel">
                     <h2>Enviar mensaje</h2>
                     <form id="contactForm" class="rs-form">
-                        <label>Asunto<input name="subject" required></label>
-                        <label>Mensaje<textarea name="message" required></textarea></label>
+                        <label>
+                            Asunto
+                            <input name="subject" maxlength="20" required>
+                            <small class="rs-char-counter" data-counter-for="subject">0/20</small>
+                        </label>
+                        <label>
+                            Mensaje
+                            <textarea name="message" maxlength="1000" required></textarea>
+                            <small class="rs-char-counter" data-counter-for="message">0/1000</small>
+                        </label>
+                        <label class="rs-form__inline">
+                            <input name="policyAccepted" type="checkbox" required>
+                            <span>Acepto la <a href="/privacy-policy.html#contact-policy">política de privacidad</a> y las <a href="/terms.html#contact-policy">normas de contacto</a> de RaceStream.</span>
+                        </label>
                         <button class="rs-button rs-button--primary" type="submit">Enviar</button>
                         <div id="contactAlert" class="rs-alert" aria-live="polite"></div>
                     </form>
+                </article>
+                <article class="rs-simple-panel">
+                    <h2>Soporte RaceStream</h2>
+                    <p>Cuenta activa: <strong data-user-email>-</strong></p>
+                    <p>El reporte se asignará a <strong>contact.racestream@gmail.com</strong>. Incluye el contexto: página, temporada, GP o sesión afectada.</p>
                 </article>
             </section>
         </div>
