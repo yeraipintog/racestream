@@ -115,16 +115,6 @@ En Windows:
 mvnw.cmd test
 ```
 
-## Validación Manual Recomendada
-
-1. Entrar en `/` y comprobar que no aparece el login genérico de Spring.
-2. Abrir `/login` y verificar que redirige a `/login.html`.
-3. Abrir `/account.html` sin sesión y verificar que redirige a `/login.html`.
-4. Probar registro e inicio de sesión con usuario local.
-5. Revisar en móvil navbar, franja de próximo GP, menú, cookies y formularios.
-6. Comprobar calendario, sesiones, clasificaciones, noticias, favoritos y páginas legales.
-7. Ejecutar `mvnw.cmd test` o `./mvnw test` antes de entregar cambios.
-
 ## Autor
 
 Yerai Pinto González
