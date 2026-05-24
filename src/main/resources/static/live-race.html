@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RaceStream - Carrera En Vivo</title>
+    <link rel="icon" type="image/png" href="/assets/img/LogoRS2.png">
+    <link rel="stylesheet" href="/css/variables.css">
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/layout.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/live.css">
+</head>
+<body data-live-page="race">
+<div class="rs-page-shell">
+    <header class="rs-navbar" id="mainNavbar"></header>
+    <section class="rs-race-strip" id="raceStrip"></section>
+
+    <main class="rs-main rs-live-page">
+        <div class="rs-container">
+            <section class="rs-live-hero">
+                <div class="rs-live-hero__heading">
+                    <h1>Fórmula 1 En Vivo</h1>
+                </div>
+                <nav class="rs-live-nav" aria-label="Secciones de En Vivo">
+                    <a class="rs-live-nav__link" href="/live.html">Mapa</a>
+                    <a class="rs-live-nav__link" href="/live-timing.html">Timing</a>
+                    <a class="rs-live-nav__link rs-live-nav__link--active" href="/live-race.html">Carrera</a>
+                </nav>
+                <div class="rs-live-hero__divider" aria-hidden="true"></div>
+                <div class="rs-live-hero__status" id="liveStatusCard">
+                    <div class="rs-live-skeleton"></div>
+                </div>
+            </section>
+
+            <section class="rs-live-section" aria-labelledby="liveRaceTitle">
+                <div class="rs-live-section__head">
+                    <h2 id="liveRaceTitle">Carrera y actividad</h2>
+                    <span id="liveGeneratedAt">Actualizando datos</span>
+                </div>
+                <div class="rs-live-grid">
+                    <article class="rs-live-card rs-live-card--wide"><div class="rs-live-card__head"><h3>Clima</h3><span data-live-stale="weather"></span></div><div id="weatherPanel"></div></article>
+                    <article class="rs-live-card rs-live-card--priority"><div class="rs-live-card__head"><h3>Dirección de carrera</h3><span data-live-stale="raceControl"></span></div><div id="raceControlPanel"></div></article>
+                    <article class="rs-live-card"><div class="rs-live-card__head"><h3>Team radio</h3><span data-live-stale="teamRadio"></span></div><div id="radioPanel"></div></article>
+                    <article class="rs-live-card"><div class="rs-live-card__head"><h3>Adelantamientos</h3><span data-live-stale="overtakes"></span></div><div id="overtakesPanel"></div></article>
+                    <article class="rs-live-card"><div class="rs-live-card__head"><h3>Paradas en boxes</h3><span data-live-stale="pits"></span></div><div id="pitPanel"></div></article>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="rs-footer"></footer>
+</div>
+
+<script src="/js/nav.js"></script>
+<script src="/js/race-strip.js"></script>
+<script src="/js/rs-api.js"></script>
+<script src="/js/live-common.js"></script>
+<script src="/js/live.js"></script>
+</body>
+</html>

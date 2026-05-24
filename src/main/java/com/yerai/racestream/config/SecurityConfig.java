@@ -1,19 +1,23 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.2
+ * @version 1.3.2
  * @created 09-03-2026
- * @modified 18-05-2026
- * @description Configuracion de seguridad con zonas publicas, privadas, roles y login JSON propio
+ * @modified 19-05-2026
+ * @description Configuracion de seguridad con zonas publicas, live privado, roles y login JSON propio
  */
 package com.yerai.racestream.config;
 
+import jakarta.servlet.http.HttpSession;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -22,10 +26,10 @@ public class SecurityConfig {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.2.2
+     * @version 1.3.0
      * @created 09-03-2026
-     * @modified 18-05-2026
-     * @description Protege paginas privadas, APIs de usuario y administracion sin activar el formulario generico de Spring
+     * @modified 19-05-2026
+     * @description Protege paginas privadas, Live Center, APIs de usuario y administracion, con logout JSON seguro
      * @param http Constructor de seguridad HTTP
      * @return Cadena de filtros configurada
      * @throws Exception Si la configuracion no puede construirse
@@ -35,7 +39,9 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/index.html", "/live.html", "/calendar.html", "/sessions.html",
+                        .requestMatchers("/live.html", "/live-timing.html", "/live-race.html", "/api/f1/live/**")
+                        .authenticated()
+                        .requestMatchers("/", "/index.html", "/calendar.html", "/sessions.html",
                                 "/standings.html", "/drivers.html", "/teams.html", "/news.html", "/help.html",
                                 "/faq.html", "/terms.html", "/privacy-policy.html", "/cookies.html", "/login.html",
                                 "/register.html", "/css/**", "/js/**", "/assets/**", "/api/f1/**",
@@ -48,7 +54,22 @@ public class SecurityConfig {
                 .formLogin(form -> form.disable())
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")
+                        .addLogoutHandler((request, response, authentication) -> {
+                            SecurityContextHolder.clearContext();
+                            HttpSession session = request.getSession(false);
+                            if (session != null) {
+                                session.invalidate();
+                            }
+                            ResponseCookie cookie = ResponseCookie.from("JSESSIONID", "")
+                                    .path("/")
+                                    .maxAge(0)
+                                    .build();
+                            response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+                        })
                         .logoutSuccessUrl("/login.html?logout")
+                        .clearAuthentication(true)
+                        .invalidateHttpSession(true)
+                        .deleteCookies("JSESSIONID")
                         .permitAll())
                 .exceptionHandling(exception -> exception.authenticationEntryPoint((request, response, authException) -> {
                     if (request.getRequestURI().startsWith("/api/")) {

@@ -1,15 +1,16 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.1
+ * @version 1.3.3
  * @created 05-05-2026
- * @modified 14-05-2026
- * @description Gestiona cuenta, favoritos, preferencias, notificaciones de GP, foro y contacto
+ * @modified 22-05-2026
+ * @description Gestiona cuenta, borrado, favoritos, preferencias, notificaciones de GP, foro y contacto sin avisos duplicados de ADMIN
  */
 document.addEventListener('DOMContentLoaded', () => {
     const page = document.body.dataset.rsPrivatePage;
     const PASSWORD_REQUIREMENTS_MESSAGE = 'La contraseña no cumple los requisitos';
     const PASSWORD_MISMATCH_MESSAGE = 'Las contraseñas no coinciden';
+    const SAME_PASSWORD_MESSAGE = 'La contraseña introducida es la registrada actualmente';
 
     const api = async (url, options = {}) => {
         const response = await fetch(url, {
@@ -18,7 +19,13 @@ document.addEventListener('DOMContentLoaded', () => {
             headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', ...(options.headers || {}) }
         });
         const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || 'Error');
+        if (!response.ok) {
+            const error = new Error(data.error || 'Error');
+            error.field = data.field || '';
+            error.error = data.error || 'Error';
+            error.status = response.status;
+            throw error;
+        }
         return data;
     };
 
@@ -27,6 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (text.includes('bloque')) return 'Usuario bloqueado';
         if (text.includes('smtp')) return 'SMTP desactivado';
         if (text.includes('contrase') && text.includes('coinc')) return PASSWORD_MISMATCH_MESSAGE;
+        if (text.includes('actual') && (text.includes('guardad') || text.includes('misma') || text.includes('ya es'))) return SAME_PASSWORD_MESSAGE;
+        if (text.includes('actual') && text.includes('oblig')) return 'Contraseña actual obligatoria';
+        if (text.includes('actual') && (text.includes('correct') || text.includes('incorrect'))) return 'Contraseña actual incorrecta';
+        if (text.includes('admin')) return 'Acción no permitida';
         if (text.includes('requisito') || text.includes('caracter')) return PASSWORD_REQUIREMENTS_MESSAGE;
         if (text.includes('nombre')) return 'Nombre usado';
         if (text.includes('email')) return 'Email usado';
@@ -323,10 +334,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    const bindProfileForms = () => {
+    const bindProfileForms = (user) => {
         const profileForm = document.getElementById('profileForm');
         const passwordForm = document.getElementById('passwordForm');
+        const deleteAccountButton = document.getElementById('deleteAccountButton');
+        const deleteAccountAlert = document.getElementById('deleteAccountAlert');
         const alert = document.getElementById('profileAlert') || document.getElementById('passwordAlert');
+        const isAdmin = user?.role === 'ADMIN';
+        if (isAdmin) {
+            [profileForm, passwordForm].forEach((form) => {
+                form?.querySelectorAll('input, button, select, textarea').forEach((node) => {
+                    node.disabled = true;
+                });
+            });
+            if (deleteAccountButton) deleteAccountButton.hidden = true;
+            if (alert) alert.textContent = '';
+            if (deleteAccountAlert) deleteAccountAlert.textContent = '';
+            updatePasswordRules(passwordForm);
+            return;
+        }
         profileForm?.addEventListener('submit', async (event) => {
             event.preventDefault();
             const data = new FormData(profileForm);
@@ -367,9 +393,15 @@ document.addEventListener('DOMContentLoaded', () => {
         passwordForm?.addEventListener('submit', async (event) => {
             event.preventDefault();
             const data = new FormData(passwordForm);
+            const currentPassword = `${data.get('currentPassword') || ''}`;
             const password = `${data.get('password') || ''}`;
             const confirmPassword = `${data.get('confirmPassword') || ''}`;
             clearFormFieldErrors(passwordForm);
+            if (!currentPassword) {
+                alert.textContent = '';
+                setFieldError(passwordForm.querySelector('[name="currentPassword"]'), 'Contraseña actual obligatoria');
+                return;
+            }
             if (password !== confirmPassword) {
                 alert.textContent = '';
                 setFieldError(passwordForm.querySelector('[name="confirmPassword"]'), PASSWORD_MISMATCH_MESSAGE);
@@ -381,21 +413,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             try {
-                await api('/api/user/password', { method: 'PUT', body: JSON.stringify({ password, confirmPassword }) });
+                await api('/api/user/password', { method: 'PUT', body: JSON.stringify({ currentPassword, password, confirmPassword }) });
                 passwordForm.reset();
                 updatePasswordRules(passwordForm);
                 alert.textContent = 'Actualizada';
             } catch (error) {
                 const message = shortAlert(error.message);
-                if (message === PASSWORD_REQUIREMENTS_MESSAGE) {
+                if (error.field === 'password' || message === PASSWORD_REQUIREMENTS_MESSAGE || message === SAME_PASSWORD_MESSAGE) {
                     alert.textContent = '';
                     setFieldError(passwordForm.querySelector('[name="password"]'), message);
-                } else if (message === PASSWORD_MISMATCH_MESSAGE) {
+                } else if (error.field === 'confirmPassword' || message === PASSWORD_MISMATCH_MESSAGE) {
                     alert.textContent = '';
                     setFieldError(passwordForm.querySelector('[name="confirmPassword"]'), message);
+                } else if (error.field === 'currentPassword' || message.includes('actual')) {
+                    alert.textContent = '';
+                    setFieldError(passwordForm.querySelector('[name="currentPassword"]'), message);
                 } else {
                     alert.textContent = message;
                 }
+            }
+        });
+        deleteAccountButton?.addEventListener('click', async () => {
+            if (!confirm('¿Eliminar tu cuenta y todos sus datos asociados?')) return;
+            deleteAccountButton.disabled = true;
+            deleteAccountAlert.textContent = 'Eliminando...';
+            try {
+                await api('/api/user/account', { method: 'DELETE' });
+                sessionStorage.clear();
+                window.location.replace(`/login.html?deleted=${Date.now()}`);
+            } catch (error) {
+                deleteAccountButton.disabled = false;
+                deleteAccountAlert.textContent = shortAlert(error.message);
             }
         });
         updatePasswordRules(passwordForm);
@@ -425,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let posts = [];
         let highlightedPostId = null;
 
-        const normalizeForumSearch = (value) => `${value || ''}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const normalizeForumSearch = (value) => `${value || ''}`.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
         const truncate = (value, max) => `${value || ''}`.slice(0, max);
         const postMatches = (post, query) => {
             if (!query) return true;
@@ -669,9 +717,14 @@ document.addEventListener('DOMContentLoaded', () => {
             event.preventDefault();
             if (pending) return;
             const data = new FormData(form);
+            const topic = `${data.get('topic') || ''}`.trim();
             const subject = `${data.get('subject') || ''}`.trim();
             const message = `${data.get('message') || ''}`.trim();
             const policyAccepted = data.get('policyAccepted') === 'on';
+            if (!topic) {
+                alert.textContent = 'Selecciona un tema';
+                return;
+            }
             if (!subject || !message || subject.length > maxSubjectLength || message.length > maxMessageLength) {
                 alert.textContent = 'Asunto máximo 20 caracteres y mensaje máximo 1000 caracteres';
                 return;
@@ -692,7 +745,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const response = await api('/api/contact', {
                     method: 'POST',
-                    body: JSON.stringify({ subject, message, policyAccepted, clientRequestId })
+                    body: JSON.stringify({ topic, subject, message, policyAccepted, clientRequestId })
                 });
                 form.reset();
                 clientRequestId = null;
@@ -712,9 +765,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    loadMe().then(() => {
+    loadMe().then((user) => {
         if (page === 'favorites') renderFavorites();
-        bindProfileForms();
+        bindProfileForms(user);
         bindForum();
         bindContact();
     }).catch(() => {

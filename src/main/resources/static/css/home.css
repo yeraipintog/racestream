@@ -1,10 +1,11 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.9
+ * @version 1.4.0
  * @created 30-04-2026
- * @modified 14-05-2026
- * @description Estilos responsive de Inicio con offset de cabecera, ultima sesion, rankings e imagenes F1 2026
+ * @modified 19-05-2026
+ * @description Estilos responsive de Inicio con offset de cabecera, última
+ *              carrera, estadísticas de temporada, rankings e imágenes F1
  */
 
 .rs-home {
@@ -31,6 +32,10 @@
     padding-block: clamp(54px, 9vw, 92px);
 }
 
+.rs-home-hero__copy {
+    min-width: 0;
+}
+
 .rs-home-section__title span,
 .rs-home-card__header span {
     color: #ffcdcd;
@@ -53,6 +58,7 @@
     color: #e2e8f0;
     font-size: clamp(17px, 2vw, 21px);
     text-align: justify;
+    overflow-wrap: anywhere;
 }
 
 .rs-home-hero__actions {
@@ -60,6 +66,11 @@
     gap: 12px;
     margin-top: 24px;
     flex-wrap: wrap;
+}
+
+.rs-home-hero__actions .rs-button--primary {
+    border-color: rgba(248, 113, 113, .58);
+    background: linear-gradient(135deg, rgba(229, 57, 53, .36), rgba(248, 113, 113, .22));
 }
 
 .rs-home-hero__actions .rs-button--primary {
@@ -100,11 +111,13 @@
 
 .rs-home-card__header a,
 .rs-home-last-session__head a {
+    flex: 0 0 auto;
     min-height: 24px;
     padding: 0;
     color: var(--rs-text-soft);
     display: inline-flex;
     align-items: center;
+    white-space: nowrap;
     transition: color .22s ease, filter .22s ease;
 }
 
@@ -112,6 +125,12 @@
 .rs-home-last-session__head a:hover {
     color: #fff;
     filter: brightness(1.16);
+}
+
+.rs-home-card__live-link {
+    min-height: 34px;
+    padding: 0 14px;
+    font-size: 12px;
 }
 
 .rs-home-next-card h2,
@@ -192,6 +211,13 @@
     gap: 12px;
 }
 
+.rs-home-last-session__eyebrow-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
 .rs-home-last-session__head span {
     display: block;
     color: #ffcdcd;
@@ -200,8 +226,16 @@
     text-transform: uppercase;
 }
 
+.rs-home-last-session__head span.rs-home-last-session__type {
+    color: var(--rs-text-muted);
+    font-size: 11px;
+    font-weight: 800;
+}
+
 .rs-home-last-session__head strong {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     margin-top: 4px;
     color: #fff;
     font-size: 17px;
@@ -209,6 +243,18 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.rs-home-last-session__head strong span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rs-home-last-session__head strong .rs-home-last-session__gp {
+    color: #fff;
+    font-size: 15px;
+    text-transform: none;
 }
 
 .rs-home-last-session__results {
@@ -255,7 +301,7 @@
     height: 100%;
 }
 
-.rs-home-panel--live {
+.rs-home-panel--season-stats {
     background:
         linear-gradient(135deg, rgba(229, 57, 53, .18), rgba(56, 189, 248, .08)),
         linear-gradient(180deg, rgba(17, 24, 39, .96), rgba(12, 18, 30, .96));
@@ -263,47 +309,14 @@
     flex-direction: column;
 }
 
-.rs-home-live-actions {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-top: auto;
-    padding-top: 16px;
-}
-
-@media (max-width: 640px) {
-    .rs-home-live-actions {
-        align-items: stretch;
-        flex-direction: column;
-        padding-top: 18px;
-    }
-
-    .rs-home-live-source {
-        align-self: flex-end;
-    }
-}
-
-.rs-home-live-source {
-    color: var(--rs-text-soft);
-    font-size: 12px;
-    font-weight: 900;
-    text-decoration: none;
-    white-space: nowrap;
-}
-
-.rs-home-live-source:hover {
-    color: #fff;
-}
-
-.rs-home-live-grid {
+.rs-home-season-stats {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
-    margin: 16px 0 0;
+    margin-top: auto;
 }
 
-.rs-home-live-grid div,
+.rs-home-season-stat,
 .rs-home-shortcuts a,
 .rs-home-ranking__row,
 .rs-home-news__item {
@@ -312,11 +325,13 @@
     background: rgba(255, 255, 255, .035);
 }
 
-.rs-home-live-grid div {
+.rs-home-season-stat {
     padding: 14px;
+    display: grid;
+    gap: 5px;
 }
 
-.rs-home-live-grid strong,
+.rs-home-season-stat strong,
 .rs-home-shortcuts strong,
 .rs-home-ranking__row strong {
     display: block;
@@ -324,7 +339,7 @@
     font-weight: 900;
 }
 
-.rs-home-live-grid span,
+.rs-home-season-stat span,
 .rs-home-shortcuts span,
 .rs-home-ranking__row span,
 .rs-home-news__item span {
@@ -333,6 +348,13 @@
     color: var(--rs-text-muted);
     font-size: 12px;
     font-weight: 800;
+}
+
+.rs-home-season-stat small {
+    color: var(--rs-text-soft);
+    font-size: 12px;
+    line-height: 1.35;
+    text-align: justify;
 }
 
 .rs-home-panel p {
@@ -575,7 +597,6 @@
         grid-template-columns: 1fr;
     }
 
-    .rs-home-live-grid,
     .rs-home-shortcuts {
         grid-template-columns: 1fr;
     }
@@ -590,16 +611,6 @@
 
     .rs-home-hero__actions .rs-button {
         width: 100%;
-    }
-
-    .rs-home-live-actions {
-        gap: 8px;
-    }
-
-    .rs-home-live-actions .rs-button {
-        flex: 1 1 auto;
-        min-width: 0;
-        padding-inline: 12px;
     }
 
     .rs-home-ranking__row {

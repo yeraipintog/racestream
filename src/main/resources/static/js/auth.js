@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.7
+ * @version 1.1.8
  * @created 05-05-2026
- * @modified 14-05-2026
+ * @modified 22-05-2026
  * @description Gestiona login, registro, recuperacion, hashes de panel sin scroll intermedio y validacion
  */
 document.addEventListener('DOMContentLoaded', () => {
@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetToken = params.get('resetToken');
     const PASSWORD_REQUIREMENTS_MESSAGE = 'La contraseña no cumple los requisitos';
     const PASSWORD_MISMATCH_MESSAGE = 'Las contraseñas no coinciden';
+    const SAME_PASSWORD_MESSAGE = 'La contraseña introducida es la registrada actualmente';
 
     const postJson = async (url, body) => {
         const response = await fetch(url, {
@@ -42,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (text.includes('bloque')) return 'Usuario bloqueado';
         if (text.includes('smtp')) return 'SMTP desactivado';
         if (text.includes('contrase') && text.includes('coinc')) return PASSWORD_MISMATCH_MESSAGE;
+        if (text.includes('actual') && (text.includes('guardad') || text.includes('misma') || text.includes('ya es'))) return SAME_PASSWORD_MESSAGE;
         if (text.includes('requisito') || text.includes('caracter')) return PASSWORD_REQUIREMENTS_MESSAGE;
         if (text.includes('pol')) return 'Políticas';
         if (text.includes('nombre')) return 'Nombre usado';
@@ -157,12 +159,51 @@ document.addEventListener('DOMContentLoaded', () => {
     activatePanel(panelFromHash());
     bindFieldErrorReset(loginForm);
     bindFieldErrorReset(registerForm);
+    bindFieldErrorReset(resetRequestForm);
+    bindFieldErrorReset(resetConfirmForm);
 
     if (resetToken && resetConfirmForm) {
         if (resetRequestForm) resetRequestForm.hidden = true;
-        resetConfirmForm.hidden = false;
+        resetConfirmForm.hidden = true;
         resetConfirmForm.querySelector('[name="token"]').value = resetToken;
+        const tokenAlert = document.getElementById('resetTokenAlert');
+        if (tokenAlert) tokenAlert.textContent = 'Comprobando enlace';
     }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 22-05-2026
+     * @modified 22-05-2026
+     * @description Comprueba que el enlace de recuperacion no este caducado antes de mostrar el formulario
+     */
+    const validateResetToken = async () => {
+        if (!resetToken || !resetConfirmForm) return;
+        const tokenAlert = document.getElementById('resetTokenAlert');
+        const alert = document.getElementById('resetConfirmAlert');
+        try {
+            const response = await fetch(`/api/auth/password-reset/validate?token=${encodeURIComponent(resetToken)}`, {
+                cache: 'no-store',
+                headers: { 'Cache-Control': 'no-cache' }
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data.error || 'Enlace caducado');
+            if (tokenAlert) tokenAlert.textContent = '';
+            alert.textContent = '';
+            resetConfirmForm.hidden = false;
+        } catch (error) {
+            if (tokenAlert) tokenAlert.textContent = '';
+            resetConfirmForm.hidden = true;
+            resetConfirmForm.reset();
+            updateRules(resetConfirmForm);
+            if (resetRequestForm) resetRequestForm.hidden = false;
+            const requestAlert = document.getElementById('resetRequestAlert');
+            requestAlert.textContent = 'Enlace caducado';
+            window.history.replaceState({}, '', '/login.html#reset');
+        }
+    };
+    validateResetToken();
 
     document.querySelectorAll('[data-password-toggle]').forEach((button) => {
         button.addEventListener('click', () => {
@@ -182,9 +223,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     resetConfirmForm?.querySelectorAll('[type="password"]').forEach((input) => {
-        input.addEventListener('input', () => clearFieldError(input));
+        input.addEventListener('input', () => {
+            clearFieldError(input);
+            updateRules(resetConfirmForm);
+        });
     });
     updateRules(registerForm);
+    updateRules(resetConfirmForm);
 
     loginForm?.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -211,12 +256,18 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         const alert = document.getElementById('resetRequestAlert');
         const form = new FormData(resetRequestForm);
+        clearFormFieldErrors(resetRequestForm);
         alert.textContent = 'Preparando';
         try {
             const response = await postJson('/api/auth/password-reset/request', { email: form.get('email') });
             alert.textContent = response.blocked ? 'Usuario bloqueado' : response.mailSent ? 'Correo enviado' : 'SMTP desactivado';
         } catch (error) {
-            alert.textContent = shortAlert(error.message);
+            if (error.field === 'email') {
+                alert.textContent = '';
+                setFieldError(resetRequestForm.querySelector('[name="email"]'), error.error || 'Email no registrado');
+            } else {
+                alert.textContent = shortAlert(error.message);
+            }
         }
     });
 
@@ -240,11 +291,11 @@ document.addEventListener('DOMContentLoaded', () => {
         alert.textContent = 'Guardando';
         try {
             await postJson('/api/auth/password-reset/confirm', { token: form.get('token'), password, confirmPassword });
-            alert.textContent = 'Actualizada';
-            window.history.replaceState({}, '', '/login.html');
+            sessionStorage.removeItem('rs-auth-me');
+            window.location.replace('/account.html');
         } catch (error) {
             const message = shortAlert(error.message);
-            if (message === PASSWORD_REQUIREMENTS_MESSAGE) {
+            if (error.field === 'password' || message === PASSWORD_REQUIREMENTS_MESSAGE || message === SAME_PASSWORD_MESSAGE) {
                 alert.textContent = '';
                 setFieldError(resetConfirmForm.querySelector('[name="password"]'), message);
             } else if (message === PASSWORD_MISMATCH_MESSAGE) {

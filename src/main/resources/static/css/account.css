@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.3.1
+ * @version 1.3.4
  * @created 05-05-2026
- * @modified 18-05-2026
- * @description Estilos responsive para autenticacion, cuenta, favoritos, soporte, foro, admin, paginas legales y control de overflow movil
+ * @modified 22-05-2026
+ * @description Estilos responsive para autenticacion, cuenta, favoritos, soporte, foro, admin, paginas legales, accesos diferenciados, titulos legibles y control de overflow movil
  */
 
 .rs-simple-page {
@@ -28,7 +28,7 @@
     margin: 0;
     color: #fff;
     font-size: 38px;
-    font-weight: 900;
+    font-weight: var(--rs-heading-weight);
     line-height: 1.05;
     overflow-wrap: anywhere;
     word-break: break-word;
@@ -424,6 +424,10 @@ body:not([data-rs-private-page="privacy"]) .rs-form > .rs-alert:empty {
     color: #fecaca;
 }
 
+#deleteAccountButton {
+    margin-top: 12px;
+}
+
 .rs-admin-blocked-list {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -523,6 +527,21 @@ body:not([data-rs-private-page="privacy"]) .rs-form > .rs-alert:empty {
 
 .rs-simple-panel .rs-account-link span {
     text-decoration: none;
+}
+
+.rs-simple-panel .rs-account-link strong {
+    color: #fff;
+    font-size: 17px;
+    font-weight: 900;
+    line-height: 1.2;
+}
+
+.rs-simple-panel .rs-account-link span {
+    display: block;
+    color: var(--rs-text-muted);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.45;
 }
 
 .rs-account-link:hover,
@@ -899,22 +918,6 @@ body[data-rs-private-page="preferences"] .rs-simple-panel {
     gap: 10px;
     margin: 0;
     padding-left: 18px;
-}
-
-.rs-web-toast {
-    position: fixed;
-    right: 18px;
-    bottom: 18px;
-    z-index: 2000;
-    max-width: min(420px, calc(100vw - 36px));
-    padding: 12px 14px;
-    border: 1px solid rgba(255, 255, 255, .14);
-    border-radius: 8px;
-    background: rgba(12, 18, 30, .98);
-    color: #fff;
-    box-shadow: var(--rs-shadow-md);
-    font-weight: 900;
-    text-align: justify;
 }
 
 .rs-cookie-choice {

@@ -25,6 +25,7 @@
                 <article class="rs-simple-panel">
                     <h2>Actualizar contraseña</h2>
                     <form id="passwordForm" class="rs-form">
+                        <label class="rs-password-field">Contraseña actual<input name="currentPassword" type="password" autocomplete="current-password" required><button class="rs-password-toggle" type="button" data-password-toggle aria-label="Mostrar contraseña" aria-pressed="false">&#128065;</button></label>
                         <label class="rs-password-field">Nueva contraseña<input name="password" type="password" autocomplete="new-password" required><button class="rs-password-toggle" type="button" data-password-toggle aria-label="Mostrar contraseña" aria-pressed="false">&#128065;</button></label>
                         <label>Confirmar contraseña<input name="confirmPassword" type="password" autocomplete="new-password" required></label>
                         <ul class="rs-password-rules" aria-label="Requisitos de contraseña">
@@ -44,6 +45,8 @@
                     <h2>Cuenta</h2>
                     <p>Email asociado: <strong data-user-email>-</strong></p>
                     <p>RaceStream guarda solo los datos necesarios para identificar tu cuenta, favoritos, preferencias, publicaciones del foro y mensajes de contacto.</p>
+                    <button id="deleteAccountButton" class="rs-button rs-button--danger" type="button">Eliminar cuenta</button>
+                    <div id="deleteAccountAlert" class="rs-alert" aria-live="polite"></div>
                 </article>
             </section>
         </div>

@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.5.1
+ * @version 1.6.1
  * @created 30-04-2026
- * @modified 14-05-2026
- * @description Lógica de Sesiones completadas con selector rápido por GP, carga reforzada, podios y tablas
+ * @modified 22-05-2026
+ * @description Lógica de Sesiones completadas con limite publico, selector por GP, carga reforzada, podios y tablas
  */
 class RaceStreamSessionsPage {
 
@@ -13,6 +13,7 @@ class RaceStreamSessionsPage {
         this.initialParams = new URLSearchParams(window.location.search);
         const requestedYear = Number(this.initialParams.get('year'));
         this.year = Number.isInteger(requestedYear) && requestedYear >= 1950 ? requestedYear : new Date().getFullYear();
+        this.publicLimited = false;
         this.raceStripYear = new Date().getFullYear();
         this.currentMeetingApi = `/api/f1/schedule/current-or-next-meeting?year=${this.raceStripYear}`;
         this.meetingsApi = (year) => `/api/f1/schedule/calendar-meetings?year=${year}`;
@@ -59,6 +60,12 @@ class RaceStreamSessionsPage {
     bindEvents() {
         this.yearInput.value = String(this.year);
         this.yearInput.addEventListener('change', () => {
+            if (this.publicLimited) {
+                this.year = new Date().getFullYear();
+                this.yearInput.value = String(this.year);
+                this.updateUrl(this.year, null);
+                return;
+            }
             this.initialParams.delete('meetingKey');
             this.initialParams.delete('sessionKey');
             this.initialParams.delete('sessionIndex');
@@ -71,15 +78,35 @@ class RaceStreamSessionsPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 07-05-2026
      * @description Inicializa temporadas, strip superior y meetings seleccionables
      * @returns {Promise<void>} Carga completada
      */
     async init() {
+        await this.resolvePublicAccess();
         await this.loadSeasons();
         if (this.ownsRaceStrip) this.loadRaceStripMeeting();
         await this.loadMeetings();
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 20-05-2026
+     * @modified 20-05-2026
+     * @description Limita las sesiones anonimas a la temporada actual
+     */
+    async resolvePublicAccess() {
+        const user = await window.RaceStreamApi.getCurrentUser();
+        this.publicLimited = !user?.authenticated;
+        if (!this.publicLimited) return;
+        this.year = new Date().getFullYear();
+        this.initialParams.delete('meetingKey');
+        this.initialParams.delete('sessionKey');
+        this.initialParams.delete('sessionIndex');
+        this.updateUrl(this.year, null);
     }
 
     /**
@@ -92,6 +119,12 @@ class RaceStreamSessionsPage {
      */
     async loadSeasons() {
         const currentYear = new Date().getFullYear();
+        if (this.publicLimited) {
+            this.year = currentYear;
+            this.yearInput.innerHTML = `<option value="${currentYear}" selected>${currentYear}</option>`;
+            this.yearInput.disabled = true;
+            return;
+        }
         const seasons = await this.fetchJson('/api/f1/standings/seasons', []);
         const safeSeasons = Array.isArray(seasons) && seasons.length
             ? seasons
@@ -133,7 +166,7 @@ class RaceStreamSessionsPage {
         }
         if (!Array.isArray(this.meetings) || !this.meetings.length) {
             this.meetingSelect.innerHTML = '<option value="">Sin datos</option>';
-            this.yearInput.disabled = false;
+            this.yearInput.disabled = this.publicLimited;
             this.yearInput.removeAttribute('aria-busy');
             this.renderSessionsRetry('No hay sesiones disponibles para esta temporada.');
             this.renderSelectedMeetingInfo(null);
@@ -159,7 +192,7 @@ class RaceStreamSessionsPage {
             || this.getCurrentOrNextMeeting(this.selectableMeetings);
         if (!selected) {
             this.meetingSelect.innerHTML = '<option value="">Sin Grandes Premios</option>';
-            this.yearInput.disabled = false;
+            this.yearInput.disabled = this.publicLimited;
             this.yearInput.removeAttribute('aria-busy');
             this.renderSessionsRetry('Todavía no hay Grandes Premios con sesiones completadas en esta temporada.');
             this.renderSelectedMeetingInfo(null);
@@ -167,7 +200,7 @@ class RaceStreamSessionsPage {
             return;
         }
         this.meetingSelect.disabled = false;
-        this.yearInput.disabled = false;
+        this.yearInput.disabled = this.publicLimited;
         this.yearInput.removeAttribute('aria-busy');
         this.meetingSelect.value = selected.meeting_key;
         this.initialParams.delete('meetingKey');
@@ -1149,14 +1182,15 @@ class RaceStreamSessionsPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 04-05-2026
+     * @modified 22-05-2026
      * @description Normaliza nombres de equipos para rutas de assets de Formula 1
      * @param {string} value Texto original
      * @returns {string} Clave normalizada
      */
     normalizeAssetKey(value) {
-        return `${value || ''}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        return `${value || ''}`.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     }
 
     /**

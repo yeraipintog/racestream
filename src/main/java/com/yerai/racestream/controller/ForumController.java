@@ -77,7 +77,7 @@ public class ForumController {
      * @modified 13-05-2026
      * @description Publica un mensaje validando limites de titulo y contenido
      * @param request        Datos del post
-     * @param authentication Sesion actual
+     * @param authentication Sesión actual
      * @return Post guardado
      */
     @PostMapping
@@ -137,7 +137,7 @@ public class ForumController {
      * @modified 05-05-2026
      * @description Alterna un me gusta por usuario y publicacion
      * @param id             Identificador del post
-     * @param authentication Sesion actual
+     * @param authentication Sesión actual
      * @return Post actualizado
      */
     @PostMapping("/{id}/like")
@@ -167,7 +167,7 @@ public class ForumController {
      * @modified 12-05-2026
      * @description Borra un post y sus respuestas solo si lo solicita un administrador
      * @param id             Identificador del post
-     * @param authentication Sesion actual
+     * @param authentication Sesión actual
      * @return Estado de borrado
      */
     @DeleteMapping("/{id}")

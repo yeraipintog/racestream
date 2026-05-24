@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.4.0
+ * @version 1.4.7
  * @created 21-04-2026
- * @modified 18-05-2026
- * @description Estilos de componentes RaceStream con navbar activo, favoritos, formularios, cookies y proximo GP responsive
+ * @modified 23-05-2026
+ * @description Estilos de componentes RaceStream con navbar activo, favoritos, notificaciones, formularios, cookies, próximo GP y títulos legibles
  */
 
 /* =========================
@@ -12,7 +12,7 @@
 ========================= */
 .rs-navbar__link {
     color: var(--rs-text-soft);
-    font-size: 14px;
+    font-size: clamp(15px, 1vw, 17px);
     font-weight: 800;
     white-space: nowrap;
 }
@@ -87,7 +87,8 @@
    DROPDOWN PERFIL
 ========================= */
 .rs-profile-dropdown,
-.rs-navbar-mobile-menu {
+.rs-navbar-mobile-menu,
+.rs-notification-dropdown {
     position: relative;
 }
 
@@ -139,6 +140,124 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
 
 .rs-profile-dropdown--open .rs-profile-dropdown__menu {
     display: flex;
+}
+
+.rs-notification-dropdown__trigger {
+    position: relative;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+}
+
+.rs-notification-dropdown__badge {
+    position: absolute;
+    right: -2px;
+    top: 0;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border: 1px solid rgba(8, 11, 18, .9);
+    border-radius: 999px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 14px;
+    text-align: center;
+}
+
+.rs-notification-dropdown__panel {
+    display: none;
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: min(360px, calc(100vw - 24px));
+    max-height: min(480px, calc(100vh - var(--rs-header-offset, 132px) - 28px));
+    border: 1px solid var(--rs-border);
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(17, 24, 39, .98), rgba(12, 18, 30, .98));
+    box-shadow: 0 20px 40px rgba(0, 0, 0, .35);
+    overflow: hidden;
+    z-index: 1300;
+}
+
+.rs-notification-dropdown--open .rs-notification-dropdown__panel {
+    display: block;
+}
+
+.rs-notification-dropdown__head {
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+
+.rs-notification-dropdown__head strong {
+    color: #fff;
+    font-size: 15px;
+    font-weight: 900;
+}
+
+.rs-notification-dropdown__list {
+    max-height: min(420px, calc(100vh - var(--rs-header-offset, 132px) - 90px));
+    overflow-y: auto;
+}
+
+.rs-notification-dropdown__item {
+    position: relative;
+    padding: 13px 42px 13px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+    display: grid;
+    gap: 5px;
+}
+
+.rs-notification-dropdown__item strong {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 900;
+    line-height: 1.25;
+}
+
+.rs-notification-dropdown__item p,
+.rs-notification-dropdown__empty {
+    margin: 0;
+    color: var(--rs-text-soft);
+    font-size: 13px;
+    line-height: 1.45;
+    text-align: justify;
+    overflow-wrap: anywhere;
+}
+
+.rs-notification-dropdown__item time {
+    color: var(--rs-text-muted);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.rs-notification-dropdown__close,
+.rs-web-toast__close {
+    width: 26px;
+    height: 26px;
+    border: 1px solid rgba(255, 255, 255, .14);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .06);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.rs-notification-dropdown__close {
+    position: absolute;
+    top: 12px;
+    right: 10px;
+}
+
+.rs-notification-dropdown__empty {
+    padding: 16px 14px;
 }
 
 .rs-profile-dropdown__button {
@@ -225,7 +344,8 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
 }
 
 .rs-race-strip__clock-card {
-    min-width: 118px;
+    width: clamp(116px, 12vw, 134px);
+    min-width: 116px;
     padding: 5px 8px;
     border: 1px solid rgba(255, 255, 255, .08);
     border-radius: 14px;
@@ -245,7 +365,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
 .rs-race-strip__clock-label,
 .rs-race-strip__clock-subvalue {
     color: #d7dfec;
-    font-size: 10px;
+    font-size: 11px; /* +1px global */
     font-weight: 800;
     line-height: 1.1;
     white-space: nowrap;
@@ -253,7 +373,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
 
 .rs-race-strip__clock-value {
     color: #fff;
-    font-size: 15px;
+    font-size: clamp(16px, 1.3vw, 18px);
     font-weight: 900;
     line-height: 1;
     white-space: nowrap;
@@ -261,7 +381,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
 
 .rs-race-strip__clock-track-value {
     color: #d7dfec;
-    font-size: 14px;
+    font-size: clamp(13px, 1vw, 15px);
     font-weight: 700;
     line-height: 1;
     white-space: nowrap;
@@ -285,7 +405,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
     background: rgba(229, 57, 53, .12);
     color: #ffd5d5;
     font-weight: 900;
-    font-size: 10px;
+    font-size: 11px; /* +1px global */
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
 }
@@ -316,8 +436,8 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
 .rs-news-head h1 {
     margin: 0;
     font-size: 34px;
-    font-family: var(--rs-font-family);
-    font-weight: 900;
+    font-family: var(--rs-font-heading);
+    font-weight: var(--rs-heading-weight);
     letter-spacing: 0;
     line-height: 1.05;
     white-space: normal;
@@ -603,7 +723,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
 .rs-calendar-events__title {
     margin: 0;
     font-size: 15px;
-    font-weight: 900;
+    font-weight: var(--rs-heading-strong-weight);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -712,7 +832,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
     min-width: 0;
     color: #fff;
     font-size: 30px;
-    font-weight: 900;
+    font-weight: var(--rs-heading-weight);
     line-height: 1.12;
     overflow-wrap: anywhere;
 }
@@ -765,7 +885,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
     margin: 0;
     color: #fff;
     font-size: 15px;
-    font-weight: 900;
+    font-weight: var(--rs-heading-strong-weight);
 }
 
 .rs-circuit-card__image {
@@ -996,7 +1116,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
 .rs-info-card__title {
     margin: 0;
     font-size: 18px;
-    font-weight: 900;
+    font-weight: var(--rs-heading-strong-weight);
 }
 
 .rs-info-list {
@@ -1218,7 +1338,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
 .rs-session-row__main h4 {
     margin: 0;
     font-size: 16px;
-    font-weight: 900;
+    font-weight: var(--rs-heading-strong-weight);
     line-height: 1.15;
     min-width: 0;
     overflow: visible;
@@ -1535,10 +1655,55 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
     color: #fff;
 }
 
+.rs-web-toast-stack {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 2000;
+    width: min(420px, calc(100vw - 36px));
+    display: grid;
+    gap: 10px;
+}
+
+.rs-web-toast {
+    position: relative;
+    min-width: 0;
+    padding: 13px 14px 13px 48px;
+    border: 1px solid rgba(255, 255, 255, .14);
+    border-radius: 8px;
+    background: rgba(12, 18, 30, .98);
+    color: #fff;
+    box-shadow: var(--rs-shadow-md);
+    display: grid;
+    gap: 5px;
+}
+
+.rs-web-toast__close {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+}
+
+.rs-web-toast strong {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 900;
+    line-height: 1.2;
+}
+
+.rs-web-toast span {
+    color: var(--rs-text-soft);
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.45;
+    text-align: justify;
+    overflow-wrap: anywhere;
+}
+
 /* =========================
    RESPONSIVE
 ========================= */
-@media (max-width: 1100px) {
+@media (max-width: 1180px) {
     .rs-navbar__link--overflow,
     .rs-navbar-mobile-menu__desktop-link {
         display: none;
@@ -1573,7 +1738,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
 
 @media (max-width: 820px) {
     .rs-navbar__link {
-        font-size: 13px;
+        font-size: 15px;
     }
 
     .rs-navbar__icon-link {
@@ -1589,7 +1754,8 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
     }
 
     .rs-race-strip__clock-card {
-        min-width: 124px;
+        width: 118px;
+        min-width: 118px;
     }
 
     .rs-race-strip__status {
@@ -1768,21 +1934,21 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
 
 @media (max-width: 640px) {
     .rs-race-strip .rs-container {
-        padding-inline: clamp(16px, 5vw, 22px);
+        padding-inline: 12px;
     }
 
     .rs-race-strip__inner {
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: minmax(0, 1fr) clamp(92px, 28vw, 118px);
         grid-template-areas:
-            "label action"
+            "label clocks"
             "main clocks";
-        gap: 8px 10px;
+        gap: 6px 8px;
         align-items: center;
         padding: 8px 0;
     }
 
     .rs-race-strip__main {
-        width: 100%;
+        width: auto;
         align-items: center;
         flex-wrap: nowrap;
         gap: 8px;
@@ -1800,6 +1966,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
 
     #raceStripAction {
         grid-area: action;
+        display: none;
         min-width: 0;
         width: min(48vw, 190px);
         max-width: 190px;
@@ -1811,18 +1978,15 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
 
     #raceStripClocks {
         grid-area: clocks;
-        min-width: min(38vw, 142px);
+        width: 100%;
+        min-width: 0;
         justify-self: end;
-    }
-
-    .rs-race-strip__label {
-        font-size: 11px;
+        align-self: center;
     }
 
     .rs-race-strip__title {
         flex: 1 1 auto;
         min-width: 0;
-        font-size: 15px;
         line-height: 1.15;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -1831,9 +1995,8 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
 
     .rs-race-strip__meta {
         min-width: 0;
-        max-width: min(34vw, 124px);
+        max-width: min(42vw, 150px);
         flex: 0 0 auto;
-        font-size: 12px;
         line-height: 1.15;
         white-space: nowrap;
         overflow: hidden;
@@ -1848,7 +2011,6 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
         min-height: 30px;
         text-align: center;
         padding: 0 10px;
-        font-size: 10px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -1856,48 +2018,115 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
     }
 
     .rs-race-strip__clock-card {
-        min-width: 0;
         width: 100%;
-        padding: 5px 7px;
-        border-radius: 12px;
+        min-width: 0;
+        padding: 5px;
+        gap: 4px;
     }
 
     .rs-race-strip__clock-row {
-        gap: 6px;
+        gap: 4px;
+        justify-content: space-between;
     }
 
     .rs-race-strip__clock-label,
     .rs-race-strip__clock-subvalue {
-        font-size: 10px;
+        display: inline;
     }
 
-    .rs-race-strip__clock-value {
-        font-size: 14px;
-    }
-
-    .rs-race-strip__clock-track-value {
-        font-size: 13px;
+    .rs-race-strip__clock-divider {
+        width: 100%;
+        height: 1px;
+        flex: 0 0 1px;
     }
 }
 
 @media (max-width: 440px) {
     .rs-race-strip__inner {
+        grid-template-columns: minmax(0, 1fr) clamp(88px, 29vw, 108px);
         grid-template-areas:
-            "label action"
-            "main main"
-            "clocks clocks";
+            "label clocks"
+            "main clocks";
+        gap: 6px 7px;
+        align-items: center;
+        padding: 6px 0;
+    }
+
+    #raceStripAction {
+        display: none;
     }
 
     #raceStripClocks {
+        grid-area: clocks;
         width: 100%;
         min-width: 0;
-        justify-self: stretch;
+        justify-self: end;
+        align-self: center;
+        display: block;
+    }
+
+    .rs-race-strip__label {
+        max-width: 100%;
+        overflow: hidden;
+    }
+
+    .rs-race-strip__meta {
+        max-width: none;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .rs-race-strip__clock-card {
+        width: 100%;
+        min-width: 0;
+        padding: 5px;
+        gap: 4px;
+    }
+
+    .rs-race-strip__clock-row {
+        gap: 4px;
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 380px) {
+    .rs-race-strip__inner {
+        grid-template-columns: minmax(0, 1fr) clamp(84px, 28vw, 100px);
+        grid-template-areas:
+            "label clocks"
+            "main clocks";
+    }
+
+    #raceStripClocks {
+        display: block;
+        grid-area: clocks;
+        width: 100%;
+        min-width: 0;
+        justify-self: end;
+        align-self: center;
+    }
+
+    .rs-race-strip__label,
+    .rs-race-strip__title-row {
+        max-width: 100%;
+    }
+}
+
+@media (min-width: 641px) and (max-width: 820px) {
+    .rs-race-strip .rs-container {
+        padding-inline: 20px;
+        margin-top: 5px;
+        margin-bottom: 5px;
     }
 }
 
 @media (max-width: 560px) {
     .rs-navbar__actions {
         gap: 8px;
+    }
+
+    .rs-navbar__link {
+        font-size: clamp(11px, 3.35vw, 15px);
     }
 
     .rs-calendar-topbar__title,
@@ -1919,7 +2148,8 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
     }
 
     .rs-profile-dropdown__menu,
-    .rs-navbar-mobile-menu__panel {
+    .rs-navbar-mobile-menu__panel,
+    .rs-notification-dropdown__panel {
         right: 0;
         min-width: min(210px, calc(100vw - 24px));
         max-width: calc(100vw - 24px);
@@ -1930,6 +2160,20 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
         top: calc(var(--rs-navbar-height, 74px) - 6px);
         right: 12px;
         left: auto;
+    }
+
+    .rs-notification-dropdown__panel {
+        position: fixed;
+        top: calc(var(--rs-navbar-height, 74px) - 6px);
+        right: 12px;
+        width: calc(100vw - 24px);
+    }
+
+    .rs-web-toast-stack {
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        width: auto;
     }
 
     .rs-cookie-banner {

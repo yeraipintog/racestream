@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.0
+ * @version 1.2.1
  * @created 05-05-2026
- * @modified 18-05-2026
+ * @modified 22-05-2026
  * @description API de registro, login, recuperacion, sesion, cookies con estado explicito, bloqueo de correos y acceso admin
  */
 package com.yerai.racestream.controller;
@@ -18,6 +18,7 @@ import com.yerai.racestream.repository.BlockedEmailRepository;
 import com.yerai.racestream.service.PasswordResetMailService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.transaction.Transactional;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +39,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.SecureRandom;
@@ -56,6 +58,7 @@ public class AuthController {
     private static final String COOKIE_CONSENT_COOKIE_NAME = "rs_cookie_consent";
     private static final String PASSWORD_REQUIREMENTS_MESSAGE = "La contraseña no cumple los requisitos";
     private static final String PASSWORD_MISMATCH_MESSAGE = "Las contraseñas no coinciden";
+    private static final String SAME_PASSWORD_MESSAGE = "Ya es tu contraseña actual";
 
     private final AppUserRepository appUserRepository;
     private final BlockedEmailRepository blockedEmailRepository;
@@ -169,24 +172,29 @@ public class AuthController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 07-05-2026
-     * @modified 07-05-2026
-     * @description Genera un token temporal y envia el enlace de restablecimiento por correo si la cuenta existe
+     * @modified 22-05-2026
+     * @description Genera un token temporal y avisa en el campo si el email no existe
      * @param request Email indicado por el usuario
      * @param servletRequest Peticion HTTP para construir la URL publica
-     * @return Estado generico para no revelar si el email existe
+     * @return Estado del envio o error asociado al campo email
      */
     @PostMapping("/password-reset/request")
     public ResponseEntity<?> requestPasswordReset(@RequestBody PasswordResetRequest request, HttpServletRequest servletRequest) {
         String email = normalizeEmail(request.email());
-        boolean mailSent = false;
-        boolean blocked = !isBlank(email) && blockedEmailRepository.existsByEmailIgnoreCase(email);
-        if (!isBlank(email) && !blocked) {
-            mailSent = appUserRepository.findByEmailIgnoreCase(email)
-                    .map(user -> preparePasswordReset(user, servletRequest))
-                    .orElse(false);
+        if (isBlank(email)) {
+            return fieldError(400, "email", "Email obligatorio");
         }
+        boolean blocked = !isBlank(email) && blockedEmailRepository.existsByEmailIgnoreCase(email);
+        if (blocked) {
+            return ResponseEntity.ok(Map.of("requested", true, "mailSent", false, "blocked", true));
+        }
+        AppUser user = appUserRepository.findByEmailIgnoreCase(email).orElse(null);
+        if (user == null) {
+            return fieldError(404, "email", "Email no registrado");
+        }
+        boolean mailSent = preparePasswordReset(user, servletRequest);
         return ResponseEntity.ok(Map.of("requested", true, "mailSent", mailSent, "blocked", blocked));
     }
 
@@ -194,14 +202,38 @@ public class AuthController {
      * @author Yerai Pinto
      * @since 1.0
      * @version 1.0.0
+     * @created 22-05-2026
+     * @modified 22-05-2026
+     * @description Comprueba si un enlace de restablecimiento sigue vigente antes de mostrar el formulario
+     * @param token Token recibido por correo
+     * @return Estado de validez del enlace
+     */
+    @GetMapping("/password-reset/validate")
+    public ResponseEntity<?> validatePasswordReset(@RequestParam String token) {
+        boolean valid = !isBlank(token)
+                && appUserRepository.existsByPasswordResetTokenAndPasswordResetExpiresAtAfter(token, Instant.now());
+        if (!valid) {
+            return ResponseEntity.badRequest().body(Map.of("error", "El enlace de restablecimiento ha caducado o no es válido"));
+        }
+        return ResponseEntity.ok(Map.of("valid", true));
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.1
      * @created 07-05-2026
-     * @modified 12-05-2026
-     * @description Valida el token recibido por correo y guarda una contrasena nueva cifrada
+     * @modified 22-05-2026
+     * @description Valida el token, evita repetir contrasena, caduca el enlace y abre sesion
      * @param request Token y contrasena nueva
+     * @param servletRequest Peticion HTTP para abrir sesion automaticamente
      * @return Estado de guardado
      */
     @PostMapping("/password-reset/confirm")
-    public ResponseEntity<?> confirmPasswordReset(@RequestBody PasswordResetConfirmRequest request) {
+    @Transactional
+    public ResponseEntity<?> confirmPasswordReset(
+            @RequestBody PasswordResetConfirmRequest request,
+            HttpServletRequest servletRequest) {
         if (request.confirmPassword() != null && !Objects.equals(request.password(), request.confirmPassword())) {
             return ResponseEntity.badRequest().body(Map.of("error", PASSWORD_MISMATCH_MESSAGE));
         }
@@ -218,10 +250,16 @@ public class AuthController {
         if (user == null) {
             return ResponseEntity.badRequest().body(Map.of("error", "El enlace de restablecimiento ha caducado o no es válido"));
         }
+        if (passwordEncoder.matches(request.password(), user.getPassword())) {
+            return fieldError(400, "password", SAME_PASSWORD_MESSAGE);
+        }
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setPasswordResetToken(null);
         user.setPasswordResetExpiresAt(null);
         appUserRepository.save(user);
+        if (servletRequest != null) {
+            authenticate(user.getEmail(), request.password(), servletRequest);
+        }
         return ResponseEntity.ok(Map.of("saved", true));
     }
 

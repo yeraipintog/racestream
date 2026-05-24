@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.1
+ * @version 1.2.0
  * @created 12-05-2026
  * @modified 13-05-2026
- * @description Cliente comun RaceStream para fetch, reintentos, estados de carga y cache local segura
+ * @description Cliente comun RaceStream para fetch, reintentos, estados de carga, sesion publica y cache local segura
  */
 class RaceStreamApiClient {
 
@@ -21,6 +21,7 @@ class RaceStreamApiClient {
      */
     constructor() {
         this.lastStatus = { state: 'idle', cached: false, partialData: false, url: '' };
+        this.currentUserPromise = null;
         this.purgeOldApiCache();
     }
 
@@ -124,6 +125,31 @@ class RaceStreamApiClient {
     async fetchArray(url, options = {}) {
         const data = await this.fetchJson(url, [], { retryEmpty: true, ...options });
         return Array.isArray(data) ? data : [];
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 20-05-2026
+     * @modified 20-05-2026
+     * @description Devuelve la sesion actual reutilizando una unica llamada por carga de pagina
+     * @returns {Promise<Object>} Usuario autenticado o estado anonimo
+     */
+    async getCurrentUser() {
+        if (!this.currentUserPromise) {
+            this.currentUserPromise = fetch('/api/auth/me', {
+                cache: 'no-store',
+                headers: { 'Cache-Control': 'no-cache' }
+            })
+                .then((response) => response.ok ? response.json() : { authenticated: false })
+                .catch(() => ({ authenticated: false }));
+        }
+        return this.currentUserPromise;
+    }
+
+    currentSeason() {
+        return new Date().getFullYear();
     }
 
     /**

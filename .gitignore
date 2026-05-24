@@ -32,6 +32,7 @@ secrets/
 *.p12
 *.jks
 *.keystore
+.github/
 
 ### Logs y temporales
 *.log

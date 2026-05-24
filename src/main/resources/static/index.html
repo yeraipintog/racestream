@@ -23,16 +23,16 @@
             <div class="rs-container rs-home-hero__inner">
                 <div class="rs-home-hero__copy">
                     <h1>RaceStream</h1>
-                    <p>RaceStream centraliza la temporada de Fórmula 1 en una experiencia visual, directa y pensada para consultar carreras, sesiones, datos en vivo y contexto sin perder tiempo entre páginas dispersas.</p>
+                    <p>Centraliza la Fórmula 1 en una experiencia visual, directa y pensada para consultar carreras, sesiones, datos en vivo y contexto sin perder tiempo entre páginas dispersas.</p>
                     <div class="rs-home-hero__actions">
-                        <a class="rs-button rs-button--primary" href="/live.html">Ver En Vivo</a>
-                        <a class="rs-button" href="/calendar.html">Abrir calendario</a>
+                        <a class="rs-button rs-button--primary" href="/calendar.html">Abrir Calendario</a>
                     </div>
                 </div>
 
                 <aside class="rs-home-next-card" aria-label="Próxima sesión">
                     <div class="rs-home-card__header">
                         <span>Próxima sesión</span>
+                        <a class="rs-button rs-button--primary rs-home-card__live-link" href="/live.html">Ver en vivo</a>
                     </div>
                     <h2 id="heroSessionTitle">Cargando datos...</h2>
                     <p id="heroSessionMeta">RaceStream está buscando la siguiente sesión disponible.</p>
@@ -42,32 +42,26 @@
         </section>
 
         <div class="rs-container">
-            <section class="rs-home-last-session" aria-label="Resultado de la última sesión">
+            <section class="rs-home-last-session" aria-label="Resultado de la última carrera">
                 <div class="rs-home-last-session__head">
                     <div>
                         <div class="rs-home-last-session__eyebrow-row">
-                            <span>Última Sesión</span>
-                            <a id="lastSessionLink" href="/sessions.html" aria-label="Abrir última sesión">Ver sesión</a>
+                            <div class="rs-home-last-session__eyebrow-group">
+                                <span>Última Carrera</span>
+                            </div>
+                            <a id="lastSessionLink" href="/sessions.html" aria-label="Abrir última carrera">Ver carrera</a>
                         </div>
-                        <strong id="lastSessionTitle">Cargando última sesión...</strong>
+                        <strong id="lastSessionTitle">Cargando última carrera...</strong>
                     </div>
                 </div>
                 <div id="lastSessionResults" class="rs-home-last-session__results" aria-live="polite"></div>
             </section>
 
             <section class="rs-home-grid">
-                <article class="rs-home-panel rs-home-panel--live">
-                    <h2>En Vivo</h2>
-                    <p>Cuando haya sesión activa, aquí tendrás leaderboard, gaps, neumáticos, pit stops, race control, clima y telemetría.</p>
-                    <div class="rs-home-live-grid">
-                        <div><strong id="liveNextName">-</strong><span>Próxima sesión</span></div>
-                        <div><strong id="liveNextTime">-</strong><span>Mi hora</span></div>
-                        <div><strong id="liveDataStatus">-</strong><span>Circuito</span></div>
-                    </div>
-                    <div class="rs-home-live-actions">
-                        <a class="rs-button rs-button--primary" href="/live.html">Entrar al Live Center</a>
-                        <a class="rs-home-live-source" href="https://openf1.org" target="_blank" rel="noopener noreferrer">OpenF1 <span aria-hidden="true">&#8599;</span></a>
-                    </div>
+                <article class="rs-home-panel rs-home-panel--season-stats">
+                    <h2>Estadísticas de temporada</h2>
+                    <p>Resumen calculado con datos disponibles de Jolpica y OpenF1. Si una métrica todavía no está publicada, se muestra como pendiente.</p>
+                    <div id="seasonStatsPanel" class="rs-home-season-stats"></div>
                 </article>
 
                 <article class="rs-home-panel rs-home-help">
@@ -98,7 +92,7 @@
 
                     <article class="rs-home-panel">
                         <div class="rs-home-card__header">
-                            <span>Constructores</span>
+                            <span>Escuderías</span>
                             <a href="/standings.html?type=constructors">Ver completa</a>
                         </div>
                         <div id="teamsStandings" class="rs-home-ranking"></div>

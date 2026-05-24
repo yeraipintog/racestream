@@ -1,9 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.0
+ * @version 1.2.0
  * @created 06-05-2026
- * @description Servicio de envio SMTP para mensajes de contacto guardados en RaceStream
+ * @modified 19-05-2026
+ * @description Servicio de envío SMTP para mensajes de contacto guardados en RaceStream
  */
 package com.yerai.racestream.service;
 
@@ -36,11 +37,12 @@ public class ContactMailService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.2.0
      * @created 06-05-2026
-     * @description Envia por email un mensaje de contacto si SMTP esta configurado
+     * @modified 24-05-2026
+     * @description Envía por email un mensaje de contacto con tema si SMTP está configurado
      * @param message Mensaje persistido
-     * @return true si el correo se envio realmente
+     * @return true si el correo se envió realmente
      */
     public boolean send(ContactMessage message) {
         if (!mailEnabled) return false;
@@ -53,18 +55,29 @@ public class ContactMailService {
         email.setReplyTo(message.getUser().getEmail());
         email.setSubject("[RaceStream] " + message.getSubject());
         email.setText("""
-                Nuevo mensaje de contacto RaceStream
+                RaceStream
+                Nuevo mensaje de contacto
 
                 Usuario: %s
-                Email: %s
+                Correo: %s
+                Tema: %s
                 Asunto: %s
 
+                Mensaje:
                 %s
+
+                --
+                Equipo de RaceStream
+                Soporte: %s
+
+                Este mensaje se ha generado automáticamente desde el formulario de contacto. Responde a este correo solo si necesitas continuar la conversación con el usuario.
                 """.formatted(
                 message.getUser().getName(),
                 message.getUser().getEmail(),
+                message.getTopic(),
                 message.getSubject(),
-                message.getMessage()));
+                message.getMessage(),
+                supportEmail));
         mailSender.send(email);
         return true;
     }

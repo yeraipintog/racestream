@@ -11,10 +11,9 @@
     <link rel="stylesheet" href="/css/components.css">
     <link rel="stylesheet" href="/css/live.css">
 </head>
-<body>
+<body data-live-page="home">
 <div class="rs-page-shell">
     <header class="rs-navbar" id="mainNavbar"></header>
-
     <section class="rs-race-strip" id="raceStrip"></section>
 
     <main class="rs-main rs-live-page">
@@ -22,31 +21,30 @@
             <section class="rs-live-hero">
                 <div class="rs-live-hero__heading">
                     <h1>Fórmula 1 En Vivo</h1>
-                    <div id="liveTitleStatus" class="rs-live-title-status"></div>
                 </div>
-                <p class="rs-live-hero__description">Seguimiento de sesión con posiciones, gaps, clima, dirección de carrera, pits, neumáticos, radios, vueltas, adelantamientos y telemetría disponible desde OpenF1.</p>
+                <nav class="rs-live-nav" aria-label="Secciones de En Vivo">
+                    <a class="rs-live-nav__link rs-live-nav__link--active" href="/live.html">Mapa</a>
+                    <a class="rs-live-nav__link" href="/live-timing.html">Timing</a>
+                    <a class="rs-live-nav__link" href="/live-race.html">Carrera</a>
+                </nav>
                 <div class="rs-live-hero__divider" aria-hidden="true"></div>
                 <div class="rs-live-hero__status" id="liveStatusCard">
-                    <p class="loading-state">Cargando sesión en vivo...</p>
+                    <div class="rs-live-skeleton"></div>
                 </div>
             </section>
 
-            <section class="rs-live-grid">
+            <section class="rs-live-section" aria-labelledby="liveMapTitle">
+                <div class="rs-live-section__head">
+                    <h2 id="liveMapTitle">Mapa en directo</h2>
+                    <span id="liveGeneratedAt">Actualizando datos</span>
+                </div>
                 <article class="rs-live-card rs-live-card--wide">
-                    <div class="rs-live-card__head"><h2>Leaderboard</h2><span id="leaderboardCount">-</span></div>
-                    <div id="leaderboard" class="rs-live-table-wrap"></div>
+                    <div class="rs-live-map-tools">
+                        <div id="positionPanel" class="rs-live-position-strip" aria-label="Posiciones en directo"></div>
+                    </div>
+                    <div id="liveMapPanel"></div>
+                    <div id="telemetryPanel"></div>
                 </article>
-                <article class="rs-live-card"><div class="rs-live-card__head"><h2>Clima</h2></div><div id="weatherPanel"></div></article>
-                <article class="rs-live-card"><div class="rs-live-card__head"><h2>Dirección de carrera</h2></div><div id="raceControlPanel"></div></article>
-                <article class="rs-live-card"><div class="rs-live-card__head"><h2>Neumáticos y stints</h2></div><div id="stintsPanel"></div></article>
-                <article class="rs-live-card"><div class="rs-live-card__head"><h2>Paradas en boxes</h2></div><div id="pitPanel"></div></article>
-                <article class="rs-live-card"><div class="rs-live-card__head"><h2>Team radio</h2></div><div id="radioPanel"></div></article>
-                <article class="rs-live-card"><div class="rs-live-card__head"><h2>Vueltas</h2></div><div id="lapsPanel"></div></article>
-                <article class="rs-live-card"><div class="rs-live-card__head"><h2>Adelantamientos</h2></div><div id="overtakesPanel"></div></article>
-                <article class="rs-live-card"><div class="rs-live-card__head"><h2>Parrilla</h2></div><div id="gridPanel"></div></article>
-                <article class="rs-live-card"><div class="rs-live-card__head"><h2>Campeonato</h2></div><div id="championshipPanel"></div></article>
-                <article class="rs-live-card"><div class="rs-live-card__head"><h2>Sectores</h2></div><div id="sectorsPanel"></div></article>
-                <article class="rs-live-card rs-live-card--wide"><div class="rs-live-card__head"><h2>Telemetría y mapa</h2><span>Datos brutos interpretados</span></div><div id="telemetryPanel"></div></article>
             </section>
         </div>
     </main>
@@ -57,6 +55,7 @@
 <script src="/js/nav.js"></script>
 <script src="/js/race-strip.js"></script>
 <script src="/js/rs-api.js"></script>
+<script src="/js/live-common.js"></script>
 <script src="/js/live.js"></script>
 </body>
 </html>

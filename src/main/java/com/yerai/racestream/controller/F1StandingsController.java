@@ -1,15 +1,17 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.1
+ * @version 1.2.0
  * @created 30-04-2026
  * @modified 13-05-2026
- * @description Controlador REST para exponer clasificaciones, temporadas y resultados de Formula 1 desde Jolpica
+ * @description Controlador REST para exponer clasificaciones, temporadas y resultados de Formula 1 desde Jolpica con limite publico
  */
 package com.yerai.racestream.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.yerai.racestream.service.JolpicaService;
+import com.yerai.racestream.service.PublicSeasonAccessService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class F1StandingsController {
 
     private final JolpicaService jolpicaService;
+    private final PublicSeasonAccessService publicSeasonAccessService;
 
     /**
      * @author Yerai Pinto
@@ -32,8 +35,9 @@ public class F1StandingsController {
      * @description Constructor con servicio Jolpica
      * @param jolpicaService Servicio de datos Jolpica
      */
-    public F1StandingsController(JolpicaService jolpicaService) {
+    public F1StandingsController(JolpicaService jolpicaService, PublicSeasonAccessService publicSeasonAccessService) {
         this.jolpicaService = jolpicaService;
+        this.publicSeasonAccessService = publicSeasonAccessService;
     }
 
     /**
@@ -46,8 +50,8 @@ public class F1StandingsController {
      * @return Pilotos ordenados por puntos
      */
     @GetMapping("/drivers")
-    public JsonNode getDriverStandings(@RequestParam(required = false) Integer year) {
-        return jolpicaService.getDriverStandingsByYear(year);
+    public JsonNode getDriverStandings(@RequestParam(required = false) Integer year, @AuthenticationPrincipal Object principal) {
+        return jolpicaService.getDriverStandingsByYear(publicSeasonAccessService.resolveYear(year, principal));
     }
 
     /**
@@ -61,8 +65,8 @@ public class F1StandingsController {
      * @return Constructores ordenados por puntos
      */
     @GetMapping("/constructors")
-    public JsonNode getConstructorStandings(@RequestParam(required = false) Integer year) {
-        return jolpicaService.getConstructorStandingsByYear(year);
+    public JsonNode getConstructorStandings(@RequestParam(required = false) Integer year, @AuthenticationPrincipal Object principal) {
+        return jolpicaService.getConstructorStandingsByYear(publicSeasonAccessService.resolveYear(year, principal));
     }
 
     /**
@@ -75,7 +79,10 @@ public class F1StandingsController {
      * @return Temporadas disponibles
      */
     @GetMapping("/seasons")
-    public JsonNode getAvailableSeasons() {
+    public JsonNode getAvailableSeasons(@AuthenticationPrincipal Object principal) {
+        if (!publicSeasonAccessService.isAuthenticated(principal)) {
+            return publicSeasonAccessService.currentSeasonOnly();
+        }
         return jolpicaService.getAvailableSeasons();
     }
 
@@ -89,8 +96,8 @@ public class F1StandingsController {
      * @return Carreras con resultados oficiales
      */
     @GetMapping("/race-results")
-    public JsonNode getRaceResults(@RequestParam(required = false) Integer year) {
-        return jolpicaService.getRaceResultsByYear(year);
+    public JsonNode getRaceResults(@RequestParam(required = false) Integer year, @AuthenticationPrincipal Object principal) {
+        return jolpicaService.getRaceResultsByYear(publicSeasonAccessService.resolveYear(year, principal));
     }
 
     /**

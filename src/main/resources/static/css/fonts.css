@@ -1,0 +1,58 @@
+/**
+ * @author Yerai Pinto
+ * @since 1.0
+ * @version 1.0.0
+ * @created 22-05-2026
+ * @description Carga global de fuentes D-DIN en formato web optimizado para RaceStream.
+ */
+@font-face {
+  font-family: "RaceStreamBody";
+  src: url("../assets/fonts/D-DIN.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "RaceStreamBody";
+  src: url("../assets/fonts/D-DIN-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "RaceStreamTitle";
+  src: url("../assets/fonts/D-DINCondensed-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-title: "RaceStreamTitle", Arial, Helvetica, sans-serif;
+  --font-body: "RaceStreamBody", Arial, Helvetica, sans-serif;
+}
+
+body {
+  font-family: var(--font-body);
+}
+
+h1,
+h2,
+h3,
+h4,
+.logo-text,
+.section-title,
+.hero-title,
+.gp-title,
+.card-title,
+.live-title,
+.nav-link,
+.btn,
+.rs-btn,
+.stat-value,
+.position-number {
+  font-family: var(--font-title);
+  letter-spacing: 0.03em;
+}

@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.0
+ * @version 1.1.0
  * @created 18-05-2026
  * @modified 18-05-2026
- * @description Tests de seguridad para asegurar que RaceStream usa su login visual propio
+ * @description Tests de seguridad para asegurar login visual propio y Live Center privado
  */
 package com.yerai.racestream.controller;
 
@@ -39,6 +39,20 @@ class SecurityConfigTest {
     @Test
     void protectedPageRedirectsToRaceStreamLoginPage() throws Exception {
         mockMvc.perform(get("/account.html"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login.html"));
+    }
+
+    @Test
+    void livePageRedirectsAnonymousUserToLoginPage() throws Exception {
+        mockMvc.perform(get("/live.html"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login.html"));
+    }
+
+    @Test
+    void splitLivePagesRedirectAnonymousUserToLoginPage() throws Exception {
+        mockMvc.perform(get("/live-timing.html"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/login.html"));
     }

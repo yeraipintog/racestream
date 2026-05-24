@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.3.2
+ * @version 1.3.3
  * @created 04-05-2026
- * @modified 11-05-2026
+ * @modified 22-05-2026
  * @description Utilidades visuales de Formula 1 para pilotos, escuderias, nacionalidades, banderas e imagenes
  */
 class RaceStreamF1Assets {
@@ -189,7 +189,7 @@ class RaceStreamF1Assets {
     static normalize(value) {
         return `${value || ''}`.toLowerCase()
             .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\p{M}/gu, '')
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-|-$/g, '');
     }
@@ -393,8 +393,8 @@ class RaceStreamF1Assets {
         const fullName = this.getDriverName(driver);
         const nameParts = fullName.split(/\s+/).filter(Boolean);
         const rawGiven = `${driver?.givenName || driver?.first_name || nameParts[0] || ''}`.replace(/^Andrea\s+Kimi$/i, 'Kimi');
-        const given = rawGiven.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z\s-]/g, '').trim().split(/\s+/)[0] || '';
-        const family = `${driver?.familyName || driver?.last_name || nameParts.slice(1).join(' ')}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z\s-]/g, '').trim();
+        const given = rawGiven.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/[^a-z\s-]/g, '').trim().split(/\s+/)[0] || '';
+        const family = `${driver?.familyName || driver?.last_name || nameParts.slice(1).join(' ')}`.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/[^a-z\s-]/g, '').trim();
         if (!given || !family) return '';
         if (family === 'antonelli' && /kimi|andrea/i.test(rawGiven)) return 'andant01';
         const parts = family.split(/\s+/).filter(Boolean);

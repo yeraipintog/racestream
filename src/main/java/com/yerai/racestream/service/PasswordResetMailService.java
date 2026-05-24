@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.0
+ * @version 1.1.0
  * @created 07-05-2026
- * @description Servicio SMTP para enviar enlaces de restablecimiento de contrasena de RaceStream
+ * @description Servicio SMTP para enviar enlaces de restablecimiento de contraseña de RaceStream
  */
 package com.yerai.racestream.service;
 
@@ -33,12 +33,13 @@ public class PasswordResetMailService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.1.0
      * @created 07-05-2026
-     * @description Envia un enlace de recuperacion al email del usuario si SMTP esta activo
+     * @modified 24-05-2026
+     * @description Envía un enlace de recuperación al email del usuario si SMTP está activo
      * @param user Usuario destinatario
      * @param resetUrl Enlace seguro con token temporal
-     * @return true si el correo salio por SMTP
+     * @return true si el correo salió por SMTP
      */
     public boolean sendResetLink(AppUser user, String resetUrl) {
         if (!mailEnabled) return false;
@@ -50,14 +51,21 @@ public class PasswordResetMailService {
         if (!fromEmail.isBlank()) email.setFrom(fromEmail);
         email.setSubject("[RaceStream] Restablece tu contraseña");
         email.setText("""
-                Hola %s:
+                RaceStream
+                Restablecimiento de contraseña
+
+                Hola, %s:
 
                 Hemos recibido una solicitud para restablecer tu contraseña de RaceStream.
                 Usa este enlace durante los próximos 30 minutos:
 
                 %s
 
-                Si no has pedido este cambio, ignora este correo.
+                Si no has pedido este cambio, ignora este correo. Por seguridad, no compartas este enlace con nadie.
+
+                --
+                Equipo de RaceStream
+                Este mensaje se ha generado automáticamente. No respondas a este correo si no necesitas soporte.
                 """.formatted(user.getName(), resetUrl));
         mailSender.send(email);
         return true;

@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.7
+ * @version 1.3.0
  * @created 04-05-2026
  * @modified 14-05-2026
- * @description Lógica de Clasificación con aviso histórico de constructores, tablas y detalle por GP
+ * @description Lógica de Clasificación con limite publico, aviso histórico de constructores, tablas y detalle por GP
  */
 class RaceStreamStandingsPage {
 
@@ -12,6 +12,7 @@ class RaceStreamStandingsPage {
         this.assets = window.RaceStreamF1Assets;
         this.params = new URLSearchParams(window.location.search);
         this.year = Number(this.params.get('year')) || new Date().getFullYear();
+        this.publicLimited = false;
         this.activeType = this.params.get('type') === 'constructors' ? 'constructors' : 'drivers';
         this.selectedDriver = this.params.get('driverId') || 'all';
         this.selectedConstructor = this.params.get('constructorId') || 'all';
@@ -46,6 +47,12 @@ class RaceStreamStandingsPage {
 
     bindEvents() {
         this.yearInput.addEventListener('change', () => {
+            if (this.publicLimited) {
+                this.year = new Date().getFullYear();
+                this.yearInput.value = String(this.year);
+                this.updateUrl();
+                return;
+            }
             this.year = Number(this.yearInput.value);
             this.selectedDriver = 'all';
             this.selectedConstructor = 'all';
@@ -55,6 +62,14 @@ class RaceStreamStandingsPage {
         this.driversTab.addEventListener('click', () => this.setActiveType('drivers'));
         this.constructorsTab.addEventListener('click', () => this.setActiveType('constructors'));
         this.entityFilter.addEventListener('change', () => {
+            if (this.publicLimited) {
+                this.selectedDriver = 'all';
+                this.selectedConstructor = 'all';
+                this.entityFilter.value = 'all';
+                this.updateUrl();
+                this.renderActiveTable();
+                return;
+            }
             if (this.activeType === 'drivers') {
                 this.selectedDriver = this.entityFilter.value;
             } else {
@@ -66,11 +81,27 @@ class RaceStreamStandingsPage {
     }
 
     async init() {
+        await this.resolvePublicAccess();
         await this.loadSeasons();
         await this.loadSeason();
     }
 
+    async resolvePublicAccess() {
+        const user = await window.RaceStreamApi.getCurrentUser();
+        this.publicLimited = !user?.authenticated;
+        if (!this.publicLimited) return;
+        this.year = new Date().getFullYear();
+        this.selectedDriver = 'all';
+        this.selectedConstructor = 'all';
+        this.updateUrl();
+    }
+
     async loadSeasons() {
+        if (this.publicLimited) {
+            this.yearInput.innerHTML = `<option value="${this.year}" selected>${this.year}</option>`;
+            this.yearInput.disabled = true;
+            return;
+        }
         const seasons = await this.fetchJson('/api/f1/standings/seasons', []);
         const safeSeasons = Array.isArray(seasons) && seasons.length
             ? seasons
@@ -107,9 +138,9 @@ class RaceStreamStandingsPage {
         this.syncTypeControls();
         this.populateEntityFilter();
         this.updateUrl();
-        this.yearInput.disabled = false;
+        this.yearInput.disabled = this.publicLimited;
         this.yearInput.removeAttribute('aria-busy');
-        this.entityFilter.disabled = false;
+        this.entityFilter.disabled = this.publicLimited;
         this.renderActiveTable();
     }
 

@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.3.0
+ * @version 1.4.1
  * @created 04-05-2026
- * @modified 14-05-2026
- * @description Lógica compartida para Pilotos y Escuderías con aviso histórico y tarjetas por temporada
+ * @modified 22-05-2026
+ * @description Lógica compartida para Pilotos y Escuderías con limite publico, aviso histórico y tarjetas por temporada
  */
 class RaceStreamParticipantsPage {
 
@@ -13,6 +13,7 @@ class RaceStreamParticipantsPage {
         this.mode = document.body.dataset.rsPage || 'drivers';
         this.params = new URLSearchParams(window.location.search);
         this.year = Number(this.params.get('year')) || new Date().getFullYear();
+        this.publicLimited = false;
         this.pendingDriverId = this.params.get('driverId');
         this.pendingConstructorId = this.params.get('constructorId');
         this.driverStandings = [];
@@ -42,6 +43,12 @@ class RaceStreamParticipantsPage {
 
     bindEvents() {
         this.yearInput.addEventListener('change', () => {
+            if (this.publicLimited) {
+                this.year = new Date().getFullYear();
+                this.yearInput.value = String(this.year);
+                window.history.replaceState({}, '', `?year=${this.year}`);
+                return;
+            }
             this.year = Number(this.yearInput.value);
             window.history.replaceState({}, '', `?year=${this.year}`);
             this.loadSeason();
@@ -49,11 +56,27 @@ class RaceStreamParticipantsPage {
     }
 
     async init() {
+        await this.resolvePublicAccess();
         await this.loadSeasons();
         await this.loadSeason();
     }
 
+    async resolvePublicAccess() {
+        const user = await window.RaceStreamApi.getCurrentUser();
+        this.publicLimited = !user?.authenticated;
+        if (!this.publicLimited) return;
+        this.year = new Date().getFullYear();
+        this.pendingDriverId = null;
+        this.pendingConstructorId = null;
+        window.history.replaceState({}, '', `?year=${this.year}`);
+    }
+
     async loadSeasons() {
+        if (this.publicLimited) {
+            this.yearInput.innerHTML = `<option value="${this.year}" selected>${this.year}</option>`;
+            this.yearInput.disabled = true;
+            return;
+        }
         const seasons = await this.fetchJson('/api/f1/standings/seasons', []);
         const safeSeasons = Array.isArray(seasons) && seasons.length
             ? seasons
@@ -85,7 +108,7 @@ class RaceStreamParticipantsPage {
         this.constructorStandings = constructors;
         this.driverTitles = driverTitles;
         this.constructorTitles = constructorTitles;
-        this.yearInput.disabled = false;
+        this.yearInput.disabled = this.publicLimited;
         this.yearInput.removeAttribute('aria-busy');
         this.render();
     }
@@ -281,9 +304,10 @@ class RaceStreamParticipantsPage {
     }
 
     renderFavoriteButton(type, externalId, title, url, description) {
+        const normalizedDescription = `${description || ''}`.replace(/Â·/g, '·');
         const safeDescription = `${type}`.toLowerCase().includes('escuder')
-            ? `${description || ''}`.split('·')[0].split('Â·')[0].trim()
-            : description;
+            ? normalizedDescription.split('·')[0].trim()
+            : normalizedDescription;
         return window.RaceStreamFavorites
             ? window.RaceStreamFavorites.button({ type, externalId, seasonYear: this.year, title, url, description: safeDescription })
             : '';
@@ -409,7 +433,7 @@ class RaceStreamParticipantsPage {
             || keys.includes(this.assets.normalize(item.stable_id))
             || keys.includes(this.assets.normalize(item.name)));
         if (row?.titlesLoaded === false && !titleRow) {
-            return 'No disponible temporalmente';
+            return '↻';
         }
         return titleRow ? Number(titleRow.titles || 0) : '—';
     }
@@ -428,7 +452,7 @@ class RaceStreamParticipantsPage {
             || keys.includes(this.assets.normalize(item.stable_id))
             || keys.includes(this.assets.normalize(item.name)));
         if (row?.titlesLoaded === false && !titleRow) {
-            return 'No disponible temporalmente';
+            return '↻';
         }
         return titleRow ? Number(titleRow.titles || 0) : '—';
     }

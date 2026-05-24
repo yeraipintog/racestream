@@ -19,7 +19,7 @@
         <div class="rs-container">
             <header class="rs-page-head">
                 <h1>Acceso</h1>
-                <p>Entra con tu cuenta local o crea una nueva para usar foro, contacto, favoritos y preferencias.</p>
+                <p>Entra con tu cuenta o crea una nueva GRATIS para usar todas las funciones.</p>
             </header>
             <div class="rs-auth-tabs" aria-label="Elegir acceso">
                 <button class="rs-auth-tab" type="button" data-auth-target="loginPanel">Iniciar sesión</button>
@@ -65,10 +65,18 @@
                         <button class="rs-button rs-button--primary" type="submit">Enviar correo</button>
                         <div id="resetRequestAlert" class="rs-alert" aria-live="polite"></div>
                     </form>
+                    <div id="resetTokenAlert" class="rs-alert" aria-live="polite"></div>
                     <form id="resetConfirmForm" class="rs-form" hidden>
                         <input name="token" type="hidden">
                         <label class="rs-password-field">Nueva contraseña<input name="password" type="password" autocomplete="new-password" required><button class="rs-password-toggle" type="button" data-password-toggle aria-label="Mostrar contraseña" aria-pressed="false">&#128065;</button></label>
                         <label>Confirmar contraseña<input name="confirmPassword" type="password" autocomplete="new-password" required></label>
+                        <ul class="rs-password-rules" aria-label="Requisitos de contraseña">
+                            <li data-password-rule="length">Mínimo 8 caracteres</li>
+                            <li data-password-rule="lower">Una letra minúscula</li>
+                            <li data-password-rule="upper">Una letra mayúscula</li>
+                            <li data-password-rule="number">Un número</li>
+                            <li data-password-rule="symbol">Un símbolo</li>
+                        </ul>
                         <button class="rs-button rs-button--primary" type="submit">Guardar contraseña</button>
                         <div id="resetConfirmAlert" class="rs-alert" aria-live="polite"></div>
                     </form>

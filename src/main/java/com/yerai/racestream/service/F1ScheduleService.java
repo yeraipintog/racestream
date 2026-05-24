@@ -671,7 +671,7 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0.0
      * @created 29-04-2026
-     * @description Ajusta rango del GP usando inicio de primera y ultima sesion
+     * @description Ajusta rango del GP usando inicio de primera y última sesión
      * @param meeting  Meeting editable
      * @param sessions Sesiones del GP
      */

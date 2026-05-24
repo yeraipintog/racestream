@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.2
+ * @version 1.3.0
  * @created 21-04-2026
- * @modified 30-04-2026
+ * @modified 23-05-2026
  * @description Controlador REST para exponer datos del Live Center de Formula 1
  *              desde OpenF1
  */
@@ -27,7 +27,7 @@ public class F1LiveController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.1.0
      * @created 21-04-2026
      * @modified 27-04-2026
      * @description Constructor con inyeccion del servicio live
@@ -42,14 +42,75 @@ public class F1LiveController {
      * @since 1.0
      * @version 1.0.1
      * @created 21-04-2026
-     * @modified 27-04-2026
-     * @description Devuelve un resumen combinado del Live Center
-     * @param sessionKey Clave de sesion OpenF1
+     * @modified 23-05-2026
+     * @description Devuelve un snapshot combinado del Live Center resolviendo
+     *              automáticamente latest, retrasos y datos parciales
+     * @param sessionKey Clave de sesion OpenF1 opcional
      * @return Datos live agrupados
      */
     @GetMapping("/overview")
-    public JsonNode getLiveOverview(@RequestParam String sessionKey) {
+    public JsonNode getLiveOverview(@RequestParam(required = false) String sessionKey) {
         return f1LiveService.getLiveOverview(sessionKey);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 23-05-2026
+     * @modified 23-05-2026
+     * @description Devuelve estado de sesión live ligero para todas las páginas
+     * @param sessionKey Clave de sesión OpenF1 opcional
+     * @return Estado live
+     */
+    @GetMapping("/status")
+    public JsonNode getLiveStatus(@RequestParam(required = false) String sessionKey) {
+        return f1LiveService.getLiveStatus(sessionKey);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 23-05-2026
+     * @modified 23-05-2026
+     * @description Devuelve datos mínimos para mapa y telemetría
+     * @param sessionKey Clave de sesión OpenF1 opcional
+     * @return Mapa live
+     */
+    @GetMapping("/map")
+    public JsonNode getLiveMap(@RequestParam(required = false) String sessionKey) {
+        return f1LiveService.getLiveMap(sessionKey);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 23-05-2026
+     * @modified 23-05-2026
+     * @description Devuelve tabla de tiempos live
+     * @param sessionKey Clave de sesión OpenF1 opcional
+     * @return Timing live
+     */
+    @GetMapping("/timing")
+    public JsonNode getLiveTiming(@RequestParam(required = false) String sessionKey) {
+        return f1LiveService.getLiveTiming(sessionKey);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 23-05-2026
+     * @modified 23-05-2026
+     * @description Devuelve actividad de carrera, clima, boxes y radio
+     * @param sessionKey Clave de sesión OpenF1 opcional
+     * @return Carrera live
+     */
+    @GetMapping("/race")
+    public JsonNode getLiveRace(@RequestParam(required = false) String sessionKey) {
+        return f1LiveService.getLiveRace(sessionKey);
     }
 
     /**
@@ -193,9 +254,9 @@ public class F1LiveController {
      * @version 1.0.1
      * @created 21-04-2026
      * @modified 27-04-2026
-     * @description Devuelve la parrilla de salida
+     * @description Devuelve el orden de salida que OpenF1 expone para la sesión
      * @param sessionKey Clave de sesion OpenF1
-     * @return Datos de parrilla
+     * @return Datos de orden de salida
      */
     @GetMapping("/starting-grid")
     public JsonNode getStartingGrid(@RequestParam String sessionKey) {

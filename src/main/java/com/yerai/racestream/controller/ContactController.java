@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.4
+ * @version 1.2.1
  * @created 05-05-2026
- * @modified 13-05-2026
- * @description API privada para formulario de contacto autenticado con persistencia y envio SMTP opcional
+ * @modified 22-05-2026
+ * @description API privada para formulario de contacto autenticado con tema, persistencia y envio SMTP opcional
  */
 package com.yerai.racestream.controller;
 
@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/contact")
@@ -28,6 +29,7 @@ public class ContactController {
 
     private static final int MAX_SUBJECT_LENGTH = 20;
     private static final int MAX_MESSAGE_LENGTH = 1000;
+    private static final Set<String> ALLOWED_TOPICS = Set.of("Página", "Grand Prix", "Sesión", "Noticias", "Otro");
 
     private final AppUserRepository appUserRepository;
     private final ContactMessageRepository contactMessageRepository;
@@ -45,12 +47,12 @@ public class ContactController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.4
+     * @version 1.1.0
      * @created 05-05-2026
-     * @modified 13-05-2026
-     * @description Guarda un mensaje enviado por un usuario registrado y lo envia por SMTP si esta activo
+     * @modified 19-05-2026
+     * @description Guarda un mensaje con tema enviado por un usuario registrado y lo envia por SMTP si esta activo
      * @param request Datos del mensaje
-     * @param authentication Sesion actual
+     * @param authentication Sesión actual
      * @return Estado de guardado
      */
     @PostMapping
@@ -62,10 +64,14 @@ public class ContactController {
             return ResponseEntity.badRequest().body(Map.of("error", "Debes aceptar la política de privacidad y las normas de contacto"));
         }
         String subject = request.subject() == null ? "" : request.subject().trim();
+        String topic = normalizeTopic(request.topic());
         String body = request.message() == null ? "" : request.message().trim();
         String clientRequestId = request.clientRequestId() == null ? "" : request.clientRequestId().trim();
         if (isBlank(subject) || isBlank(body)) {
             return ResponseEntity.badRequest().body(Map.of("error", "Asunto y mensaje son obligatorios"));
+        }
+        if (isBlank(topic)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Tema de contacto no válido"));
         }
         if (subject.length() > MAX_SUBJECT_LENGTH || body.length() > MAX_MESSAGE_LENGTH) {
             return ResponseEntity.badRequest().body(Map.of("error", "Asunto máximo 20 caracteres y mensaje máximo 1000 caracteres"));
@@ -85,6 +91,7 @@ public class ContactController {
         ContactMessage message = new ContactMessage();
         message.setUser(user);
         message.setSubject(subject);
+        message.setTopic(topic);
         message.setMessage(body);
         message.setClientRequestId(clientRequestId);
         contactMessageRepository.save(message);
@@ -109,5 +116,14 @@ public class ContactController {
         return value == null || value.isBlank();
     }
 
-    public record ContactRequest(String subject, String message, Boolean policyAccepted, String clientRequestId) {}
+    private String normalizeTopic(String topic) {
+        String normalized = topic == null ? "" : topic.trim();
+        return ALLOWED_TOPICS.contains(normalized) ? normalized : "";
+    }
+
+    public record ContactRequest(String subject, String message, Boolean policyAccepted, String clientRequestId, String topic) {
+        public ContactRequest(String subject, String message, Boolean policyAccepted, String clientRequestId) {
+            this(subject, message, policyAccepted, clientRequestId, "Otro");
+        }
+    }
 }

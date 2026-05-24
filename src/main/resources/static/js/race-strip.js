@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.4.0
+ * @version 1.6.1
  * @created 04-05-2026
- * @modified 18-05-2026
- * @description Carga la franja comun de proximo GP mostrando pais, cache inmediata y refresco en segundo plano
+ * @modified 22-05-2026
+ * @description Carga la franja comun de proximo GP con fechas, ubicacion, pais, cache inmediata y contador sincronizado
  */
 class RaceStreamRaceStrip {
 
@@ -113,7 +113,7 @@ class RaceStreamRaceStrip {
         return fallback;
     }
 
-    renderNeutral(title = 'Pr\u00f3ximo GP', meta = 'Actualizando calendario') {
+    renderNeutral(title = 'Próximo GP', meta = 'Actualizando calendario') {
         if (this.title) this.title.textContent = title;
         if (this.meta) this.meta.textContent = meta;
         if (this.action) this.action.innerHTML = '<span class="rs-race-strip__status">Sin datos</span>';
@@ -126,7 +126,7 @@ class RaceStreamRaceStrip {
             this.renderNeutral('Calendario no disponible', 'Sin datos confirmados');
             return;
         }
-        this.title.textContent = this.getMeetingCountryLabel(this.meeting);
+        this.title.textContent = this.getMeetingPlaceLabel(this.meeting);
         this.meta.textContent = this.formatDateRange(this.meeting.date_start, this.meeting.date_end);
         if (this.flag) {
             this.flag.style.display = this.meeting.country_flag ? 'inline-block' : 'none';
@@ -242,7 +242,7 @@ class RaceStreamRaceStrip {
         this.clockTimer = window.setInterval(() => {
             this.renderClocks();
             this.renderAction();
-        }, 30000);
+        }, 1000);
     }
 
     getNowTime() {
@@ -266,7 +266,11 @@ class RaceStreamRaceStrip {
         const days = Math.floor(diff / 86400000);
         const hours = Math.floor((diff % 86400000) / 3600000);
         const minutes = Math.floor((diff % 3600000) / 60000);
-        return `${days}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`;
+        const parts = [];
+        if (days > 0) parts.push(`${days}d`);
+        if (hours > 0) parts.push(`${hours}h`);
+        parts.push(`${minutes}m`);
+        return parts.join(' ');
     }
 
     translateSessionName(name) {
@@ -277,12 +281,12 @@ class RaceStreamRaceStrip {
             'Free Practice 1': 'Libres 1',
             'Free Practice 2': 'Libres 2',
             'Free Practice 3': 'Libres 3',
-            Qualifying: 'Clasificaci\u00f3n',
+            Qualifying: 'Clasificación',
             Race: 'Carrera',
             Sprint: 'Sprint',
             'Sprint Qualifying': 'Clasif. sprint',
             'Sprint Shootout': 'Clasif. sprint'
-        }[name] || name || 'Sesi\u00f3n';
+        }[name] || name || 'Sesión';
     }
 
     /**
@@ -301,6 +305,38 @@ class RaceStreamRaceStrip {
             return RaceStreamRaceStrip.COUNTRY_LABELS_ES[country] || country;
         }
         return this.simplifyMeetingName(meeting?.meeting_name) || 'Gran Premio';
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 19-05-2026
+     * @modified 19-05-2026
+     * @description Devuelve la ubicacion del circuito para acompanar a la bandera del pais
+     * @param {Object} meeting GP confirmado
+     * @returns {string} Ubicacion visible del circuito
+     */
+    getMeetingLocationLabel(meeting) {
+        return `${meeting?.location || meeting?.jolpica_locality || meeting?.circuit_short_name || ''}`.trim()
+            || this.getMeetingCountryLabel(meeting);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 20-05-2026
+     * @modified 20-05-2026
+     * @description Devuelve la linea visible bandera, ubicacion del circuito y pais
+     * @param {Object} meeting GP confirmado
+     * @returns {string} Ubicacion y pais
+     */
+    getMeetingPlaceLabel(meeting) {
+        const location = this.getMeetingLocationLabel(meeting);
+        const country = this.getMeetingCountryLabel(meeting);
+        if (!location || location === country) return country || 'Gran Premio';
+        return `${location}, ${country}`;
     }
 
     /**

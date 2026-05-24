@@ -1,10 +1,11 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.6
+ * @version 1.4.0
  * @created 03-05-2026
- * @modified 04-05-2026
- * @description Estilos responsive de Fórmula 1 En Vivo con estado claro, horarios dobles y tarjetas OpenF1
+ * @modified 23-05-2026
+ * @description Estilos responsive de Fórmula 1 En Vivo por bloques, mapa
+ *              principal, timing y carrera
  */
 .rs-live-hero {
     display: grid;
@@ -26,22 +27,8 @@
     min-width: min(100%, 250px);
 }
 
-.rs-live-title-status {
-    display: inline-flex;
-    justify-content: flex-end;
-    margin-left: auto;
-    min-width: max-content;
-}
-
-.rs-live-card__head span {
-    color: #ffcdcd;
-    font-size: 12px;
-    font-weight: 900;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-}
 .rs-live-hero__description {
-    max-width: 820px;
+    max-width: 860px;
     margin: 0;
     text-align: justify;
 }
@@ -51,23 +38,105 @@
     height: 1px;
     background: rgba(255, 255, 255, .10);
 }
+
+.rs-live-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.rs-live-nav__link,
+.rs-live-link-grid a {
+    min-height: 38px;
+    padding: 0 14px;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .04);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.rs-live-nav__link--active,
+.rs-live-nav__link:hover,
+.rs-live-link-grid a:hover {
+    border-color: rgba(229, 57, 53, .40);
+    background: rgba(229, 57, 53, .14);
+}
+
+.rs-live-link-grid,
+.rs-live-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.rs-live-section {
+    display: grid;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.rs-live-section__head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+}
+
+.rs-live-section__head h2 {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(24px, 4vw, 34px);
+    line-height: 1;
+}
+
+.rs-live-section__head span,
+.rs-live-card__head span {
+    color: #ffcdcd;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    text-align: right;
+}
+
+.rs-live-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.rs-live-grid--summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .rs-live-card {
+    min-width: 0;
+    padding: 16px;
     border: 1px solid rgba(255, 255, 255, .10);
     border-radius: 14px;
     background: linear-gradient(180deg, rgba(17, 24, 39, .96), rgba(12, 18, 30, .96));
     box-shadow: var(--rs-shadow-md);
 }
-.rs-live-hero__status {
-    min-width: 0;
+
+.rs-live-card--wide {
+    grid-column: 1 / -1;
 }
-.rs-live-grid {
-    margin-top: 18px;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
+
+.rs-live-card--priority {
+    border-color: rgba(239, 68, 68, .26);
+    box-shadow:
+        inset 0 0 0 1px rgba(239, 68, 68, .08),
+        var(--rs-shadow-md);
 }
-.rs-live-card { padding: 16px; min-width: 0; }
-.rs-live-card--wide { grid-column: 1 / -1; }
+
 .rs-live-card__head {
     display: flex;
     align-items: center;
@@ -75,47 +144,143 @@
     gap: 12px;
     margin-bottom: 12px;
 }
-.rs-live-card h2 {
+
+.rs-live-card h3 {
     margin: 0;
+    color: #fff;
     font-size: 20px;
 }
-.rs-live-table-wrap { overflow-x: auto; }
-.rs-live-table { min-width: 760px; }
+
+.rs-live-table-wrap {
+    overflow-x: auto;
+}
+
+.rs-live-table {
+    width: 100%;
+    min-width: 1180px;
+    border-collapse: collapse;
+}
+
+.rs-live-table--compact {
+    min-width: 680px;
+}
+
+.rs-live-table--timing {
+    min-width: 980px;
+}
+
+.rs-live-table--positions {
+    min-width: 620px;
+}
+
 .rs-live-table th,
-.rs-live-table td { white-space: nowrap; }
+.rs-live-table td {
+    padding: 10px 9px;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+    color: var(--rs-text-soft);
+    font-size: 13px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.rs-live-table th {
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
 .rs-live-driver {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    color: #fff;
     font-weight: 900;
 }
-.rs-live-driver img {
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
-    object-fit: cover;
-    object-position: center top;
-    background: rgba(255, 255, 255, .06);
+
+.rs-live-driver__badge {
+    width: 30px;
+    height: 30px;
+    border: 2px solid var(--team, #e5e7eb);
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, .05);
+    color: #fff;
+    font-size: 12px;
 }
-.rs-live-list { display: grid; gap: 8px; }
+
+.rs-live-list {
+    display: grid;
+    gap: 8px;
+}
+
 .rs-live-item {
     padding: 10px 12px;
     border-radius: 12px;
     background: rgba(255, 255, 255, .035);
     color: var(--rs-text-soft);
+    line-height: 1.45;
+    text-align: justify;
+    overflow-wrap: anywhere;
+}
+
+.rs-live-item strong {
+    color: #fff;
+}
+
+.rs-live-help {
+    margin: 12px 0 0;
+    color: var(--rs-text-muted);
+    font-size: 12px;
+    line-height: 1.45;
     text-align: justify;
 }
-.rs-live-item strong { color: #fff; }
-.rs-live-metrics {
+
+.rs-live-mini-card {
+    min-width: 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .045);
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+}
+
+.rs-live-mini-card strong {
+    color: #fff;
+    font-size: 14px;
+}
+
+.rs-live-mini-card span {
+    color: var(--rs-text-soft);
+    font-size: 12px;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.rs-live-metrics,
+.rs-live-session-summary__row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
+}
+
+.rs-live-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .rs-live-metric {
     min-width: 0;
     padding: 0 18px 0 0;
     border-right: 1px solid rgba(255, 255, 255, .10);
+}
+
+.rs-live-metric:last-child,
+.rs-live-session-summary__row .rs-live-metric:last-child {
+    padding-right: 0;
+    border-right: 0;
 }
 
 .rs-live-session-summary {
@@ -129,9 +294,7 @@
 }
 
 .rs-live-session-summary__gp strong {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
+    display: block;
     margin-top: 6px;
     color: #fff;
     font-size: clamp(20px, 4vw, 28px);
@@ -139,16 +302,20 @@
     overflow-wrap: anywhere;
 }
 
-.rs-live-session-summary__row {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+.rs-live-session-summary__notice {
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid rgba(245, 158, 11, .28);
+    border-radius: 8px;
+    background: rgba(245, 158, 11, .10);
+    color: #fde68a;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.45;
+    text-align: justify;
+    overflow-wrap: anywhere;
 }
 
-.rs-live-session-summary__row .rs-live-metric:last-child {
-    padding-right: 0;
-    border-right: 0;
-}
 .rs-live-metric > span:not(.rs-status-pill),
 .rs-live-metric__label {
     display: block;
@@ -157,6 +324,7 @@
     font-weight: 900;
     text-transform: uppercase;
 }
+
 .rs-live-metric strong {
     display: block;
     margin-top: 6px;
@@ -165,37 +333,553 @@
     line-height: 1.15;
     overflow-wrap: anywhere;
 }
-.rs-live-metric strong.rs-live-metric__flag {
+
+.rs-live-sector {
+    min-width: 54px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    display: inline-flex;
+    justify-content: center;
+    font-weight: 900;
+}
+
+.rs-live-sector--purple {
+    background: rgba(168, 85, 247, .24);
+    color: #e9d5ff;
+}
+
+.rs-live-sector--green {
+    background: rgba(34, 197, 94, .20);
+    color: #bbf7d0;
+}
+
+.rs-live-sector--neutral {
+    background: rgba(255, 255, 255, .06);
+    color: var(--rs-text-soft);
+}
+
+.rs-live-sector--yellow {
+    background: rgba(250, 204, 21, .16);
+    color: #fde68a;
+}
+
+.rs-live-tyre {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 900;
 }
-.rs-live-metric__time {
+
+.rs-live-tyre__icon {
+    width: 22px;
+    height: 22px;
+    border: 4px solid var(--tyre, #94a3b8);
+    border-radius: 999px;
+    background:
+        radial-gradient(circle, rgba(15, 23, 42, .98) 0 38%, transparent 39%),
+        #111827;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16);
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #0f172a;
+    font-size: 10px;
+    font-weight: 900;
+}
+
+.rs-live-tyre--soft { --tyre: #ef4444; }
+.rs-live-tyre--medium { --tyre: #facc15; }
+.rs-live-tyre--hard { --tyre: #f8fafc; }
+.rs-live-tyre--intermediate { --tyre: #22c55e; }
+.rs-live-tyre--wet { --tyre: #38bdf8; }
+.rs-live-tyre--unknown { --tyre: #64748b; }
+
+.rs-live-map-layout {
     display: grid;
-    gap: 3px;
+    grid-template-columns: minmax(0, 1.35fr) minmax(320px, .75fr);
+    gap: 14px;
 }
-.rs-live-metric__time small {
+
+.rs-live-map-layout__positions {
+    min-width: 0;
+    padding-left: 14px;
+    border-left: 1px solid rgba(255, 255, 255, .08);
+}
+
+.rs-live-map-tools {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.rs-live-position-strip {
+    display: grid;
+    gap: 10px;
+}
+
+.rs-live-position-strip__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.rs-live-position-strip__top strong {
+    color: #fff;
+    font-size: 18px;
+}
+
+.rs-live-gap-toggle {
+    display: inline-flex;
+    gap: 4px;
+    padding: 3px;
+    border: 1px solid rgba(255, 255, 255, .10);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .04);
+}
+
+.rs-live-gap-toggle button {
+    min-height: 28px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--rs-text-soft);
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.rs-live-gap-toggle button.is-active {
+    background: rgba(229, 57, 53, .22);
+    color: #fff;
+}
+
+.rs-live-position-strip__list {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+}
+
+.rs-live-position-pill {
+    min-width: 172px;
+    min-height: 54px;
+    padding: 8px 10px;
+    border: 1px solid rgba(255, 255, 255, .10);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .035);
+    color: #fff;
+    display: grid;
+    grid-template-columns: max-content max-content minmax(0, 1fr);
+    grid-template-areas:
+        "pos badge name"
+        "pos badge gap";
+    align-items: center;
+    gap: 2px 8px;
+    text-align: left;
+}
+
+.rs-live-position-pill.is-active,
+.rs-live-position-pill:hover {
+    border-color: rgba(229, 57, 53, .42);
+    background: rgba(229, 57, 53, .11);
+}
+
+.rs-live-position-pill__pos {
+    grid-area: pos;
+    color: #fff;
+    font-weight: 900;
+}
+
+.rs-live-position-pill .rs-live-driver__badge {
+    grid-area: badge;
+    width: 28px;
+    height: 28px;
+}
+
+.rs-live-position-pill__name {
+    grid-area: name;
+    min-width: 0;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 900;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rs-live-position-pill__gap {
+    grid-area: gap;
     color: var(--rs-text-soft);
     font-size: 12px;
     font-weight: 800;
-    line-height: 1.25;
 }
-@media (max-width: 860px) {
-    .rs-live-grid { grid-template-columns: 1fr; }
+
+.rs-live-map {
+    position: relative;
+    min-height: clamp(320px, 52vw, 560px);
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 14px;
+    overflow: hidden;
+    background:
+        linear-gradient(180deg, rgba(9, 16, 28, .98), rgba(7, 11, 20, .98)),
+        radial-gradient(circle at 20% 30%, rgba(229, 57, 53, .12), transparent 32%);
+}
+
+.rs-live-map__canvas {
+    width: 100%;
+    height: clamp(360px, 52vw, 620px);
+    display: block;
+}
+
+.rs-live-telemetry-card {
+    margin-top: 14px;
+    padding: 14px;
+    border: 1px solid rgba(255, 255, 255, .10);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .035);
+}
+
+.rs-live-telemetry-card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.rs-live-telemetry-card__head span {
+    color: var(--rs-text-soft);
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.rs-live-telemetry-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(120px, .8fr)) minmax(94px, .45fr) minmax(170px, 1fr);
+    gap: 10px;
+    align-items: stretch;
+}
+
+.rs-live-gauge {
+    min-height: 118px;
+    border-radius: 8px;
+    background:
+        radial-gradient(circle at 50% 60%, rgba(12, 18, 30, 1) 0 44%, transparent 45%),
+        conic-gradient(from 225deg, #ef4444 var(--value), rgba(255, 255, 255, .10) 0);
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 2px;
+}
+
+.rs-live-gauge span,
+.rs-live-gauge small,
+.rs-live-gear span,
+.rs-live-telemetry-meta span {
+    color: var(--rs-text-muted);
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.rs-live-gauge strong {
+    color: #fff;
+    font-size: 30px;
+    line-height: 1;
+}
+
+.rs-live-gear {
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .055);
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 4px;
+}
+
+.rs-live-gear strong {
+    color: #fff;
+    font-size: 58px;
+    line-height: 1;
+}
+
+.rs-live-telemetry-meta {
+    min-width: 0;
+    padding: 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .045);
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 7px 10px;
+    align-items: center;
+}
+
+.rs-live-telemetry-meta strong {
+    color: #fff;
+    font-size: 13px;
+}
+
+.rs-live-telemetry-sectors {
+    grid-column: 1 / 3;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.rs-live-telemetry-chart {
+    grid-column: 3 / -1;
+    width: 100%;
+    min-height: 94px;
+    border-radius: 8px;
+    background: rgba(8, 11, 18, .72);
+}
+
+.rs-live-weather-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.rs-live-weather-card {
+    min-width: 0;
+    padding: 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .045);
+    display: grid;
+    gap: 5px;
+}
+
+.rs-live-weather-card span {
+    color: var(--rs-text-muted);
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.rs-live-weather-card strong {
+    color: #fff;
+    font-size: 20px;
+}
+
+.rs-live-weather-card small {
+    color: var(--rs-text-soft);
+    font-size: 12px;
+    line-height: 1.35;
+    text-align: justify;
+}
+
+.rs-live-tag {
+    width: fit-content;
+    margin: 0 0 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(229, 57, 53, .18);
+    color: #ffd5d5;
+    display: block;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.rs-live-item audio {
+    width: 100%;
+    margin-top: 8px;
+    display: block;
+}
+
+.rs-live-map__base {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    pointer-events: none;
+}
+
+.rs-live-map__base path {
+    stroke: rgba(255, 255, 255, .32);
+    stroke-width: 3.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.rs-live-map__trace,
+.rs-live-map__fallback {
+    fill: none;
+    stroke: rgba(255, 255, 255, .28);
+    stroke-width: 3.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.rs-live-map__trace {
+    stroke: rgba(255, 255, 255, .22);
+}
+
+.rs-live-map__points {
+    position: absolute;
+    inset: 0;
+}
+
+.rs-live-map__point {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    border: 2px solid var(--team, #e5e7eb);
+    border-radius: 999px;
+    background: rgba(12, 18, 30, .96);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    transition: left .7s ease, top .7s ease, transform .18s ease, border-color .18s ease;
+}
+
+.rs-live-map__point:hover,
+.rs-live-map__point:focus-visible {
+    transform: translate(-50%, -50%) scale(1.12);
+}
+
+.rs-live-map__card {
+    position: absolute;
+    z-index: 4;
+    width: min(340px, calc(100% - 24px));
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 12px;
+    background: rgba(12, 18, 30, .96);
+    box-shadow: var(--rs-shadow-md);
+    transform: translate(0, -50%);
+}
+
+.rs-live-map__card strong,
+.rs-live-map__card span {
+    display: block;
+}
+
+.rs-live-map__card strong {
+    color: #fff;
+    font-size: 16px;
+}
+
+.rs-live-map__card span {
+    margin-top: 3px;
+    color: var(--rs-text-soft);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.rs-live-map__stats {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.rs-live-map__stats small {
+    min-width: 0;
+    padding: 6px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .05);
+    color: var(--rs-text-soft);
+    font-size: 11px;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.rs-live-map__note {
+    margin: 10px 0 0;
+    color: var(--rs-text-muted);
+    font-size: 12px;
+    line-height: 1.45;
+    text-align: justify;
+}
+
+.rs-live-map--empty {
+    padding: 16px;
+    display: grid;
+    align-items: center;
+}
+
+.rs-live-skeleton {
+    min-height: 84px;
+    border-radius: 12px;
+    background: linear-gradient(90deg, rgba(255,255,255,.05), rgba(255,255,255,.11), rgba(255,255,255,.05));
+    background-size: 220% 100%;
+    animation: rs-live-skeleton 1.2s ease-in-out infinite;
+}
+
+@keyframes rs-live-skeleton {
+    from { background-position: 100% 0; }
+    to { background-position: -100% 0; }
+}
+
+@media (max-width: 980px) {
+    .rs-live-grid,
+    .rs-live-grid--summary,
+    .rs-live-map-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .rs-live-telemetry-grid,
+    .rs-live-weather-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .rs-live-telemetry-chart {
+        grid-column: 1 / -1;
+    }
+
+    .rs-live-map-layout__positions {
+        padding-left: 0;
+        padding-top: 14px;
+        border-left: 0;
+        border-top: 1px solid rgba(255, 255, 255, .08);
+    }
 
     .rs-live-session-summary__row {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-
-    .rs-live-session-summary__row .rs-live-metric:nth-child(2n) {
-        padding-right: 0;
-        border-right: 0;
-    }
 }
 
-@media (max-width: 520px) {
-    .rs-live-session-summary__row {
+@media (max-width: 620px) {
+    .rs-live-section__head {
+        align-items: start;
+        flex-direction: column;
+    }
+
+    .rs-live-section__head span,
+    .rs-live-card__head span {
+        text-align: left;
+    }
+
+    .rs-live-session-summary__row,
+    .rs-live-metrics,
+    .rs-live-map__stats,
+    .rs-live-link-grid,
+    .rs-live-mini-grid {
         grid-template-columns: 1fr;
+    }
+
+    .rs-live-nav {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, max-content));
+        justify-content: start;
+        gap: 8px;
+    }
+
+    .rs-live-nav__link {
+        width: auto;
+        min-width: 0;
+        padding: 0 10px;
+        white-space: nowrap;
     }
 
     .rs-live-metric {
@@ -204,8 +888,40 @@
         border-bottom: 1px solid rgba(255, 255, 255, .08);
     }
 
-    .rs-live-session-summary__row .rs-live-metric:last-child {
+    .rs-live-metric:last-child {
         padding-bottom: 0;
         border-bottom: 0;
+    }
+
+    .rs-live-map {
+        min-height: 420px;
+    }
+
+    .rs-live-map__canvas {
+        height: 420px;
+    }
+
+    .rs-live-map__card {
+        left: 12px !important;
+        right: 12px;
+        top: auto !important;
+        bottom: 12px;
+        transform: none;
+    }
+}
+
+@media (max-width: 520px) {
+    .rs-live-telemetry-grid,
+    .rs-live-weather-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .rs-live-telemetry-sectors,
+    .rs-live-telemetry-chart {
+        grid-column: 1;
+    }
+
+    .rs-live-position-pill {
+        min-width: 156px;
     }
 }

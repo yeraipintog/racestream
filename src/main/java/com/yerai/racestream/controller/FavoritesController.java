@@ -44,7 +44,7 @@ public class FavoritesController {
      * @version 1.0.0
      * @created 05-05-2026
      * @description Lista favoritos del usuario autenticado
-     * @param authentication Sesion actual
+     * @param authentication Sesión actual
      * @return Favoritos ordenados por fecha
      */
     @GetMapping
@@ -60,7 +60,7 @@ public class FavoritesController {
      * @created 05-05-2026
      * @description Crea un favorito privado
      * @param request Datos del favorito
-     * @param authentication Sesion actual
+     * @param authentication Sesión actual
      * @return Favorito guardado
      */
     @PostMapping
@@ -92,7 +92,7 @@ public class FavoritesController {
      * @created 05-05-2026
      * @description Elimina un favorito del usuario autenticado
      * @param id Identificador interno
-     * @param authentication Sesion actual
+     * @param authentication Sesión actual
      * @return Estado de borrado
      */
     @DeleteMapping("/{id}")

@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.2
+ * @version 1.0.3
  * @created 12-05-2026
- * @modified 13-05-2026
- * @description Controlador de diagnostico para revisar disponibilidad de datos F1 por temporada en desarrollo
+ * @modified 24-05-2026
+ * @description Controlador de diagnóstico para revisar disponibilidad de datos F1 por temporada en desarrollo
  */
 package com.yerai.racestream.controller;
 
@@ -37,9 +37,9 @@ public class F1DiagnosticsController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.2
+     * @version 1.0.3
      * @created 12-05-2026
-     * @modified 12-05-2026
+     * @modified 24-05-2026
      * @description Constructor con servicios de datos F1
      * @param f1ScheduleService Servicio de calendario y sesiones
      * @param f1DbService       Servicio F1DB
@@ -60,9 +60,9 @@ public class F1DiagnosticsController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.2
+     * @version 1.0.3
      * @created 12-05-2026
-     * @modified 13-05-2026
+     * @modified 24-05-2026
      * @description Devuelve conteos, estados y avisos de disponibilidad por fuente
      * @param year Temporada
      * @return Diagnostico JSON
@@ -163,7 +163,7 @@ public class F1DiagnosticsController {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Ejecuta una comprobacion y registra estado resumido sin romper todo el diagnostico
+     * @description Ejecuta una comprobación y registra estado resumido sin romper todo el diagnóstico
      * @param checks Nodo de estados
      * @param name Nombre de la comprobacion
      * @param supplier Fuente de datos
@@ -195,7 +195,7 @@ public class F1DiagnosticsController {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Ejecuta una fuente opcional y devuelve array vacio si falla
+     * @description Ejecuta una fuente opcional y devuelve array vacío si falla
      * @param supplier Fuente de datos
      * @return Array seguro
      */

@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.5
+ * @version 1.2.0
  * @created 06-05-2026
- * @modified 14-05-2026
- * @description Gestiona usuarios, roles, bloqueos y mensajes de contacto desde el panel privado de administracion
+ * @modified 19-05-2026
+ * @description Gestiona usuarios protegidos, roles, bloqueos y mensajes de contacto desde el panel privado de administracion
  */
 document.addEventListener('DOMContentLoaded', () => {
     const summary = document.getElementById('adminSummary');
@@ -64,8 +64,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span>${escape(user.email)} · ${escape(user.role || 'USER')} · ${formatDate(user.createdAt)}</span>
                 </div>
                 <div class="rs-admin-card__actions">
-                    ${user.blocked ? '' : '<button class="rs-button" type="button" data-user-block>Bloquear</button>'}
-                    <button class="rs-button rs-button--danger" type="button" data-user-delete>Eliminar</button>
+                    ${user.protectedAdmin ? '' : (user.blocked ? '' : '<button class="rs-button" type="button" data-user-block>Bloquear</button>')}
+                    ${user.protectedAdmin ? '' : '<button class="rs-button rs-button--danger" type="button" data-user-delete>Eliminar</button>'}
                 </div>
             </article>
         `).join('') : '<p class="empty-state">No hay usuarios registrados.</p>';
@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             <div class="rs-admin-card__body">
                 <span>
-                    ${escape(message.userName)} ${formatDate(message.createdAt)}
+                    ${escape(message.userName)} ${formatDate(message.createdAt)} · ${escape(message.topic || 'Otro')}
                     ${message.completed ? ` · <strong class="rs-admin-status">Completado ${formatDate(message.completedAt)}</strong>` : ''}
                 </span>
                 <p>${escape(message.message)}</p>

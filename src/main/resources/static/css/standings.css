@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.5
+ * @version 1.0.6
  * @created 04-05-2026
- * @modified 05-05-2026
- * @description Estilos responsive de Clasificación con filtros, tablas, banderas y detalle por GP
+ * @modified 22-05-2026
+ * @description Estilos responsive de Clasificación con filtros, tablas, banderas, detalle por GP y títulos legibles
  */
 
 .rs-standings-topbar {
@@ -74,7 +74,7 @@
 .rs-standings-panel__left h2 {
     margin: 0;
     font-size: 30px;
-    font-weight: 900;
+    font-weight: var(--rs-heading-weight);
 }
 
 .rs-standings-filter {

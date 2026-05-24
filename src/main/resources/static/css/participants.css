@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.9
+ * @version 1.2.0
  * @created 04-05-2026
- * @modified 08-05-2026
- * @description Estilos responsive para páginas de Pilotos y Escuderías con tarjetas visuales desplegables
+ * @modified 22-05-2026
+ * @description Estilos responsive para páginas de Pilotos y Escuderías con tarjetas visuales desplegables y títulos legibles
  */
 
 .rs-participants-topbar {
@@ -97,12 +97,14 @@ body[data-rs-page="drivers"] .rs-participants-grid {
     margin: 6px 0 0;
     color: #fff;
     font-size: 32px;
+    font-weight: var(--rs-heading-weight);
     line-height: .94;
 }
 
 .rs-participant-card h2 span,
 .rs-participant-card h2 strong {
     display: block;
+    font-weight: var(--rs-heading-weight);
 }
 
 .rs-participant-card__toggle {

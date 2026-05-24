@@ -26,6 +26,16 @@
                     <h2>Enviar mensaje</h2>
                     <form id="contactForm" class="rs-form">
                         <label>
+                            Tema
+                            <select name="topic" required>
+                                <option value="Página">Página</option>
+                                <option value="Grand Prix">Grand Prix</option>
+                                <option value="Sesión">Sesión</option>
+                                <option value="Noticias">Noticias</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </label>
+                        <label>
                             Asunto
                             <input name="subject" maxlength="20" required>
                             <small class="rs-char-counter" data-counter-for="subject">0/20</small>
@@ -45,8 +55,8 @@
                 </article>
                 <article class="rs-simple-panel">
                     <h2>Soporte RaceStream</h2>
-                    <p>Cuenta activa: <strong data-user-email>-</strong></p>
-                    <p>El reporte se asignará a <strong>contact.racestream@gmail.com</strong>. Incluye el contexto: página, temporada, GP o sesión afectada.</p>
+                    <p>Mi cuenta: <strong data-user-email>-</strong></p>
+                    <p>El reporte será asignado a un trabajador de <strong>RaceStream</strong> y se resolverá con la mayor brevedad posible.</p>
                 </article>
             </section>
         </div>

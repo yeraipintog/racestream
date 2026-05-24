@@ -1,11 +1,13 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.1
+ * @version 1.0.4
  * @created 21-04-2026
- * @modified 27-04-2026
- * @description Variables globales del sistema visual Dark Premium de RaceStream documentadas por bloques
+ * @modified 22-05-2026
+ * @description Variables globales del sistema visual Dark Premium de RaceStream con tipografías D-DIN locales
  */
+
+@import url("/css/fonts.css");
 
 /* =========================
    TOKENS GLOBALES
@@ -64,8 +66,11 @@
 
     --rs-max-width: 1400px;
 
-    /* Tipografia y movimiento */
-    --rs-font-family: "Inter", "Segoe UI", Arial, sans-serif;
+    /* Tipografía y movimiento */
+    --rs-font-family: var(--font-body);
+    --rs-font-heading: var(--font-title);
+    --rs-heading-weight: 700;
+    --rs-heading-strong-weight: 800;
 
     --rs-transition: 0.2s ease;
 }

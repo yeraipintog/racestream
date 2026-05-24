@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.4
+ * @version 1.2.1
  * @created 06-05-2026
- * @modified 14-05-2026
+ * @modified 22-05-2026
  * @description API privada de administracion para usuarios, roles, bloqueos, contacto, foro y actividad interna
  */
 package com.yerai.racestream.controller;
@@ -12,17 +12,17 @@ import com.yerai.racestream.model.AppUser;
 import com.yerai.racestream.model.BlockedEmail;
 import com.yerai.racestream.model.ContactMessage;
 import com.yerai.racestream.model.ForumPost;
-import com.yerai.racestream.config.AdminUserInitializer;
+import com.yerai.racestream.model.UserRole;
 import com.yerai.racestream.repository.AppUserRepository;
 import com.yerai.racestream.repository.BlockedEmailRepository;
 import com.yerai.racestream.repository.ContactMessageRepository;
 import com.yerai.racestream.repository.ForumPostLikeRepository;
 import com.yerai.racestream.repository.ForumPostRepository;
 import com.yerai.racestream.repository.UserFavoriteRepository;
+import com.yerai.racestream.service.UserAccountDeletionService;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,8 +36,6 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -49,6 +47,7 @@ public class AdminController {
     private final ForumPostLikeRepository forumPostLikeRepository;
     private final ForumPostRepository forumPostRepository;
     private final UserFavoriteRepository userFavoriteRepository;
+    private final UserAccountDeletionService userAccountDeletionService;
 
     public AdminController(
             AppUserRepository appUserRepository,
@@ -56,13 +55,15 @@ public class AdminController {
             ContactMessageRepository contactMessageRepository,
             ForumPostLikeRepository forumPostLikeRepository,
             ForumPostRepository forumPostRepository,
-            UserFavoriteRepository userFavoriteRepository) {
+            UserFavoriteRepository userFavoriteRepository,
+            UserAccountDeletionService userAccountDeletionService) {
         this.appUserRepository = appUserRepository;
         this.blockedEmailRepository = blockedEmailRepository;
         this.contactMessageRepository = contactMessageRepository;
         this.forumPostLikeRepository = forumPostLikeRepository;
         this.forumPostRepository = forumPostRepository;
         this.userFavoriteRepository = userFavoriteRepository;
+        this.userAccountDeletionService = userAccountDeletionService;
     }
 
     /**
@@ -156,37 +157,17 @@ public class AdminController {
      * @modified 08-05-2026
      * @description Elimina un usuario y sus datos dependientes, incluyendo hilos de foro asociados
      * @param id Identificador del usuario
-     * @param authentication Sesion del administrador
      * @return Estado de borrado
      */
     @DeleteMapping("/users/{id}")
     @Transactional
-    public ResponseEntity<?> deleteUser(@PathVariable Long id, Authentication authentication) {
+    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         return appUserRepository.findById(id)
                 .<ResponseEntity<?>>map(user -> {
-                    if (isProtectedEmail(user.getEmail(), authentication)) {
+                    if (isProtectedAdmin(user)) {
                         return ResponseEntity.badRequest().body(Map.of("error", "No puedes eliminar esta cuenta de administración"));
                     }
-                    List<ForumPost> userPosts = forumPostRepository.findByAuthor(user);
-                    List<ForumPost> repliesToUserPosts = userPosts.isEmpty()
-                            ? List.of()
-                            : forumPostRepository.findByParentPostIn(userPosts);
-                    if (!userPosts.isEmpty()) {
-                        forumPostLikeRepository.deleteByPostIn(userPosts);
-                    }
-                    if (!repliesToUserPosts.isEmpty()) {
-                        forumPostLikeRepository.deleteByPostIn(repliesToUserPosts);
-                    }
-                    forumPostLikeRepository.deleteByUser(user);
-                    forumPostRepository.deleteAll(repliesToUserPosts);
-                    Set<Long> deletedReplyIds = repliesToUserPosts.stream()
-                            .map(ForumPost::getId)
-                            .collect(Collectors.toSet());
-                    forumPostRepository.deleteAll(userPosts.stream()
-                            .filter(post -> !deletedReplyIds.contains(post.getId()))
-                            .toList());
-                    contactMessageRepository.deleteByUser(user);
-                    userFavoriteRepository.deleteByUser(user);
+                    userAccountDeletionService.deleteUserData(user);
                     appUserRepository.delete(user);
                     return ResponseEntity.ok(Map.of("deleted", true));
                 })
@@ -200,14 +181,18 @@ public class AdminController {
      * @created 06-05-2026
      * @description Bloquea el correo de un usuario registrado desde su ficha
      * @param id Identificador del usuario
-     * @param authentication Sesion del administrador
      * @return Correo bloqueado
      */
     @PostMapping("/users/{id}/block")
     @Transactional
-    public ResponseEntity<?> blockUserEmail(@PathVariable Long id, Authentication authentication) {
+    public ResponseEntity<?> blockUserEmail(@PathVariable Long id) {
         return appUserRepository.findById(id)
-                .<ResponseEntity<?>>map(user -> blockEmail(user.getEmail(), "Bloqueado", authentication))
+                .<ResponseEntity<?>>map(user -> {
+                    if (isProtectedAdmin(user)) {
+                        return ResponseEntity.badRequest().body(Map.of("error", "No puedes bloquear esta cuenta de administración"));
+                    }
+                    return blockEmail(user.getEmail(), "Bloqueado");
+                })
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
@@ -302,12 +287,14 @@ public class AdminController {
                 "email", user.getEmail(),
                 "role", user.getRole().name(),
                 "createdAt", user.getCreatedAt(),
-                "blocked", blockedEmailRepository.existsByEmailIgnoreCase(user.getEmail()));
+                "blocked", blockedEmailRepository.existsByEmailIgnoreCase(user.getEmail()),
+                "protectedAdmin", isProtectedAdmin(user));
     }
 
     private Map<String, Object> toMessageResponse(ContactMessage message) {
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("id", message.getId());
+        response.put("topic", message.getTopic());
         response.put("subject", message.getSubject());
         response.put("message", message.getMessage());
         response.put("createdAt", message.getCreatedAt());
@@ -339,12 +326,12 @@ public class AdminController {
         return response;
     }
 
-    private ResponseEntity<?> blockEmail(String rawEmail, String reason, Authentication authentication) {
+    private ResponseEntity<?> blockEmail(String rawEmail, String reason) {
         String email = normalizeEmail(rawEmail);
         if (email.isBlank() || !email.contains("@")) {
             return ResponseEntity.badRequest().body(Map.of("error", "Introduce un correo electrónico válido"));
         }
-        if (isProtectedEmail(email, authentication)) {
+        if (appUserRepository.findByEmailIgnoreCase(email).map(this::isProtectedAdmin).orElse(false)) {
             return ResponseEntity.badRequest().body(Map.of("error", "No puedes bloquear esta cuenta de administración"));
         }
         BlockedEmail blockedEmail = blockedEmailRepository.findByEmailIgnoreCase(email).orElseGet(BlockedEmail::new);
@@ -353,10 +340,8 @@ public class AdminController {
         return ResponseEntity.ok(toBlockedEmailResponse(blockedEmailRepository.save(blockedEmail)));
     }
 
-    private boolean isProtectedEmail(String email, Authentication authentication) {
-        String normalized = normalizeEmail(email);
-        String current = normalizeEmail(authentication == null ? "" : authentication.getName());
-        return AdminUserInitializer.ADMIN_EMAIL.equalsIgnoreCase(normalized) || normalized.equals(current);
+    private boolean isProtectedAdmin(AppUser user) {
+        return user.getRole() == UserRole.ADMIN;
     }
 
     private String normalizeEmail(String email) {

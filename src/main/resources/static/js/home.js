@@ -1,10 +1,11 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.6
+ * @version 1.5.0
  * @created 30-04-2026
- * @modified 13-05-2026
- * @description Logica de Inicio con contadores estables, ultima sesion, carga segura, placeholders de piloto y ayuda contextual
+ * @modified 19-05-2026
+ * @description Lógica de Inicio con contadores estables, última carrera,
+ *              próxima sesión, estadísticas reales y ayuda contextual
  */
 class RaceStreamHomePage {
 
@@ -24,15 +25,16 @@ class RaceStreamHomePage {
         this.driversApi = (sessionKey) => `/api/f1/drivers?sessionKey=${sessionKey}`;
         this.driverStandingsApi = `/api/f1/standings/drivers?year=${this.year}`;
         this.constructorStandingsApi = `/api/f1/standings/constructors?year=${this.year}`;
+        this.raceResultsApi = `/api/f1/standings/race-results?year=${this.year}`;
         this.newsApi = '/api/news/f1?limit=10';
         this.nextMeeting = null;
         this.nextSession = null;
         this.refreshingSession = false;
         this.glossary = {
             SC: ['Safety Car', 'Coche de seguridad que reduce el ritmo y agrupa a los pilotos cuando hay peligro en pista.'],
-            VSC: ['Virtual Safety Car', 'Periodo controlado en el que todos reducen velocidad sin que salga un coche fisico.'],
-            DNF: ['Did Not Finish', 'El piloto tomo la salida, pero no llego al final por averia, accidente u otro problema.'],
-            ERS: ['Energy Recovery System', 'Sistema que recupera energia y la entrega como potencia electrica adicional.']
+            VSC: ['Virtual Safety Car', 'Periodo controlado en el que todos reducen velocidad sin que salga un coche físico.'],
+            DNF: ['Did Not Finish', 'El piloto tomó la salida, pero no llegó al final por avería, accidente u otro problema.'],
+            ERS: ['Energy Recovery System', 'Sistema que recupera energía y la entrega como potencia eléctrica adicional.']
         };
 
         this.cacheDom();
@@ -53,12 +55,10 @@ class RaceStreamHomePage {
         this.heroSessionTitle = document.getElementById('heroSessionTitle');
         this.heroSessionMeta = document.getElementById('heroSessionMeta');
         this.heroCountdown = document.getElementById('heroCountdown');
-        this.liveNextName = document.getElementById('liveNextName');
-        this.liveNextTime = document.getElementById('liveNextTime');
-        this.liveDataStatus = document.getElementById('liveDataStatus');
         this.lastSessionTitle = document.getElementById('lastSessionTitle');
         this.lastSessionLink = document.getElementById('lastSessionLink');
         this.lastSessionResults = document.getElementById('lastSessionResults');
+        this.seasonStatsPanel = document.getElementById('seasonStatsPanel');
         this.driversStandings = document.getElementById('driversStandings');
         this.teamsStandings = document.getElementById('teamsStandings');
         this.homeNews = document.getElementById('homeNews');
@@ -90,6 +90,7 @@ class RaceStreamHomePage {
         this.loadHomeData();
         this.loadLastSession();
         this.loadStandings();
+        this.loadSeasonStats();
         this.loadNews();
         this.showGlossaryTerm('SC');
         setInterval(() => this.updateDynamicTime(), 1000);
@@ -124,7 +125,6 @@ class RaceStreamHomePage {
         this.nextMeeting = this.getCurrentOrNextMeeting(safeMeetings);
         await this.loadNextSession();
         this.renderHeroSession();
-        this.renderLiveSummary();
     }
 
     /**
@@ -177,11 +177,15 @@ class RaceStreamHomePage {
             return;
         }
 
-        this.heroSessionTitle.textContent = session ? this.translateSessionName(session.session_name) : meeting.meeting_name;
+        const header = document.querySelector('.rs-home-next-card .rs-home-card__header span');
+        if (header) header.textContent = `Próxima sesión · ${this.formatSessionDate(session?.date_start || meeting.date_start)}`;
+        this.heroSessionTitle.textContent = session
+            ? `${this.translateSessionName(session.session_name)}`
+            : 'Sesión por confirmar';
         this.heroSessionMeta.innerHTML = `
             <span class="rs-home-session-meta">
                 ${meeting.country_flag ? `<img src="${meeting.country_flag}" alt="Bandera de ${meeting.country_name || 'país'}">` : ''}
-                <span>${meeting.meeting_name || 'GP'} · ${this.formatSessionDate(session?.date_start || meeting.date_start)}</span>
+                <span>${this.escapeHtml(this.getMeetingPlaceLabel(meeting))}</span>
             </span>
         `;
     }
@@ -190,22 +194,8 @@ class RaceStreamHomePage {
      * @author Yerai Pinto
      * @since 1.0
      * @version 1.0.0
-     * @created 30-04-2026
-     * @description Renderiza resumen del modulo En Vivo
-     */
-    renderLiveSummary() {
-        const session = this.nextSession;
-        this.liveNextName.textContent = session ? this.translateSessionName(session.session_name) : 'Sin sesión';
-        this.liveNextTime.textContent = session ? this.formatTimeOnly(session.date_start) : '-';
-        this.liveDataStatus.textContent = session ? this.formatCircuitTimeOnly(session.date_start, this.nextMeeting?.gmt_offset) : '-';
-    }
-
-    /**
-     * @author Yerai Pinto
-     * @since 1.0
-     * @version 1.0.0
      * @created 05-05-2026
-     * @description Carga la ultima sesion completada con resultados reales antes de mostrarla
+     * @description Carga la última carrera completada con resultados reales antes de mostrarla
      */
     async loadLastSession() {
         if (!this.lastSessionResults) return;
@@ -219,6 +209,7 @@ class RaceStreamHomePage {
             const sessions = await this.fetchJson(this.sessionsByMeetingApi(meeting.meeting_key), []);
             const completedSessions = (Array.isArray(sessions) ? sessions : [])
                 .filter((session) => session.session_key && new Date(session.date_end).getTime() < Date.now())
+                .filter((session) => this.isRaceSession(session.session_name))
                 .sort((left, right) => new Date(right.date_end).getTime() - new Date(left.date_end).getTime());
             for (const session of completedSessions) {
                 const results = await this.fetchJson(this.resultsApi(session.session_key), []);
@@ -229,14 +220,17 @@ class RaceStreamHomePage {
             }
         }
 
-        this.lastSessionTitle.textContent = 'Última sesión no disponible';
+        this.lastSessionTitle.textContent = 'Última Carrera no disponible';
         this.lastSessionResults.innerHTML = '<span class="empty-state">OpenF1 todavía no ofrece resultados recientes.</span>';
     }
 
     renderLastSession(meeting, session, results, drivers) {
         const driverMap = new Map(drivers.map((driver) => [Number(driver.driver_number), driver]));
         const sorted = [...results].sort((left, right) => (Number(left.position) || 999) - (Number(right.position) || 999));
-        this.lastSessionTitle.textContent = `${meeting.meeting_name || 'Gran Premio'} · ${this.translateSessionName(session.session_name)}`;
+        this.lastSessionTitle.innerHTML = `
+            ${this.renderMeetingFlag(meeting)}
+            <span class="rs-home-last-session__gp">${this.escapeHtml(this.getMeetingPlaceLabel(meeting))}</span>
+        `;
         this.lastSessionLink.href = `/sessions.html?year=${this.year}&meetingKey=${meeting.meeting_key}&sessionKey=${session.session_key}`;
         this.lastSessionResults.innerHTML = sorted.map((row, index) => {
             const driver = driverMap.get(Number(row.driver_number)) || {};
@@ -286,6 +280,88 @@ class RaceStreamHomePage {
             this.renderApiRetry(this.teamsStandings, 'Escuderías');
         }
 
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 24-05-2026
+     * @description Calcula estadísticas compactas de temporada con datos reales
+     *              disponibles y estados claros si falta una métrica
+     */
+    async loadSeasonStats() {
+        if (!this.seasonStatsPanel) return;
+        this.seasonStatsPanel.innerHTML = '<div class="loading-state">Calculando estadísticas...</div>';
+        const [drivers, races] = await Promise.all([
+            this.fetchJson(this.driverStandingsApi, []),
+            this.fetchJson(this.raceResultsApi, [])
+        ]);
+        const topWins = this.topDriverByField(Array.isArray(drivers) ? drivers : [], 'wins', 'victorias');
+        const topFastestLaps = this.topFastestLaps(Array.isArray(races) ? races : []);
+        const stats = [
+            topWins,
+            this.pendingStat('Más victorias Sprint', 'OpenF1 lo publica por sesión Sprint; se mostrará cuando haya datos agregables.'),
+            topFastestLaps,
+            this.pendingStat('Más adelantamientos', 'OpenF1 devuelve adelantamientos por sesión, no una clasificación anual consolidada.')
+        ];
+        this.seasonStatsPanel.innerHTML = stats.map((item) => `
+            <div class="rs-home-season-stat">
+                <span>${this.escapeHtml(item.label)}</span>
+                <strong>${this.escapeHtml(item.value)}</strong>
+                <small>${this.escapeHtml(item.meta)}</small>
+            </div>
+        `).join('');
+    }
+
+    topDriverByField(rows, field, suffix) {
+        const sorted = [...rows]
+            .map((row) => ({
+                name: this.getDriverName(row.Driver),
+                value: Number(row?.[field] || 0)
+            }))
+            .filter((row) => row.value > 0)
+            .sort((left, right) => right.value - left.value);
+        if (!sorted.length) {
+            return this.pendingStat('Más victorias', 'Jolpica todavía no devuelve victorias para esta temporada.');
+        }
+        const leader = sorted[0];
+        return {
+            label: 'Más victorias',
+            value: leader.name,
+            meta: `${leader.value} ${leader.value === 1 ? 'victoria' : suffix}`
+        };
+    }
+
+    topFastestLaps(races) {
+        const counts = new Map();
+        races.forEach((race) => {
+            const results = race?.Results || race?.results || [];
+            results.forEach((result) => {
+                const rank = result?.FastestLap?.rank || result?.fastestLap?.rank;
+                if (`${rank}` !== '1') return;
+                const name = this.getDriverName(result.Driver || result.driver);
+                counts.set(name, (counts.get(name) || 0) + 1);
+            });
+        });
+        const sorted = [...counts.entries()].sort((left, right) => right[1] - left[1]);
+        if (!sorted.length) {
+            return this.pendingStat('Más vueltas rápidas', 'Jolpica todavía no devuelve vueltas rápidas suficientes.');
+        }
+        const [name, total] = sorted[0];
+        return {
+            label: 'Más vueltas rápidas',
+            value: name,
+            meta: `${total} ${total === 1 ? 'vuelta rápida' : 'vueltas rápidas'}`
+        };
+    }
+
+    pendingStat(label, message) {
+        return {
+            label,
+            value: 'Pendiente',
+            meta: message
+        };
     }
 
     /**
@@ -445,7 +521,6 @@ class RaceStreamHomePage {
      */
     updateDynamicTime() {
         this.heroCountdown.textContent = this.getCountdown(this.nextSession?.date_start || this.nextMeeting?.date_start);
-        this.renderLiveSummary();
         this.refreshSessionIfFinished();
     }
 
@@ -464,7 +539,6 @@ class RaceStreamHomePage {
         this.refreshingSession = true;
         await this.loadNextSession();
         this.renderHeroSession();
-        this.renderLiveSummary();
         this.refreshingSession = false;
     }
 
@@ -547,7 +621,11 @@ class RaceStreamHomePage {
         const hours = Math.floor((totalSeconds % 86400) / 3600);
         const minutes = Math.floor((totalSeconds % 3600) / 60);
         const seconds = totalSeconds % 60;
-        return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+        const parts = [];
+        if (days > 0) parts.push(`${days}d`);
+        if (hours > 0) parts.push(`${hours}h`);
+        parts.push(`${minutes}m`, `${seconds}s`);
+        return parts.join(' ');
     }
 
     getNowTime() {
@@ -570,6 +648,11 @@ class RaceStreamHomePage {
         const start = new Date(session.date_start).getTime();
         const end = new Date(session.date_end).getTime();
         return now >= start && now <= end ? 'En vivo' : 'Próxima';
+    }
+
+    isRaceSession(name) {
+        const value = `${name || ''}`.toLowerCase();
+        return value === 'race' || value === 'sprint';
     }
 
     translateSessionName(name) {
@@ -630,6 +713,65 @@ class RaceStreamHomePage {
         if (key.includes('red bull')) return '#1e5bc6';
         if (key.includes('mercedes')) return '#00a19c';
         return '#64748b';
+    }
+
+    renderMeetingFlag(meeting) {
+        if (!meeting?.country_flag) return '';
+        const country = this.escapeHtml(this.translateCountry(meeting.country_name || 'país'));
+        const flag = this.escapeHtml(meeting.country_flag);
+        return `<img class="rs-flag-inline" src="${flag}" alt="Bandera de ${country}">`;
+    }
+
+    getMeetingLocationLabel(meeting) {
+        return meeting?.location || meeting?.jolpica_locality || meeting?.circuit_short_name || meeting?.meeting_name || 'Gran Premio';
+    }
+
+    getMeetingCountryLabel(meeting) {
+        return this.translateCountry(meeting?.country_name || meeting?.jolpica_country || 'país');
+    }
+
+    getMeetingPlaceLabel(meeting) {
+        const location = this.getMeetingLocationLabel(meeting);
+        const country = this.getMeetingCountryLabel(meeting);
+        if (!location || location === country) return country;
+        return `${location}, ${country}`;
+    }
+
+    translateCountry(country) {
+        const labels = {
+            Australia: 'Australia',
+            Austria: 'Austria',
+            Azerbaijan: 'Azerbaiyán',
+            Bahrain: 'Baréin',
+            Belgium: 'Bélgica',
+            Brazil: 'Brasil',
+            Canada: 'Canadá',
+            China: 'China',
+            Hungary: 'Hungría',
+            Italy: 'Italia',
+            Japan: 'Japón',
+            Mexico: 'México',
+            Monaco: 'Mónaco',
+            Netherlands: 'Países Bajos',
+            Qatar: 'Catar',
+            Singapore: 'Singapur',
+            Spain: 'España',
+            'Saudi Arabia': 'Arabia Saudí',
+            'United Arab Emirates': 'Emiratos Árabes Unidos',
+            'United Kingdom': 'Reino Unido',
+            'United States': 'Estados Unidos'
+        };
+        const value = `${country || ''}`.trim();
+        return labels[value] || value || 'país';
+    }
+
+    escapeHtml(value) {
+        return `${value ?? ''}`
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 
     /**

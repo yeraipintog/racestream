@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.4.7
+ * @version 1.4.8
  * @created 30-04-2026
- * @modified 12-05-2026
- * @description Estilos responsive de Sesiones con título compacto, podios, placeholder de pilotos y tarjetas desplegables
+ * @modified 22-05-2026
+ * @description Estilos responsive de Sesiones con título compacto legible, podios, placeholder de pilotos y tarjetas desplegables
  */
 
 .rs-sessions-head {
@@ -32,7 +32,7 @@
     padding-bottom: 0;
     color: #fff;
     font-size: 28px;
-    font-weight: 900;
+    font-weight: var(--rs-heading-weight);
     line-height: 1.15;
     max-width: 100%;
     width: 100%;

@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.2
+ * @version 1.1.0
  * @created 05-05-2026
- * @modified 13-05-2026
- * @description Mensaje de contacto enviado por usuarios registrados
+ * @modified 19-05-2026
+ * @description Mensaje de contacto enviado por usuarios registrados con tema de reporte
  */
 package com.yerai.racestream.model;
 
@@ -36,6 +36,9 @@ public class ContactMessage {
 
     @Column(nullable = false, length = 120)
     private String subject;
+
+    @Column(length = 40)
+    private String topic = "Otro";
 
     @Column(nullable = false, length = 1400)
     private String message;
@@ -69,6 +72,8 @@ public class ContactMessage {
     public void setUser(AppUser user) { this.user = user; }
     public String getSubject() { return subject; }
     public void setSubject(String subject) { this.subject = subject; }
+    public String getTopic() { return topic == null || topic.isBlank() ? "Otro" : topic; }
+    public void setTopic(String topic) { this.topic = topic; }
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }
     public String getClientRequestId() { return clientRequestId; }
