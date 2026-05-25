@@ -36,7 +36,7 @@ public class RaceStreamUserDetailsService implements UserDetailsService {
      * @version 1.0.3
      * @created 05-05-2026
      * @modified 06-05-2026
-     * @description Carga el usuario por email, nombre visible o alias admin, valida bloqueo y adapta su rol a Spring Security
+     * @description Carga el usuario por email, nombre visible o alias admin, válida bloqueo y adapta su rol a Spring Security
      * @param username Email, nombre visible o alias del usuario
      * @return Usuario autenticable
      */

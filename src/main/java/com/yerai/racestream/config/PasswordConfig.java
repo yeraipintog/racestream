@@ -3,7 +3,7 @@
  * @since 1.0
  * @version 1.0.0
  * @created 05-05-2026
- * @description Configuracion de cifrado de contrasenas para usuarios locales
+ * @description Configuración de cifrado de contraseñas para usuarios locales
  */
 package com.yerai.racestream.config;
 
@@ -20,7 +20,7 @@ public class PasswordConfig {
      * @since 1.0
      * @version 1.0.0
      * @created 05-05-2026
-     * @description Crea el cifrador BCrypt para no guardar contrasenas en claro
+     * @description Crea el cifrador BCrypt para no guardar contraseñas en claro
      * @return PasswordEncoder BCrypt
      */
     @Bean

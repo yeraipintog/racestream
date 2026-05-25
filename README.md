@@ -78,7 +78,7 @@ Pruebas manuales recomendadas de cookies:
 ## Estructura
 
 - `src/main/java/com/yerai/racestream/config`: configuración de seguridad, contraseñas, filtros y arranque de admin.
-- `src/main/java/com/yerai/racestream/controller`: APIs REST y redirecciones de páginas.
+- `src/main/java/com/yerai/racestream/controller`: APIs REST y redirecciónes de páginas.
 - `src/main/java/com/yerai/racestream/model`: entidades JPA y enums.
 - `src/main/java/com/yerai/racestream/repository`: repositorios Spring Data.
 - `src/main/java/com/yerai/racestream/service`: integración con fuentes externas y lógica de dominio.

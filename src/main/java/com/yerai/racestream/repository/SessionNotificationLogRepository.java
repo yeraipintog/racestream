@@ -4,7 +4,7 @@
  * @version 1.0.0
  * @created 20-05-2026
  * @modified 20-05-2026
- * @description Repositorio de marcas de envio para evitar avisos duplicados
+ * @description Repositorio de marcas de envío para evitar avisos duplicados
  */
 package com.yerai.racestream.repository;
 

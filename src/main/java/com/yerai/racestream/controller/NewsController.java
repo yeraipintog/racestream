@@ -39,7 +39,7 @@ public class NewsController {
      * @since 1.0
      * @version 1.0.0
      * @created 30-04-2026
-     * @description Devuelve noticias reales de Formula 1 en espanol
+     * @description Devuelve noticias reales de Fórmula 1 en espanol
      * @param limit Limite de noticias
      * @return Noticias externas
      */

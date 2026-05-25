@@ -379,7 +379,7 @@ public class OpenF1Service {
      * @version 1.0.0
      * @created 23-05-2026
      * @description Comprueba si la última respuesta de una URL concreta llegó desde
-     *              caché antigua por fallo, 429 o vacío temporal
+     *              caché antigua por falló, 429 o vacío temporal
      * @param url URL consultada
      * @return true si la respuesta fue stale
      */
@@ -394,7 +394,7 @@ public class OpenF1Service {
      * @created 23-05-2026
      * @modified 23-05-2026
      * @description Comprueba si el endpoint y parámetros indicados han usado la
-     *              última respuesta válida por fallo, rate limit o vacío temporal
+     *              última respuesta válida por falló, rate limit o vacío temporal
      * @param path Endpoint OpenF1
      * @param params Parámetros públicos usados
      * @return true si la última respuesta conocida es stale

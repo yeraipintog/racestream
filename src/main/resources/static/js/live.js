@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.6.0
+ * @version 1.6.1
  * @created 03-05-2026
- * @modified 24-05-2026
+ * @modified 25-05-2026
  * @description Fórmula 1 En Vivo con mapa Canvas, timing limpio, telemetría
  *              suavizada y bloques de carrera optimizados
  */
@@ -515,7 +515,7 @@ class RaceStreamLivePage {
             <div class="rs-live-mini-card">
                 <strong>${this.driverName(item.driver_number)}</strong>
                 <span>${this.escape(item.speed ?? '—')} km/h · RPM ${this.escape(item.rpm ?? '—')}</span>
-                <span>Marcha ${this.escape(item.n_gear ?? '—')} · DRS ${this.escape(this.drsState(item.drs).label)}</span>
+                <span>Marcha ${this.escape(item.n_gear ?? '—')}</span>
             </div>
         `).join('')}</div>`;
     }
@@ -641,13 +641,6 @@ class RaceStreamLivePage {
 
     value(value) {
         return value === null || value === undefined || value === '' ? '—' : value;
-    }
-
-    drsState(value) {
-        const drs = Number(value);
-        if ([10, 12, 14].includes(drs)) return { active: true, label: 'Activo' };
-        if (drs === 8) return { active: false, label: 'Disponible' };
-        return { active: false, label: 'Apagado' };
     }
 
     message(data, field, fallback) {

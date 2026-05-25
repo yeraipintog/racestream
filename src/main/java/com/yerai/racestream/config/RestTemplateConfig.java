@@ -4,7 +4,7 @@
  * @version 1.0.1
  * @created 21-04-2026
  * @modified 28-04-2026
- * @description Configuracion de RestTemplate con timeouts para APIs externas
+ * @description Configuración de RestTemplate con timeouts para APIs externas
  */
 package com.yerai.racestream.config;
 
@@ -24,7 +24,7 @@ public class RestTemplateConfig {
      * @version 1.0.1
      * @created 21-04-2026
      * @modified 28-04-2026
-     * @description Crea un cliente HTTP con limites cortos para no bloquear la web
+     * @description Crea un cliente HTTP con límites cortos para no bloquear la web
      *              si una API externa falla
      * @param builder Constructor de RestTemplate
      * @return Cliente HTTP

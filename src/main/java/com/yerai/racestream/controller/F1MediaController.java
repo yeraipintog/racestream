@@ -3,7 +3,7 @@
  * @since 1.0
  * @version 1.1.0
  * @created 30-04-2026
- * @description Controlador REST para recursos visuales de pilotos y escuderias
+ * @description Controlador REST para recursos visuales de pilotos y escuderías
  */
 package com.yerai.racestream.controller;
 
@@ -46,7 +46,7 @@ public class F1MediaController {
      * @version 1.0.0
      * @created 30-04-2026
      * @description Devuelve imagen de piloto desde OpenF1
-     * @param number Numero permanente del piloto
+     * @param number Número permanente del piloto
      * @return Datos visuales del piloto
      */
     @GetMapping("/driver")

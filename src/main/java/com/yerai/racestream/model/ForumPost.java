@@ -4,7 +4,7 @@
  * @version 1.0.3
  * @created 05-05-2026
  * @modified 13-05-2026
- * @description Publicacion del foro privado con categoria, respuestas y contador de likes
+ * @description Publicación del foro privado con categoría, respuestas y contador de likes
  */
 package com.yerai.racestream.model;
 

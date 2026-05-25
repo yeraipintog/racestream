@@ -4,7 +4,7 @@
  * @version 1.1.1
  * @created 12-05-2026
  * @modified 22-05-2026
- * @description Tests de validacion de contrasena, recuperacion y estados explicitos de cookies en autenticacion
+ * @description Tests de validación de contraseña, recuperación y estados explícitos de cookies en autenticación
  */
 package com.yerai.racestream.controller;
 
@@ -69,7 +69,7 @@ class AuthControllerTest {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Verifica error de campo al intentar iniciar sesion con email no registrado
+     * @description Verifica error de campo al intentar iniciar sesión con email no registrado
      */
     @Test
     void loginWithUnknownUserReturnsEmailFieldError() {
@@ -86,7 +86,7 @@ class AuthControllerTest {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Verifica error de campo al intentar iniciar sesion con contrasena incorrecta
+     * @description Verifica error de campo al intentar iniciar sesión con contraseña incorrecta
      */
     @Test
     void loginWithWrongPasswordReturnsPasswordFieldError() {
@@ -154,7 +154,7 @@ class AuthControllerTest {
      * @version 1.0.0
      * @created 22-05-2026
      * @modified 22-05-2026
-     * @description Verifica error de campo cuando el email de recuperacion no existe
+     * @description Verifica error de campo cuando el email de recuperación no existe
      */
     @Test
     void passwordResetRequestWithUnknownEmailReturnsEmailFieldError() {
@@ -203,7 +203,7 @@ class AuthControllerTest {
      * @version 1.0.0
      * @created 22-05-2026
      * @modified 22-05-2026
-     * @description Verifica error de campo al intentar reutilizar la contrasena actual
+     * @description Verifica error de campo al intentar reutilizar la contraseña actual
      */
     @Test
     void passwordResetConfirmRejectsCurrentPasswordReuse() {
@@ -228,7 +228,7 @@ class AuthControllerTest {
      * @version 1.0.0
      * @created 22-05-2026
      * @modified 22-05-2026
-     * @description Verifica que el enlace caduca al guardar una contrasena nueva
+     * @description Verifica que el enlace caduca al guardar una contraseña nueva
      */
     @Test
     void passwordResetConfirmExpiresTokenAfterSaving() {
@@ -253,7 +253,7 @@ class AuthControllerTest {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Verifica mensaje claro para contrasena debil en registro
+     * @description Verifica mensaje claro para contraseña débil en registro
      */
     @Test
     void registerReturnsClearWeakPasswordError() {
@@ -287,7 +287,7 @@ class AuthControllerTest {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Verifica que aceptar cookies crea la cookie tecnica
+     * @description Verifica que aceptar cookies crea la cookie técnica
      */
     @Test
     void acceptCookiesCreatesAcceptedCookie() {
@@ -303,7 +303,7 @@ class AuthControllerTest {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Verifica que rechazar cookies crea la cookie tecnica
+     * @description Verifica que rechazar cookies crea la cookie técnica
      */
     @Test
     void rejectCookiesCreatesRejectedCookie() {
@@ -319,7 +319,7 @@ class AuthControllerTest {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Verifica que un usuario autenticado sincroniza su aceptacion de cookies
+     * @description Verifica que un usuario autenticado sincroniza su aceptación de cookies
      */
     @Test
     void authenticatedUserCookieAcceptanceIsSaved() {
@@ -360,7 +360,7 @@ class AuthControllerTest {
      * @since 1.0
      * @version 1.0.0
      * @created 18-05-2026
-     * @description Verifica que /api/auth/me devuelve aceptacion de cookies con estado explicito
+     * @description Verifica que /api/auth/me devuelve aceptación de cookies con estado explícito
      */
     @Test
     void meReturnsAcceptedCookieStatus() {
@@ -398,7 +398,7 @@ class AuthControllerTest {
      * @since 1.0
      * @version 1.0.0
      * @created 18-05-2026
-     * @description Verifica que sin decision no se confunde con rechazo
+     * @description Verifica que sin decisión no se confunde con rechazo
      */
     @Test
     void undecidedUserIsNotConfusedWithRejection() {
@@ -417,7 +417,7 @@ class AuthControllerTest {
      * @since 1.0
      * @version 1.0.0
      * @created 18-05-2026
-     * @description Crea un usuario valido para respuestas de sesion en tests unitarios
+     * @description Crea un usuario válido para respuestas de sesión en tests unitarios
      * @param status Estado de cookies deseado
      * @return Usuario preparado
      */
@@ -436,7 +436,7 @@ class AuthControllerTest {
      * @version 1.0.0
      * @created 22-05-2026
      * @modified 22-05-2026
-     * @description Crea un usuario con token vigente para pruebas de recuperacion
+     * @description Crea un usuario con token vigente para pruebas de recuperación
      * @return Usuario preparado para restablecimiento
      */
     private AppUser userWithResetToken() {

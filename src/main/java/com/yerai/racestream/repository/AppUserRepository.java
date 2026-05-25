@@ -4,7 +4,7 @@
  * @version 1.0.3
  * @created 05-05-2026
  * @modified 22-05-2026
- * @description Repositorio de usuarios para autenticacion, cuenta y restablecimiento de contrasena
+ * @description Repositorio de usuarios para autenticación, cuenta y restablecimiento de contraseña
  */
 package com.yerai.racestream.repository;
 
@@ -27,7 +27,7 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
      * @created 22-05-2026
      * @modified 22-05-2026
      * @description Recupera con bloqueo el usuario del token para consumirlo una sola vez
-     * @param passwordResetToken Token de recuperacion
+     * @param passwordResetToken Token de recuperación
      * @return Usuario asociado al token
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
@@ -38,10 +38,10 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
      * @version 1.0.0
      * @created 22-05-2026
      * @modified 22-05-2026
-     * @description Comprueba si un token de recuperacion existe y no ha caducado
-     * @param passwordResetToken Token de recuperacion
+     * @description Comprueba si un token de recuperación existe y no ha caducado
+     * @param passwordResetToken Token de recuperación
      * @param expiresAt Fecha minima de vigencia
-     * @return true si el token esta vigente
+     * @return true si el token está vigente
      */
     boolean existsByPasswordResetTokenAndPasswordResetExpiresAtAfter(String passwordResetToken, Instant expiresAt);
     boolean existsByEmailIgnoreCase(String email);

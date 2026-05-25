@@ -4,7 +4,7 @@
  * @version 1.4.1
  * @created 04-05-2026
  * @modified 22-05-2026
- * @description Lógica compartida para Pilotos y Escuderías con limite publico, aviso histórico y tarjetas por temporada
+ * @description Lógica compartida para Pilotos y Escuderías con límite público, aviso histórico y tarjetas por temporada
  */
 class RaceStreamParticipantsPage {
 
@@ -199,16 +199,16 @@ class RaceStreamParticipantsPage {
 
     renderTeams() {
         this.seasonMeta.textContent = `Temporada ${this.year} · ${this.constructorStandings.length} escuderías`;
-        const historicalNotice = this.renderHistoricalConstructorsNotice();
+        const históricalNotice = this.renderHistoricalConstructorsNotice();
         if (!this.constructorStandings.length) {
             if (this.year < 1958) {
-                this.grid.innerHTML = `${historicalNotice}<p class="empty-state">No hay datos históricos de escuderías para esta temporada.</p>`;
+                this.grid.innerHTML = `${históricalNotice}<p class="empty-state">No hay datos históricos de escuderías para esta temporada.</p>`;
             } else {
                 this.renderApiRetry('Escuderías');
             }
             return;
         }
-        this.grid.innerHTML = historicalNotice + this.constructorStandings.map((row, index) => this.renderTeamCard(row, index)).join('');
+        this.grid.innerHTML = históricalNotice + this.constructorStandings.map((row, index) => this.renderTeamCard(row, index)).join('');
     }
 
     /**
@@ -223,7 +223,7 @@ class RaceStreamParticipantsPage {
     renderHistoricalConstructorsNotice() {
         if (this.year >= 1958) return '';
         return `
-            <div class="rs-historical-notice">
+            <div class="rs-histórical-notice">
                 El Campeonato de Constructores empezó oficialmente en 1958. En temporadas anteriores estos datos son una referencia histórica por escudería/equipo y no una clasificación oficial del campeonato.
             </div>
         `;
@@ -285,7 +285,7 @@ class RaceStreamParticipantsPage {
      * @since 1.0
      * @version 1.0.0
      * @created 07-05-2026
-     * @description Invita a recargar cuando una respuesta obligatoria llega vacia
+     * @description Invita a recargar cuando una respuesta obligatoria llega vacía
      * @param {string} label Datos esperados
      */
     renderApiRetry(label) {
@@ -332,8 +332,8 @@ class RaceStreamParticipantsPage {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Devuelve identificador estable de escuderia para tarjetas y favoritos
-     * @param {Object} row Fila de escuderia
+     * @description Devuelve identificador estable de escudería para tarjetas y favoritos
+     * @param {Object} row Fila de escudería
      * @returns {string} Identificador estable
      */
     getConstructorRowId(row) {

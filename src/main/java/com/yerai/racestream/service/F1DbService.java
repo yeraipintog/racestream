@@ -4,7 +4,7 @@
  * @version 1.0.4
  * @created 29-04-2026
  * @modified 13-05-2026
- * @description Servicio para obtener datos tecnicos de circuitos desde F1DB sin introducir datos manuales
+ * @description Servicio para obtener datos técnicos de circuitos desde F1DB sin introducir datos manuales
  * @see https://github.com/f1db/f1db
  */
 package com.yerai.racestream.service;
@@ -133,7 +133,7 @@ public class F1DbService {
      * @since 1.0
      * @version 1.0.0
      * @created 29-04-2026
-     * @description Aplica la vuelta rapida historica calculada por circuito
+     * @description Aplica la vuelta rápida histórica calculada por circuito
      * @param target Circuito destino
      * @param source Nodo con circuitId
      * @param data Datos cacheados
@@ -278,7 +278,7 @@ public class F1DbService {
      * @since 1.0
      * @version 1.0.0
      * @created 29-04-2026
-     * @description Inserta numero solo si es valido
+     * @description Inserta número solo si es válido
      * @param node Nodo destino
      * @param field Campo
      * @param value Valor
@@ -309,7 +309,7 @@ public class F1DbService {
      * @since 1.0
      * @version 1.0.0
      * @created 29-04-2026
-     * @description Contenedor interno de datos F1DB indexados para consultas rapidas
+     * @description Contenedor interno de datos F1DB indexados para consultas rápidas
      */
     private static final class F1DbData {
         private final ArrayNode circuits;

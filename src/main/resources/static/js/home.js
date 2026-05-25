@@ -597,7 +597,7 @@ class RaceStreamHomePage {
      * @version 1.0.1
      * @created 30-04-2026
      * @modified 07-05-2026
-     * @description Actualiza la cuenta atras de Inicio sin sobrescribir la franja comun
+     * @description Actualiza la cuenta atrás de Inicio sin sobrescribir la franja común
      */
     updateDynamicTime() {
         this.heroCountdown.textContent = this.getCountdown(this.nextSession?.date_start || this.nextMeeting?.date_start);
@@ -759,7 +759,7 @@ class RaceStreamHomePage {
      * @version 1.0.0
      * @created 03-05-2026
      * @description Devuelve equipo y victorias del piloto usando la estructura real de Jolpica
-     * @param {Object} row Fila de clasificacion Jolpica
+     * @param {Object} row Fila de clasificación Jolpica
      * @returns {string} Texto de resumen
      */
     getDriverMeta(row) {

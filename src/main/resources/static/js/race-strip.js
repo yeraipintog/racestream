@@ -4,7 +4,7 @@
  * @version 1.6.2
  * @created 04-05-2026
  * @modified 22-05-2026
- * @description Carga la franja comun de proximo GP con fechas, ubicacion, pais, cache inmediata y contador sincronizado
+ * @description Carga la franja común de próximo GP con fechas, ubicación, país, caché inmediata y contador sincronizado
  */
 class RaceStreamRaceStrip {
 
@@ -57,7 +57,7 @@ class RaceStreamRaceStrip {
      * @version 1.0.0
      * @created 14-05-2026
      * @modified 14-05-2026
-     * @description Pinta cache valida al instante y actualiza datos confirmados sin bloquear la pagina
+     * @description Pinta caché válida al instante y actualiza datos confirmados sin bloquear la página
      */
     async init() {
         if (!this.title) return;
@@ -342,9 +342,9 @@ class RaceStreamRaceStrip {
      * @version 1.0.0
      * @created 18-05-2026
      * @modified 18-05-2026
-     * @description Devuelve el pais visible del GP evitando nombres largos de Gran Premio
+     * @description Devuelve el país visible del GP evitando nombres largos de Gran Premio
      * @param {Object} meeting GP confirmado
-     * @returns {string} Pais del GP
+     * @returns {string} País del GP
      */
     getMeetingCountryLabel(meeting) {
         const country = `${meeting?.country_name || meeting?.jolpica_country || ''}`.trim();
@@ -360,9 +360,9 @@ class RaceStreamRaceStrip {
      * @version 1.0.0
      * @created 19-05-2026
      * @modified 19-05-2026
-     * @description Devuelve la ubicacion del circuito para acompanar a la bandera del pais
+     * @description Devuelve la ubicación del circuito para acompañar a la bandera del país
      * @param {Object} meeting GP confirmado
-     * @returns {string} Ubicacion visible del circuito
+     * @returns {string} Ubicación visible del circuito
      */
     getMeetingLocationLabel(meeting) {
         return `${meeting?.location || meeting?.jolpica_locality || meeting?.circuit_short_name || ''}`.trim()
@@ -375,9 +375,9 @@ class RaceStreamRaceStrip {
      * @version 1.0.0
      * @created 20-05-2026
      * @modified 20-05-2026
-     * @description Devuelve la linea visible bandera, ubicacion del circuito y pais
+     * @description Devuelve la línea visible bandera, ubicación del circuito y país
      * @param {Object} meeting GP confirmado
-     * @returns {string} Ubicacion y pais
+     * @returns {string} Ubicación y país
      */
     getMeetingPlaceLabel(meeting) {
         const location = this.getMeetingLocationLabel(meeting);

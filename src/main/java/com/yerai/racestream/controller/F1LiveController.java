@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.4.0
+ * @version 1.4.1
  * @created 21-04-2026
- * @modified 24-05-2026
- * @description Controlador REST para exponer datos del Live Center de Formula 1
+ * @modified 25-05-2026
+ * @description Controlador REST para exponer datos del Live Center de Fórmula 1
  *              desde OpenF1
  */
 package com.yerai.racestream.controller;
@@ -67,7 +67,7 @@ public class F1LiveController {
      * @modified 23-05-2026
      * @description Devuelve un snapshot combinado del Live Center resolviendo
      *              automáticamente latest, retrasos y datos parciales
-     * @param sessionKey Clave de sesion OpenF1 opcional
+     * @param sessionKey Clave de sesión OpenF1 opcional
      * @return Datos live agrupados
      */
     @GetMapping("/overview")
@@ -141,8 +141,8 @@ public class F1LiveController {
      * @version 1.0.1
      * @created 21-04-2026
      * @modified 27-04-2026
-     * @description Devuelve la meteorologia de la sesion
-     * @param sessionKey Clave de sesion OpenF1
+     * @description Devuelve la meteorología de la sesión
+     * @param sessionKey Clave de sesión OpenF1
      * @return Datos de weather
      */
     @GetMapping("/weather")
@@ -156,8 +156,8 @@ public class F1LiveController {
      * @version 1.0.1
      * @created 21-04-2026
      * @modified 27-04-2026
-     * @description Devuelve mensajes de direccion de carrera
-     * @param sessionKey Clave de sesion OpenF1
+     * @description Devuelve mensajes de dirección de carrera
+     * @param sessionKey Clave de sesión OpenF1
      * @return Datos de race control
      */
     @GetMapping("/race-control")
@@ -172,7 +172,7 @@ public class F1LiveController {
      * @created 21-04-2026
      * @modified 27-04-2026
      * @description Devuelve las paradas en boxes registradas
-     * @param sessionKey Clave de sesion OpenF1
+     * @param sessionKey Clave de sesión OpenF1
      * @return Datos de pit stops
      */
     @GetMapping("/pit-stops")
@@ -186,8 +186,8 @@ public class F1LiveController {
      * @version 1.0.1
      * @created 21-04-2026
      * @modified 27-04-2026
-     * @description Devuelve los stints y neumaticos de la sesion
-     * @param sessionKey Clave de sesion OpenF1
+     * @description Devuelve los stints y neumáticos de la sesión
+     * @param sessionKey Clave de sesión OpenF1
      * @return Datos de stints
      */
     @GetMapping("/stints")
@@ -202,7 +202,7 @@ public class F1LiveController {
      * @created 21-04-2026
      * @modified 27-04-2026
      * @description Devuelve radios de equipo disponibles
-     * @param sessionKey Clave de sesion OpenF1
+     * @param sessionKey Clave de sesión OpenF1
      * @return Datos de team radio
      */
     @GetMapping("/team-radio")
@@ -216,9 +216,9 @@ public class F1LiveController {
      * @version 1.0.1
      * @created 21-04-2026
      * @modified 27-04-2026
-     * @description Devuelve posiciones de pilotos
-     * @param sessionKey Clave de sesion OpenF1
-     * @return Datos de posicion
+     * @description Devuelve posiciónes de pilotos
+     * @param sessionKey Clave de sesión OpenF1
+     * @return Datos de posición
      */
     @GetMapping("/position")
     public JsonNode getPosition(@RequestParam String sessionKey) {
@@ -232,7 +232,7 @@ public class F1LiveController {
      * @created 21-04-2026
      * @modified 27-04-2026
      * @description Devuelve gaps e intervalos entre pilotos
-     * @param sessionKey Clave de sesion OpenF1
+     * @param sessionKey Clave de sesión OpenF1
      * @return Datos de intervalos
      */
     @GetMapping("/intervals")
@@ -247,7 +247,7 @@ public class F1LiveController {
      * @created 21-04-2026
      * @modified 27-04-2026
      * @description Devuelve vueltas registradas
-     * @param sessionKey Clave de sesion OpenF1
+     * @param sessionKey Clave de sesión OpenF1
      * @return Datos de vueltas
      */
     @GetMapping("/laps")
@@ -262,7 +262,7 @@ public class F1LiveController {
      * @created 21-04-2026
      * @modified 27-04-2026
      * @description Devuelve adelantamientos registrados
-     * @param sessionKey Clave de sesion OpenF1
+     * @param sessionKey Clave de sesión OpenF1
      * @return Datos de adelantamientos
      */
     @GetMapping("/overtakes")
@@ -277,7 +277,7 @@ public class F1LiveController {
      * @created 21-04-2026
      * @modified 27-04-2026
      * @description Devuelve el orden de salida que OpenF1 expone para la sesión
-     * @param sessionKey Clave de sesion OpenF1
+     * @param sessionKey Clave de sesión OpenF1
      * @return Datos de orden de salida
      */
     @GetMapping("/starting-grid")
@@ -291,10 +291,10 @@ public class F1LiveController {
      * @version 1.0.1
      * @created 21-04-2026
      * @modified 27-04-2026
-     * @description Devuelve clasificacion de pilotos si OpenF1 la expone para la
-     *              sesion
-     * @param sessionKey Clave de sesion OpenF1
-     * @return Datos de clasificacion de pilotos
+     * @description Devuelve clasificación de pilotos si OpenF1 la expone para la
+     *              sesión
+     * @param sessionKey Clave de sesión OpenF1
+     * @return Datos de clasificación de pilotos
      */
     @GetMapping("/championship-drivers")
     public JsonNode getChampionshipDrivers(@RequestParam String sessionKey) {
@@ -307,10 +307,10 @@ public class F1LiveController {
      * @version 1.0.1
      * @created 21-04-2026
      * @modified 27-04-2026
-     * @description Devuelve clasificacion de constructores si OpenF1 la expone para
-     *              la sesion
-     * @param sessionKey Clave de sesion OpenF1
-     * @return Datos de clasificacion de escuderias
+     * @description Devuelve clasificación de constructores si OpenF1 la expone para
+     *              la sesión
+     * @param sessionKey Clave de sesión OpenF1
+     * @return Datos de clasificación de escuderías
      */
     @GetMapping("/championship-teams")
     public JsonNode getChampionshipTeams(@RequestParam String sessionKey) {
@@ -323,10 +323,10 @@ public class F1LiveController {
      * @version 1.0.1
      * @created 21-04-2026
      * @modified 27-04-2026
-     * @description Devuelve telemetria del coche para toda la sesion o un piloto
+     * @description Devuelve telemetría del coche para toda la sesión o un piloto
      *              concreto
-     * @param sessionKey   Clave de sesion OpenF1
-     * @param driverNumber Numero del piloto opcional
+     * @param sessionKey   Clave de sesión OpenF1
+     * @param driverNumber Número del piloto opcional
      * @return Datos de car data
      */
     @GetMapping("/car-data")
@@ -341,10 +341,10 @@ public class F1LiveController {
      * @version 1.0.1
      * @created 21-04-2026
      * @modified 27-04-2026
-     * @description Devuelve ubicacion en pista para toda la sesion o un piloto
+     * @description Devuelve ubicación en pista para toda la sesión o un piloto
      *              concreto
-     * @param sessionKey   Clave de sesion OpenF1
-     * @param driverNumber Numero del piloto opcional
+     * @param sessionKey   Clave de sesión OpenF1
+     * @param driverNumber Número del piloto opcional
      * @return Datos de location
      */
     @GetMapping("/location")

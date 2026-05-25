@@ -106,7 +106,7 @@ public class F1DiagnosticsController {
                 warnings.add("GP sin clave de sesiones: " + row.path("meeting_name").asText());
             }
             if (meeting.path("is_jolpica_fallback").asBoolean(false)) {
-                warnings.add("GP sintetico Jolpica: " + row.path("meeting_name").asText());
+                warnings.add("GP sintético Jolpica: " + row.path("meeting_name").asText());
             }
         }
 
@@ -123,12 +123,12 @@ public class F1DiagnosticsController {
             warnings.add("F1DB no ha devuelto circuitos.");
         }
         if (drivers.isEmpty()) {
-            warnings.add("Temporada sin clasificacion de pilotos.");
+            warnings.add("Temporada sin clasificación de pilotos.");
         }
         if (constructors.isEmpty()) {
             warnings.add(selectedYear < 1958
                     ? "Temporada anterior al campeonato de constructores."
-                    : "Temporada sin clasificacion de escuderias.");
+                    : "Temporada sin clasificación de escuderías.");
         }
         if (races.isEmpty()) {
             warnings.add("Temporada sin resultados de carrera.");

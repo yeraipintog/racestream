@@ -4,7 +4,7 @@
  * @version 1.1.0
  * @created 21-04-2026
  * @modified 13-05-2026
- * @description Controlador de F1Schedule con calendario enriquecido por Jolpica y limite publico de temporada
+ * @description Controlador de F1Schedule con calendario enriquecido por Jolpica y límite público de temporada
  * @see https://openf1.org
  */
 package com.yerai.racestream.controller;
@@ -49,7 +49,7 @@ public class F1ScheduleController {
      * @version 1.0.1
      * @created 28-04-2026
      * @modified 13-05-2026
-     * @description Obtener meetings enriquecidos para la pagina Calendario
+     * @description Obtener meetings enriquecidos para la página Calendario
      * @param year
      * @return
      */

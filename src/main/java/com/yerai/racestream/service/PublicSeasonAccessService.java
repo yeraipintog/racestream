@@ -4,7 +4,7 @@
  * @version 1.0.0
  * @created 20-05-2026
  * @modified 20-05-2026
- * @description Aplica el limite de temporada actual para visitantes sin sesion
+ * @description Aplica el límite de temporada actual para visitantes sin sesión
  */
 package com.yerai.racestream.service;
 
@@ -25,7 +25,7 @@ public class PublicSeasonAccessService {
      * @version 1.0.0
      * @created 20-05-2026
      * @modified 20-05-2026
-     * @description Devuelve la temporada solicitada solo si hay sesion; en publico fuerza la actual
+     * @description Devuelve la temporada solicitada solo si hay sesión; en público fuerza la actual
      * @param requestedYear Temporada pedida por el cliente
      * @param principal Usuario autenticado o anonimo
      * @return Temporada permitida

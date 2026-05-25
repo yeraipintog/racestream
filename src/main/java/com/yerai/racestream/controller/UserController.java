@@ -115,8 +115,8 @@ public class UserController {
      * @version 1.0.2
      * @created 05-05-2026
      * @modified 22-05-2026
-     * @description Cambia la contrasena de una cuenta local evitando repetir la actual
-     * @param request Contrasena nueva
+     * @description Cambia la contraseña de una cuenta local evitando repetir la actual
+     * @param request Contraseña nueva
      * @param authentication Sesión actual
      * @return Estado de guardado
      */
@@ -152,10 +152,10 @@ public class UserController {
      * @version 1.0.0
      * @created 19-05-2026
      * @modified 19-05-2026
-     * @description Elimina la cuenta actual si no es ADMIN e invalida la sesion activa
+     * @description Elimina la cuenta actual si no es ADMIN e invalida la sesión activa
      * @param authentication Sesión actual
-     * @param request Peticion HTTP actual
-     * @param response Respuesta HTTP para limpiar cookie de sesion
+     * @param request Petición HTTP actual
+     * @param response Respuesta HTTP para limpiar cookie de sesión
      * @return Estado de borrado
      */
     @DeleteMapping("/account")
@@ -195,10 +195,10 @@ public class UserController {
      * @version 1.0.0
      * @created 19-05-2026
      * @modified 19-05-2026
-     * @description Actualiza el principal de Spring Security para que un cambio de email no rompa la sesion
+     * @description Actualiza el principal de Spring Security para que un cambió de email no rompa la sesión
      * @param user Usuario persistido
-     * @param authentication Autenticacion previa
-     * @param request Peticion HTTP actual
+     * @param authentication Autenticación previa
+     * @param request Petición HTTP actual
      */
     private void syncSecurityContext(AppUser user, Authentication authentication, HttpServletRequest request) {
         if (authentication == null || request == null) {

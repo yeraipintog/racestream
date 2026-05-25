@@ -4,7 +4,7 @@
  * @version 1.2.0
  * @created 30-04-2026
  * @modified 13-05-2026
- * @description Controlador REST para exponer clasificaciones, temporadas y resultados de Formula 1 desde Jolpica con limite publico
+ * @description Controlador REST para exponer clasificaciones, temporadas y resultados de Fórmula 1 desde Jolpica con límite público
  */
 package com.yerai.racestream.controller;
 
@@ -45,7 +45,7 @@ public class F1StandingsController {
      * @since 1.0
      * @version 1.0.0
      * @created 30-04-2026
-     * @description Devuelve clasificacion de pilotos
+     * @description Devuelve clasificación de pilotos
      * @param year Temporada
      * @return Pilotos ordenados por puntos
      */
@@ -60,7 +60,7 @@ public class F1StandingsController {
      * @version 1.0.1
      * @created 30-04-2026
      * @modified 13-05-2026
-     * @description Devuelve clasificacion de constructores
+     * @description Devuelve clasificación de constructores
      * @param year Temporada
      * @return Constructores ordenados por puntos
      */
@@ -75,7 +75,7 @@ public class F1StandingsController {
      * @version 1.0.1
      * @created 04-05-2026
      * @modified 13-05-2026
-     * @description Devuelve las temporadas disponibles para filtros historicos
+     * @description Devuelve las temporadas disponibles para filtros históricos
      * @return Temporadas disponibles
      */
     @GetMapping("/seasons")
@@ -91,7 +91,7 @@ public class F1StandingsController {
      * @since 1.0
      * @version 1.0.0
      * @created 04-05-2026
-     * @description Devuelve carreras con resultados para detalles de clasificacion
+     * @description Devuelve carreras con resultados para detalles de clasificación
      * @param year Temporada
      * @return Carreras con resultados oficiales
      */

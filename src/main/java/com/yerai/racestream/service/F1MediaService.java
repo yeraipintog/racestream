@@ -40,8 +40,8 @@ public class F1MediaService {
      * @version 1.0.3
      * @created 30-04-2026
      * @modified 03-05-2026
-     * @description Devuelve la imagen de un piloto desde OpenF1 con cache, rate limit y fallback visual
-     * @param driverNumber Numero permanente del piloto
+     * @description Devuelve la imagen de un piloto desde OpenF1 con caché, rate limit y fallback visual
+     * @param driverNumber Número permanente del piloto
      * @return Datos visuales del piloto
      */
     public JsonNode getDriverImage(Integer driverNumber) {
@@ -97,7 +97,7 @@ public class F1MediaService {
      * @version 1.0.0
      * @created 03-05-2026
      * @description Devuelve imagen oficial conocida cuando OpenF1 todavía no ofrece headshot
-     * @param driverNumber Numero permanente del piloto
+     * @param driverNumber Número permanente del piloto
      * @return Fallback visual conocido o nodo vacío
      */
     private ObjectNode buildKnownDriverFallback(Integer driverNumber) {
@@ -115,7 +115,7 @@ public class F1MediaService {
      * @since 1.0
      * @version 1.0.0
      * @created 30-04-2026
-     * @description Busca el registro mas reciente que tenga foto para evitar placeholders de pilotos
+     * @description Busca el registro más reciente que tenga foto para evitar placeholders de pilotos
      * @param drivers Registros de OpenF1
      * @return Piloto con foto o null
      */

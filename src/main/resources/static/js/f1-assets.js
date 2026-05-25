@@ -4,7 +4,7 @@
  * @version 1.3.3
  * @created 04-05-2026
  * @modified 22-05-2026
- * @description Utilidades visuales de Formula 1 para pilotos, escuderias, nacionalidades, banderas e imagenes
+ * @description Útilidades visuales de Fórmula 1 para pilotos, escuderías, nacionalidades, banderas e imágenes
  */
 class RaceStreamF1Assets {
 
@@ -212,9 +212,9 @@ class RaceStreamF1Assets {
      * @since 1.0
      * @version 1.0.0
      * @created 06-05-2026
-     * @description Devuelve el codigo deportivo visible cuando no hay foto fiable del piloto
+     * @description Devuelve el código deportivo visible cuando no hay foto fiable del piloto
      * @param {Object} driver Piloto
-     * @returns {string} Codigo del piloto
+     * @returns {string} Código del piloto
      */
     static getDriverCode(driver) {
         return driver?.code || driver?.name_acronym || driver?.driver_code || this.getDriverInitials(driver);
@@ -280,7 +280,7 @@ class RaceStreamF1Assets {
      * @since 1.0
      * @version 1.0.0
      * @created 06-05-2026
-     * @description Devuelve iniciales legibles como ultimo fallback de pilotos sin codigo
+     * @description Devuelve iniciales legibles como último fallback de pilotos sin código
      * @param {Object} driver Piloto
      * @returns {string} Iniciales del piloto
      */
@@ -372,7 +372,7 @@ class RaceStreamF1Assets {
      * @since 1.0
      * @version 1.0.0
      * @created 11-05-2026
-     * @description Corrige equipos de assets oficiales cuando el piloto cambio de escuderia esa temporada
+     * @description Corrige equipos de assets oficiales cuando el piloto cambió de escudería esa temporada
      * @param {string} assetId Identificador oficial de piloto
      * @param {string} team Equipo calculado
      * @param {number} year Temporada

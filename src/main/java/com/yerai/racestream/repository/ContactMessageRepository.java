@@ -4,7 +4,7 @@
  * @version 1.0.2
  * @created 05-05-2026
  * @modified 13-05-2026
- * @description Repositorio de mensajes enviados desde Contacto con lectura para administracion
+ * @description Repositorio de mensajes enviados desde Contacto con lectura para administración
  */
 package com.yerai.racestream.repository;
 

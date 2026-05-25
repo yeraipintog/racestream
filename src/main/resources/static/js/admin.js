@@ -4,7 +4,7 @@
  * @version 1.2.0
  * @created 06-05-2026
  * @modified 19-05-2026
- * @description Gestiona usuarios protegidos, roles, bloqueos y mensajes de contacto desde el panel privado de administracion
+ * @description Gestiona usuarios protegidos, roles, bloqueos y mensajes de contacto desde el panel privado de administración
  */
 document.addEventListener('DOMContentLoaded', () => {
     const summary = document.getElementById('adminSummary');

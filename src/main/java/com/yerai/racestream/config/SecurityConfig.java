@@ -1,16 +1,18 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.3.2
+ * @version 1.3.3
  * @created 09-03-2026
- * @modified 19-05-2026
- * @description Configuracion de seguridad con zonas publicas, live privado, roles y login JSON propio
+ * @modified 25-05-2026
+ * @description Configuración de seguridad con zonas públicas, Live privado,
+ *              estado Live público, roles y login JSON propio
  */
 package com.yerai.racestream.config;
 
 import jakarta.servlet.http.HttpSession;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
@@ -26,19 +28,21 @@ public class SecurityConfig {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.3.0
+     * @version 1.3.1
      * @created 09-03-2026
-     * @modified 19-05-2026
-     * @description Protege paginas privadas, Live Center, APIs de usuario y administracion, con logout JSON seguro
+     * @modified 25-05-2026
+     * @description Protege páginas privadas, Live Center, APIs de usuario y
+     *              administración, manteniendo público el estado Live ligero
      * @param http Constructor de seguridad HTTP
      * @return Cadena de filtros configurada
-     * @throws Exception Si la configuracion no puede construirse
+     * @throws Exception Si la configuración no puede construirse
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.GET, "/api/f1/live/status").permitAll()
                         .requestMatchers("/live.html", "/live-timing.html", "/live-race.html", "/api/f1/live/**")
                         .authenticated()
                         .requestMatchers("/", "/index.html", "/calendar.html", "/sessions.html",
@@ -75,7 +79,7 @@ public class SecurityConfig {
                     if (request.getRequestURI().startsWith("/api/")) {
                         response.setStatus(401);
                         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                        response.getWriter().write("{\"error\":\"Autenticacion requerida\"}");
+                        response.getWriter().write("{\"error\":\"Autenticación requerida\"}");
                         return;
                     }
                     response.sendRedirect("/login.html");
@@ -90,7 +94,7 @@ public class SecurityConfig {
      * @version 1.0.0
      * @created 05-05-2026
      * @description Expone el AuthenticationManager para login JSON
-     * @param configuration Configuracion de autenticacion
+     * @param configuration Configuración de autenticación
      * @return AuthenticationManager configurado
      * @throws Exception Si Spring Security no puede construirlo
      */

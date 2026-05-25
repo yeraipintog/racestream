@@ -4,7 +4,7 @@
  * @version 1.2.0
  * @created 05-05-2026
  * @modified 18-05-2026
- * @description Entidad persistente de usuario local con rol, proveedor, preferencias, recuperacion y consentimiento de cookies
+ * @description Entidad persistente de usuario local con rol, proveedor, preferencias, recuperación y consentimiento de cookies
  */
 package com.yerai.racestream.model;
 
@@ -85,7 +85,7 @@ public class AppUser {
      * @version 1.1.0
      * @created 05-05-2026
      * @modified 18-05-2026
-     * @description Inicializa fechas y sincroniza el estado explicito de cookies antes de persistir
+     * @description Inicializa fechas y sincroniza el estado explícito de cookies antes de persistir
      */
     @PrePersist
     void prePersist() {
@@ -99,7 +99,7 @@ public class AppUser {
      * @version 1.0.0
      * @created 18-05-2026
      * @modified 18-05-2026
-     * @description Mantiene compatibilidad con el boolean legacy sin perder el estado sin decision
+     * @description Mantiene compatibilidad con el boolean legacy sin perder el estado sin decisión
      */
     @PreUpdate
     void preUpdate() {

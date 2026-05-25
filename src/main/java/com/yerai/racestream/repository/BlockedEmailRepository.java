@@ -3,7 +3,7 @@
  * @since 1.0
  * @version 1.0.0
  * @created 06-05-2026
- * @description Repositorio de correos bloqueados por administracion
+ * @description Repositorio de correos bloqueados por administración
  */
 package com.yerai.racestream.repository;
 

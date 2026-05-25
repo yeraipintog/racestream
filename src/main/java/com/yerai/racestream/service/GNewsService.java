@@ -62,7 +62,7 @@ public class GNewsService {
      * @created 30-04-2026
      * @modified 30-04-2026
      * @description Busca noticias actuales de Fórmula 1 en español con una sola petición cacheada para proteger la cuota diaria
-     * @param limit Numero maximo de noticias
+     * @param limit Número máximo de noticias
      * @return Noticias de GNews
      */
     public ArrayNode getFormulaOneNews(Integer limit) {
@@ -95,7 +95,7 @@ public class GNewsService {
      * @created 30-04-2026
      * @description Ejecuta una búsqueda GNews sin propagar errores a la vista de Inicio
      * @param query Consulta simple comprobada contra GNews
-     * @param max Maximo solicitado a GNews
+     * @param max Máximo solicitado a GNews
      * @return Articulos recibidos
      */
     private JsonNode fetchArticles(String query, int max) {

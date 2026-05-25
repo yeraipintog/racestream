@@ -1,10 +1,11 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.1
+ * @version 1.2.2
  * @created 06-05-2026
- * @modified 22-05-2026
- * @description Inicializa el acceso administrador y datos reales de prueba, foro, likes y favoritos sin duplicados
+ * @modified 25-05-2026
+ * @description Inicializa el acceso administrador de demo y datos reales de
+ *              prueba, foro, likes y favoritos sin duplicados
  */
 package com.yerai.racestream.config;
 
@@ -35,21 +36,25 @@ public class AdminUserInitializer {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.1.0
+     * @version 1.1.1
      * @created 06-05-2026
-     * @description Crea o actualiza el usuario admin con rol ADMIN y password local
-     *              controlada
+     * @modified 25-05-2026
+     * @description Crea o actualiza el usuario admin de demo con rol ADMIN sin
+     *              sobrescribir su contraseña si ya existe
      * @param appUserRepository Repositorio de usuarios
-     * @param passwordEncoder   Codificador de contrasenas
-     * @return Runner de inicializacion
+     * @param passwordEncoder   Codificador de contraseñas
+     * @return Runner de inicialización
      */
     @Bean
     public CommandLineRunner ensureAdminUser(AppUserRepository appUserRepository, PasswordEncoder passwordEncoder) {
         return args -> {
             AppUser admin = appUserRepository.findByEmailIgnoreCase(ADMIN_EMAIL).orElseGet(AppUser::new);
+            boolean isNewAdmin = admin.getId() == null;
             admin.setName(ADMIN_LOGIN);
             admin.setEmail(ADMIN_EMAIL);
-            admin.setPassword(passwordEncoder.encode(ADMIN_LOGIN));
+            if (isNewAdmin || admin.getPassword() == null || admin.getPassword().isBlank()) {
+                admin.setPassword(passwordEncoder.encode(ADMIN_LOGIN));
+            }
             admin.setRole(UserRole.ADMIN);
             admin.setProvider(AuthProvider.LOCAL);
             admin.setPoliciesAccepted(true);
@@ -68,8 +73,8 @@ public class AdminUserInitializer {
      * @param appUserRepository Repositorio de usuarios
      * @param contactMessageRepository Repositorio de contacto
      * @param forumPostRepository Repositorio del foro
-     * @param passwordEncoder Codificador de contrasenas
-     * @return Runner de inicializacion de contenido
+     * @param passwordEncoder Codificador de contraseñas
+     * @return Runner de inicialización de contenido
      */
     @Bean
     public CommandLineRunner ensureDemoData(
@@ -104,7 +109,7 @@ public class AdminUserInitializer {
                     "El Madring será un circuito urbano en IFEMA Madrid con rectas largas y zonas de frenada fuertes. Puede ser clave explicar los sectores antes del debut.",
                     "demo-forum-madrid-2026", null);
             ensureForumPost(forumPostRepository, nico, "Grand Prix", "Re: GP Madrid 2026",
-                    "También ayudaría comparar el trazado con circuitos urbanos actuales para que un usuario nuevo entienda dónde pueden aparecer adelantamientos.",
+                    "También ayudaría comparar el trazado con circuitos urbaños actuales para que un usuario nuevo entienda dónde pueden aparecer adelantamientos.",
                     "demo-forum-madrid-2026-reply", madridPost);
 
             ForumPost tyresPost = ensureForumPost(forumPostRepository, laura, "Sesión", "Neumáticos 2026",

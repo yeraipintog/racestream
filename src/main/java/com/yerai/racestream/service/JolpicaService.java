@@ -4,7 +4,7 @@
  * @version 1.1.3
  * @created 28-04-2026
  * @modified 13-05-2026
- * @description Servicio para consultar Jolpica F1 con cache por temporada, calendario, clasificaciones y resultados
+ * @description Servicio para consultar Jolpica F1 con caché por temporada, calendario, clasificaciones y resultados
  * @see https://github.com/jolpica/jolpica-f1
  */
 package com.yerai.racestream.service;
@@ -117,7 +117,7 @@ public class JolpicaService {
      * @created 28-04-2026
      * @modified 13-05-2026
      * @description Obtiene las carreras de una temporada desde Jolpica y reutiliza
-     *              cache sin APIs deprecadas
+     *              caché sin APIs deprecadas
      * @param year Temporada
      * @return Lista de carreras
      */
@@ -172,10 +172,10 @@ public class JolpicaService {
      * @version 1.0.2
      * @created 30-04-2026
      * @modified 13-05-2026
-     * @description Obtiene la clasificacion de pilotos desde Jolpica sin cachear
-     *              respuestas vacias
+     * @description Obtiene la clasificación de pilotos desde Jolpica sin cachear
+     *              respuestas vacías
      * @param year Temporada
-     * @return Clasificacion de pilotos
+     * @return Clasificación de pilotos
      */
     public ArrayNode getDriverStandingsByYear(Integer year) {
         int selectedYear = year == null ? LocalDate.now().getYear() : year;
@@ -201,10 +201,10 @@ public class JolpicaService {
      * @version 1.0.2
      * @created 30-04-2026
      * @modified 13-05-2026
-     * @description Obtiene la clasificacion de constructores desde Jolpica sin
-     *              cachear respuestas vacias
+     * @description Obtiene la clasificación de constructores desde Jolpica sin
+     *              cachear respuestas vacías
      * @param year Temporada
-     * @return Clasificacion de constructores
+     * @return Clasificación de constructores
      */
     public ArrayNode getConstructorStandingsByYear(Integer year) {
         int selectedYear = year == null ? LocalDate.now().getYear() : year;
@@ -230,9 +230,9 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Construye una clasificacion de pilotos sin enriquecer mundiales para evitar recursividad interna
+     * @description Construye una clasificación de pilotos sin enriquecer mundiales para evitar recursividad interna
      * @param selectedYear Temporada
-     * @return Clasificacion base de pilotos
+     * @return Clasificación base de pilotos
      */
     private ArrayNode buildDriverStandingsByYear(Integer selectedYear) {
         ArrayNode raceResults = getRaceResultsByYear(selectedYear);
@@ -252,9 +252,9 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Construye una clasificacion de escuderias sin enriquecer mundiales para evitar recursividad interna
+     * @description Construye una clasificación de escuderías sin enriquecer mundiales para evitar recursividad interna
      * @param selectedYear Temporada
-     * @return Clasificacion base de constructores
+     * @return Clasificación base de constructores
      */
     private ArrayNode buildConstructorStandingsByYear(Integer selectedYear) {
         ArrayNode raceResults = getRaceResultsByYear(selectedYear);
@@ -273,7 +273,7 @@ public class JolpicaService {
      * @since 1.0
      * @version 1.0.0
      * @created 04-05-2026
-     * @description Devuelve todas las temporadas disponibles de Formula 1 en orden
+     * @description Devuelve todas las temporadas disponibles de Fórmula 1 en orden
      *              descendente
      * @return Temporadas disponibles
      */
@@ -291,8 +291,8 @@ public class JolpicaService {
      * @version 1.0.2
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Calcula mundiales de pilotos con respaldo historico estable y sin cachear resultados parciales como definitivos
-     * @return Pilotos campeones con anos de titulo
+     * @description Calcula mundiales de pilotos con respaldo histórico estable y sin cachear resultados parciales como definitivos
+     * @return Pilotos campeones con años de título
      */
     public ArrayNode getDriverWorldTitles() {
         int currentYear = LocalDate.now().getYear();
@@ -327,8 +327,8 @@ public class JolpicaService {
      * @version 1.0.2
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Calcula mundiales de constructores con respaldo historico estable y sin cachear resultados parciales como definitivos
-     * @return Constructores campeones con anos de titulo
+     * @description Calcula mundiales de constructores con respaldo histórico estable y sin cachear resultados parciales como definitivos
+     * @return Constructores campeones con años de título
      */
     public ArrayNode getConstructorWorldTitles() {
         int currentYear = LocalDate.now().getYear();
@@ -366,9 +366,9 @@ public class JolpicaService {
      * @version 1.0.1
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Obtiene standings de pilotos para calcular titulos sin disparar resultados de carrera
+     * @description Obtiene standings de pilotos para calcular títulos sin disparar resultados de carrera
      * @param year Temporada
-     * @return Clasificacion base cacheable
+     * @return Clasificación base cacheable
      */
     private ArrayNode getDriverStandingsForTitles(Integer year) {
         ArrayNode cached = driverStandingsCache.get(year);
@@ -392,9 +392,9 @@ public class JolpicaService {
      * @version 1.0.1
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Obtiene standings de constructores para calcular titulos sin disparar resultados de carrera
+     * @description Obtiene standings de constructores para calcular títulos sin disparar resultados de carrera
      * @param year Temporada
-     * @return Clasificacion base cacheable
+     * @return Clasificación base cacheable
      */
     private ArrayNode getConstructorStandingsForTitles(Integer year) {
         ArrayNode cached = constructorStandingsCache.get(year);
@@ -418,8 +418,8 @@ public class JolpicaService {
      * @version 1.0.3
      * @created 04-05-2026
      * @modified 13-05-2026
-     * @description Obtiene resultados paginados y usa fallback por ronda para
-     *              detalles historicos de pilotos y escuderias
+     * @description Obtiene resultados páginados y usa fallback por ronda para
+     *              detalles históricos de pilotos y escuderías
      * @param year Temporada
      * @return Carreras con resultados oficiales
      */
@@ -465,9 +465,9 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Genera anos cerrados para no contar la temporada en curso
+     * @description Genera años cerrados para no contar la temporada en curso
      * @param currentYear Temporada actual
-     * @return Anos que ya han finalizado
+     * @return Años que ya han finalizado
      */
     List<Integer> completedTitleYears(int currentYear) {
         List<Integer> years = new ArrayList<>();
@@ -483,9 +483,9 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Prepara mundiales historicos de pilotos verificados hasta la ultima temporada estable
+     * @description Prepara mundiales históricos de pilotos verificados hasta la última temporada estable
      * @param currentYear Temporada actual
-     * @return Filas de titulos por piloto
+     * @return Filas de títulos por piloto
      */
     Map<String, ObjectNode> buildDriverTitleSeedRows(int currentYear) {
         Map<String, ObjectNode> rows = new LinkedHashMap<>();
@@ -501,9 +501,9 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Prepara mundiales historicos de constructores verificados hasta la ultima temporada estable
+     * @description Prepara mundiales históricos de constructores verificados hasta la última temporada estable
      * @param currentYear Temporada actual
-     * @return Filas de titulos por escuderia
+     * @return Filas de títulos por escudería
      */
     Map<String, ObjectNode> buildConstructorTitleSeedRows(int currentYear) {
         Map<String, ObjectNode> rows = new LinkedHashMap<>();
@@ -519,9 +519,9 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Anade anos de titulo historicos a una fila semilla
+     * @description Añade años de título históricos a una fila semilla
      * @param rows Filas agregadas
-     * @param seed Datos historicos estables
+     * @param seed Datos históricos estables
      * @param currentYear Temporada actual
      * @param driver Indica si la fila corresponde a piloto
      */
@@ -543,8 +543,8 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Crea una fila historica de piloto sin depender de una respuesta externa
-     * @param seed Datos historicos estables
+     * @description Crea una fila histórica de piloto sin depender de una respuesta externa
+     * @param seed Datos históricos estables
      * @return Fila editable
      */
     private ObjectNode createDriverTitleSeedRow(TitleSeed seed) {
@@ -563,8 +563,8 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Crea una fila historica de constructor sin depender de una respuesta externa
-     * @param seed Datos historicos estables
+     * @description Crea una fila histórica de constructor sin depender de una respuesta externa
+     * @param seed Datos históricos estables
      * @return Fila editable
      */
     private ObjectNode createConstructorTitleSeedRow(TitleSeed seed) {
@@ -586,7 +586,7 @@ public class JolpicaService {
      * @description Fusiona el campeon de piloto devuelto por la API para temporadas posteriores al respaldo estable
      * @param titleRows Filas agregadas
      * @param year Temporada
-     * @param standings Clasificacion de la temporada
+     * @param standings Clasificación de la temporada
      */
     private void addDriverChampionTitle(Map<String, ObjectNode> titleRows, int year, ArrayNode standings) {
         JsonNode champion = getChampionStanding(standings);
@@ -612,7 +612,7 @@ public class JolpicaService {
      * @description Fusiona el campeon constructor devuelto por la API para temporadas posteriores al respaldo estable
      * @param titleRows Filas agregadas
      * @param year Temporada
-     * @param standings Clasificacion de la temporada
+     * @param standings Clasificación de la temporada
      */
     private void addConstructorChampionTitle(Map<String, ObjectNode> titleRows, int year, ArrayNode standings) {
         JsonNode champion = getChampionStanding(standings);
@@ -635,9 +635,9 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Cuenta titulos de pilotos a partir de standings ya preparados
+     * @description Cuenta títulos de pilotos a partir de standings ya preparados
      * @param standingsByYear Clasificaciones por temporada cerrada
-     * @return Titulos agregados por piloto
+     * @return Títulos agregados por piloto
      */
     ArrayNode calculateDriverTitlesFromStandings(Map<Integer, ArrayNode> standingsByYear) {
         Map<String, ObjectNode> titleRows = new LinkedHashMap<>();
@@ -666,9 +666,9 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Cuenta titulos de constructores a partir de standings ya preparados
+     * @description Cuenta títulos de constructores a partir de standings ya preparados
      * @param standingsByYear Clasificaciones por temporada cerrada
-     * @return Titulos agregados por constructor
+     * @return Títulos agregados por constructor
      */
     ArrayNode calculateConstructorTitlesFromStandings(Map<Integer, ArrayNode> standingsByYear) {
         Map<String, ObjectNode> titleRows = new LinkedHashMap<>();
@@ -697,8 +697,8 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Localiza el primer clasificado de una temporada sin fallar si la API viene vacia
-     * @param standings Clasificacion de temporada
+     * @description Localiza el primer clasificado de una temporada sin fallar si la API viene vacía
+     * @param standings Clasificación de temporada
      * @return Fila campeona o null
      */
     private JsonNode getChampionStanding(ArrayNode standings) {
@@ -763,8 +763,8 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Anade un ano de titulo y actualiza el contador
-     * @param row Fila de titulos
+     * @description Añade un año de título y actualiza el contador
+     * @param row Fila de títulos
      * @param year Temporada ganada
      */
     private void addTitleYear(ObjectNode row, int year) {
@@ -778,8 +778,8 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Anade un ano de titulo evitando duplicados al mezclar fuentes
-     * @param row Fila de titulos
+     * @description Añade un año de título evitando duplicados al mezclar fuentes
+     * @param row Fila de títulos
      * @param year Temporada ganada
      */
     private void addTitleYearIfMissing(ObjectNode row, int year) {
@@ -798,7 +798,7 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Ordena mundiales por cantidad y primer ano conseguido
+     * @description Ordena mundiales por cantidad y primer año conseguido
      * @param rows Filas agregadas
      * @return Array ordenado
      */
@@ -818,8 +818,8 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Marca si el calculo historico de titulos esta completo o es parcial
-     * @param titles Filas de titulos
+     * @description Marca si el cálculo histórico de títulos está completo o es parcial
+     * @param titles Filas de títulos
      * @param complete Indica si todas las temporadas respondieron
      */
     private void markTitleRows(ArrayNode titles, boolean complete) {
@@ -841,8 +841,8 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Anade totales historicos de mundiales a cada fila de piloto sin devolver ceros falsos si el calculo falla
-     * @param standings Clasificacion editable
+     * @description Añade totales históricos de mundiales a cada fila de piloto sin devolver ceros falsos si el cálculo falla
+     * @param standings Clasificación editable
      */
     private void enrichDriverStandingsWithTitles(ArrayNode standings) {
         if (standings == null || standings.isEmpty()) {
@@ -873,8 +873,8 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Anade totales historicos de mundiales a cada fila de escuderia sin devolver ceros falsos si el calculo falla
-     * @param standings Clasificacion editable
+     * @description Añade totales históricos de mundiales a cada fila de escudería sin devolver ceros falsos si el cálculo falla
+     * @param standings Clasificación editable
      */
     private void enrichConstructorStandingsWithTitles(ArrayNode standings) {
         if (standings == null || standings.isEmpty()) {
@@ -905,8 +905,8 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Devuelve mundiales de pilotos ya calculados sin disparar cargas historicas desde standings
-     * @return Titulos cacheados o array vacio
+     * @description Devuelve mundiales de pilotos ya calculados sin disparar cargas históricas desde standings
+     * @return Títulos cacheados o array vacío
      */
     private ArrayNode getCachedDriverWorldTitles() {
         ArrayNode cached = driverTitlesCache.get(LocalDate.now().getYear());
@@ -919,8 +919,8 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Devuelve mundiales de constructores ya calculados sin disparar cargas historicas desde standings
-     * @return Titulos cacheados o array vacio
+     * @description Devuelve mundiales de constructores ya calculados sin disparar cargas históricas desde standings
+     * @return Títulos cacheados o array vacío
      */
     private ArrayNode getCachedConstructorWorldTitles() {
         ArrayNode cached = constructorTitlesCache.get(LocalDate.now().getYear());
@@ -933,8 +933,8 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Indexa titulos de pilotos por identificadores estables
-     * @param titles Filas de titulos
+     * @description Indexa títulos de pilotos por identificadores estables
+     * @param titles Filas de títulos
      * @return Indice por clave normalizada
      */
     private Map<String, JsonNode> indexDriverTitles(ArrayNode titles) {
@@ -953,8 +953,8 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Indexa titulos de constructores por identificadores estables
-     * @param titles Filas de titulos
+     * @description Indexa títulos de constructores por identificadores estables
+     * @param titles Filas de títulos
      * @return Indice por clave normalizada
      */
     private Map<String, JsonNode> indexConstructorTitles(ArrayNode titles) {
@@ -975,7 +975,7 @@ public class JolpicaService {
      * @modified 13-05-2026
      * @description Inserta una clave normalizada si es utilizable
      * @param index Indice destino
-     * @param row Fila de titulos
+     * @param row Fila de títulos
      * @param value Valor candidato
      */
     private void addTitleIndex(Map<String, JsonNode> index, JsonNode row, String value) {
@@ -991,10 +991,10 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Copia campos de mundiales a una fila de temporada con estado de carga explicito
+     * @description Copia campos de mundiales a una fila de temporada con estado de carga explícito
      * @param row Fila editable
-     * @param title Fila historica localizada
-     * @param complete Indica si el calculo global esta completo
+     * @param title Fila histórica localizada
+     * @param complete Indica si el cálculo global está completo
      */
     private void putTitleFields(ObjectNode row, JsonNode title, boolean complete) {
         if (title != null && title.isObject()) {
@@ -1026,7 +1026,7 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 07-05-2026
      * @description Recupera resultados carrera a carrera cuando Jolpica no entrega
-     *              la pagina agregada de una temporada
+     *              la página agregada de una temporada
      * @param selectedYear Temporada
      * @return Carreras con resultados oficiales
      */
@@ -1080,7 +1080,7 @@ public class JolpicaService {
      * @version 1.0.1
      * @created 04-05-2026
      * @modified 13-05-2026
-     * @description Recorre la paginacion de Jolpica y agrupa resultados por carrera
+     * @description Recorre la páginación de Jolpica y agrupa resultados por carrera
      * @param selectedYear Temporada
      * @return Carreras completas con sus resultados
      */
@@ -1125,9 +1125,9 @@ public class JolpicaService {
      * @since 1.0
      * @version 1.0.0
      * @created 04-05-2026
-     * @description Fusiona carreras repetidas si la paginacion parte sus resultados
+     * @description Fusiona carreras repetidas si la páginación parte sus resultados
      * @param racesByRound Carreras acumuladas
-     * @param pageRaces    Carreras de la pagina actual
+     * @param pageRaces    Carreras de la página actual
      */
     private void mergeRaceResults(Map<String, ObjectNode> racesByRound, ArrayNode pageRaces) {
         for (JsonNode race : pageRaces) {
@@ -1151,10 +1151,10 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 04-05-2026
      * @description Convierte texto numerico de Jolpica sin romper la carga si viene
-     *              vacio
+     *              vacío
      * @param value    Valor original
      * @param fallback Valor por defecto
-     * @return Numero convertido
+     * @return Número convertido
      */
     private int parseInteger(String value, int fallback) {
         try {
@@ -1170,12 +1170,12 @@ public class JolpicaService {
      * @version 1.0.3
      * @created 30-04-2026
      * @modified 13-05-2026
-     * @description Consulta una tabla de clasificacion Jolpica y reintenta
-     *              respuestas vacias temporales recorriendo toda la paginacion
+     * @description Consulta una tabla de clasificación Jolpica y reintenta
+     *              respuestas vacías temporales recorriendo toda la páginación
      * @param year     Temporada
      * @param resource Recurso Jolpica
-     * @param nodeName Nodo de clasificacion
-     * @return Filas de clasificacion
+     * @param nodeName Nodo de clasificación
+     * @return Filas de clasificación
      */
     private ArrayNode getStandings(Integer year, String resource, String nodeName) {
         final int pageSize = 100;
@@ -1222,10 +1222,10 @@ public class JolpicaService {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Recupera una pagina de standings con reintentos controlados
+     * @description Recupera una página de standings con reintentos controlados
      * @param year     Temporada
      * @param resource Recurso Jolpica
-     * @param limit    Tamano de pagina
+     * @param limit    Tamano de página
      * @param offset   Desplazamiento
      * @return Respuesta JSON de Jolpica
      */
@@ -1254,7 +1254,7 @@ public class JolpicaService {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Obtiene una identidad estable para no duplicar filas paginadas
+     * @description Obtiene una identidad estable para no duplicar filas páginadas
      * @param standing Fila de standings
      * @param nodeName Tipo de standings
      * @return Identificador estable
@@ -1541,8 +1541,8 @@ public class JolpicaService {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Anade piloto a una escuderia evitando duplicados
-     * @param drivers Lista de pilotos de la escuderia
+     * @description Añade piloto a una escudería evitando duplicados
+     * @param drivers Lista de pilotos de la escudería
      * @param driver  Piloto candidato
      */
     private void addDriverIfMissing(ArrayNode drivers, JsonNode driver) {
@@ -1621,8 +1621,8 @@ public class JolpicaService {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Comprueba si un numero de piloto procede de una fuente utilizable
-     * @param number Numero recibido
+     * @description Comprueba si un número de piloto procede de una fuente utilizable
+     * @param number Número recibido
      * @return Resultado
      */
     private boolean hasUsableNumber(String number) {
@@ -1815,7 +1815,7 @@ public class JolpicaService {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Registro interno para respaldar mundiales historicos estables
+     * @description Registro interno para respaldar mundiales históricos estables
      * @param stableId Identificador normalizado
      * @param externalId Identificador de API
      * @param name Nombre visible

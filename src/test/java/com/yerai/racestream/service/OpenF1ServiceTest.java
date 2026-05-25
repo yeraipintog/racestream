@@ -89,7 +89,7 @@ class OpenF1ServiceTest {
      * @version 1.0.1
      * @created 12-05-2026
      * @modified 23-05-2026
-     * @description Verifica que un fallo temporal devuelve el último dato válido cacheado
+     * @description Verifica que un fallo temporal devuelve el último dato válido almacenado en caché
      * @throws InterruptedException si la espera de TTL se interrumpe
      */
     @Test

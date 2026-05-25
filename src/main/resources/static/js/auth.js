@@ -4,7 +4,7 @@
  * @version 1.1.8
  * @created 05-05-2026
  * @modified 22-05-2026
- * @description Gestiona login, registro, recuperacion, hashes de panel sin scroll intermedio y validacion
+ * @description Gestiona login, registro, recuperación, hashes de panel sin scroll intermedio y validación
  */
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * @version 1.0.0
      * @created 22-05-2026
      * @modified 22-05-2026
-     * @description Comprueba que el enlace de recuperacion no este caducado antes de mostrar el formulario
+     * @description Comprueba que el enlace de recuperación no está caducado antes de mostrar el formulario
      */
     const validateResetToken = async () => {
         if (!resetToken || !resetConfirmForm) return;

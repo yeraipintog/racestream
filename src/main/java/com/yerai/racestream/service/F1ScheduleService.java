@@ -4,7 +4,7 @@
  * @version 1.1.8
  * @created 21-04-2026
  * @modified 12-05-2026
- * @description Servicio para obtener calendario F1 con fallback Jolpica, cache y tolerancia a fallos externos
+ * @description Servicio para obtener calendario F1 con fallback Jolpica, caché y tolerancia a fallos externos
  */
 package com.yerai.racestream.service;
 
@@ -158,7 +158,7 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Ejecuta una fuente externa en paralelo devolviendo array vacio si falla
+     * @description Ejecuta una fuente externa en paralelo devolviendo array vacío si falla
      * @param supplier Fuente de datos
      * @return Futuro tolerante a errores
      */
@@ -203,7 +203,7 @@ public class F1ScheduleService {
      * @version 1.0.2
      * @created 21-04-2026
      * @modified 12-05-2026
-     * @description Obtener meeting real o sintetico con fallback contra calendario enriquecido
+     * @description Obtener meeting real o sintético con fallback contra calendario enriquecido
      * @param meetingKey Clave del meeting
      * @return Meeting
      */
@@ -259,7 +259,7 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Busca un meeting en la cache de calendarios sin nuevas llamadas externas
+     * @description Busca un meeting en la caché de calendarios sin nuevas llamadas externas
      * @param meetingKey Clave OpenF1
      * @return Meeting enriquecido o null
      */
@@ -299,7 +299,7 @@ public class F1ScheduleService {
      * @created 21-04-2026
      * @modified 04-05-2026
      * @description Obtener sesiones de OpenF1 completadas con Jolpica cuando falta
-     *              alguna sesion oficial
+     *              alguna sesión oficial
      * @param meetingKey Clave del meeting
      * @return Sesiones
      */
@@ -368,7 +368,7 @@ public class F1ScheduleService {
      * @description Detecta duplicados por identidad deportiva o por misma hora
      *              oficial
      * @param sessions  Sesiones ya fusionadas
-     * @param candidate Sesion candidata
+     * @param candidate Sesión candidata
      * @return Resultado
      */
     private boolean containsEquivalentSession(List<ObjectNode> sessions, JsonNode candidate) {
@@ -383,7 +383,7 @@ public class F1ScheduleService {
      * @created 03-05-2026
      * @description Normaliza nombres de sesiones entre OpenF1 y Jolpica sin
      *              fusionar variantes sprint distintas
-     * @param session Sesion
+     * @param session Sesión
      * @return Identidad normalizada
      */
     private String getSessionIdentity(JsonNode session) {
@@ -532,9 +532,9 @@ public class F1ScheduleService {
      * @version 1.0.1
      * @created 21-04-2026
      * @modified 12-05-2026
-     * @description Obtener siguiente sesion con fallback al calendario enriquecido
+     * @description Obtener siguiente sesión con fallback al calendario enriquecido
      * @param year Temporada
-     * @return Sesion
+     * @return Sesión
      */
     public JsonNode getNextSession(Integer year) {
         OffsetDateTime now = OffsetDateTime.now();
@@ -553,10 +553,10 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Busca la sesion actual o futura mas cercana dentro de un array seguro
+     * @description Busca la sesión actual o futura más cercana dentro de un array seguro
      * @param sessions Sesiones disponibles
-     * @param now      Fecha de comparacion
-     * @return Sesion encontrada o null JSON
+     * @param now      Fecha de comparación
+     * @return Sesión encontrada o null JSON
      */
     private JsonNode findCurrentOrNextSession(ArrayNode sessions, OffsetDateTime now) {
         JsonNode bestSession = null;
@@ -695,7 +695,7 @@ public class F1ScheduleService {
      * @param year         Temporada
      * @param race         Carrera Jolpica
      * @param f1DbCircuits Circuitos F1DB
-     * @return Meeting sintetico
+     * @return Meeting sintético
      */
     private ObjectNode buildSyntheticMeetingFromJolpicaRace(Integer year, JsonNode race, ArrayNode f1DbCircuits) {
         int round = parsePositiveInt(getText(race, "round"), 0);
@@ -741,8 +741,8 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0
      * @created 28-04-2026
-     * @description Obtiene sesiones sinteticas de un meeting creado desde Jolpica
-     * @param meetingKey Clave sintetica
+     * @description Obtiene sesiones sintéticas de un meeting creado desde Jolpica
+     * @param meetingKey Clave sintética
      * @return Sesiones
      */
     private ArrayNode getSyntheticSessionsByMeetingKey(Integer meetingKey) {
@@ -764,10 +764,10 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0
      * @created 28-04-2026
-     * @description Construye sesiones basicas desde Jolpica cuando OpenF1 no tiene
+     * @description Construye sesiones básicas desde Jolpica cuando OpenF1 no tiene
      *              meeting
      * @param race Carrera Jolpica
-     * @return Sesiones sinteticas
+     * @return Sesiones sintéticas
      */
     private ArrayNode buildJolpicaSessions(JsonNode race) {
         List<ObjectNode> sessions = new ArrayList<>();
@@ -792,12 +792,12 @@ public class F1ScheduleService {
      * @version 1.0.1
      * @created 28-04-2026
      * @modified 12-05-2026
-     * @description Anade una sesion sintetica si Jolpica expone fecha
+     * @description Añade una sesión sintética si Jolpica expone fecha
      * @param sessions      Lista editable
      * @param source        Nodo de Jolpica
-     * @param name          Nombre de sesion
-     * @param type          Tipo de sesion
-     * @param durationHours Duracion aproximada
+     * @param name          Nombre de sesión
+     * @param type          Tipo de sesión
+     * @param durationHours Duración aproximada
      */
     private void addJolpicaSession(List<ObjectNode> sessions, JsonNode source, String name, String type,
             int durationHours, String fallbackTime) {
@@ -824,7 +824,7 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0
      * @created 28-04-2026
-     * @description Busca primera o ultima fecha entre sesiones sinteticas
+     * @description Busca primera o última fecha entre sesiones sintéticas
      * @param sessions Sesiones
      * @param earliest Indica si se busca la primera
      * @return Fecha encontrada
@@ -847,7 +847,7 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0.0
      * @created 29-04-2026
-     * @description Busca primera o ultima fecha de inicio entre sesiones
+     * @description Busca primera o última fecha de inicio entre sesiones
      * @param sessions Sesiones
      * @param earliest Indica si se busca la primera
      * @return Fecha encontrada
@@ -942,7 +942,7 @@ public class F1ScheduleService {
      * @description Crea una clave negativa y estable para meetings sin clave OpenF1
      * @param year  Temporada
      * @param round Ronda Jolpica
-     * @return Clave sintetica
+     * @return Clave sintética
      */
     private int buildSyntheticMeetingKey(Integer year, int round) {
         return -((year == null ? LocalDate.now().getYear() : year) * SYNTHETIC_MEETING_FACTOR + round);
@@ -966,7 +966,7 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0
      * @created 28-04-2026
-     * @description Extrae temporada de una clave sintetica
+     * @description Extrae temporada de una clave sintética
      * @param meetingKey Clave
      * @return Temporada
      */
@@ -979,7 +979,7 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0
      * @created 28-04-2026
-     * @description Extrae ronda de una clave sintetica
+     * @description Extrae ronda de una clave sintética
      * @param meetingKey Clave
      * @return Ronda
      */
@@ -992,7 +992,7 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0
      * @created 28-04-2026
-     * @description Busca la carrera de Jolpica mas parecida al meeting de OpenF1
+     * @description Busca la carrera de Jolpica más parecida al meeting de OpenF1
      * @param meeting Meeting
      * @param races   Carreras Jolpica
      * @return Carrera Jolpica o null
@@ -1044,7 +1044,7 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0
      * @created 28-04-2026
-     * @description Busca el circuito de F1DB mas parecido al meeting
+     * @description Busca el circuito de F1DB más parecido al meeting
      * @param meeting  Meeting enriquecido
      * @param circuits Circuitos F1DB
      * @return Circuito o null
@@ -1070,7 +1070,7 @@ public class F1ScheduleService {
      * @version 1.0.1
      * @created 29-04-2026
      * @modified 29-04-2026
-     * @description Fallback por localidad/pais para meetings especiales como test
+     * @description Fallback por localidad/país para meetings especiales como test
      *              de pretemporada
      * @param meeting  Meeting
      * @param circuits Circuitos F1DB
@@ -1246,9 +1246,9 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0.0
      * @created 29-04-2026
-     * @description Detecta duplicados por pais y fecha cercana aunque el nombre
+     * @description Detecta duplicados por país y fecha cercana aunque el nombre
      *              comercial cambie
-     * @param candidateCountry Pais candidato
+     * @param candidateCountry País candidato
      * @param candidateDate    Fecha candidata
      * @param meeting          Meeting existente
      * @return Resultado
@@ -1336,7 +1336,7 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0
      * @created 28-04-2026
-     * @description Anade una sesion cancelada al listado sintetico
+     * @description Añade una sesión cancelada al listado sintético
      * @param sessions Listado
      * @param name     Nombre
      * @param type     Tipo
@@ -1359,7 +1359,7 @@ public class F1ScheduleService {
      * @version 1.0.1
      * @created 28-04-2026
      * @modified 30-04-2026
-     * @description Infiere tipo de circuito a partir de texto publico de APIs
+     * @description Infiere tipo de circuito a partir de texto público de APIs
      * @param source Texto de entrada
      * @return Tipo de circuito
      */
@@ -1403,9 +1403,9 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0
      * @created 28-04-2026
-     * @description Formatea vuelta rapida desde F1DB
+     * @description Formatea vuelta rápida desde F1DB
      * @param circuit Circuito F1DB
-     * @return Vuelta rapida
+     * @return Vuelta rápida
      */
     private String formatLapRecord(JsonNode circuit) {
         if (isBahrainCircuit(circuit)) {
@@ -1472,7 +1472,7 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0.0
      * @created 04-05-2026
-     * @description Detecta meetings cancelados en datos historicos de OpenF1
+     * @description Detecta meetings cancelados en datos históricos de OpenF1
      * @param meeting Meeting
      * @return Resultado
      */
@@ -1487,7 +1487,7 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0.0
      * @created 30-04-2026
-     * @description Detecta el circuito de Bahrain para corregir la vuelta rapida
+     * @description Detecta el circuito de Bahrain para corregir la vuelta rápida
      *              oficial de carrera
      * @param circuit Circuito F1DB
      * @return Resultado
@@ -1571,7 +1571,7 @@ public class F1ScheduleService {
      * @description Convierte texto numerico a entero con valor por defecto
      * @param value    Texto
      * @param fallback Valor por defecto
-     * @return Numero
+     * @return Número
      */
     private int parsePositiveInt(String value, int fallback) {
         try {
@@ -1653,7 +1653,7 @@ public class F1ScheduleService {
      * @since 1.0
      * @version 1.0.0
      * @created 29-04-2026
-     * @description Devuelve el primer texto no vacio entre varios campos
+     * @description Devuelve el primer texto no vacío entre varios campos
      * @param node       Nodo
      * @param fieldNames Campos
      * @return Texto o null
@@ -1690,7 +1690,7 @@ public class F1ScheduleService {
      * @version 1.0.1
      * @created 28-04-2026
      * @modified 29-04-2026
-     * @description Escribe texto solo cuando el campo esta vacio o sin definir
+     * @description Escribe texto solo cuando el campo está vacío o sin definir
      * @param node  Nodo editable
      * @param field Campo
      * @param value Valor

@@ -4,7 +4,7 @@
  * @version 1.1.3
  * @created 23-05-2026
  * @modified 24-05-2026
- * @description Utilidades comunes para páginas de Fórmula 1 En Vivo con
+ * @description Útilidades comunes para páginas de Fórmula 1 En Vivo con
  *              refresco controlado, AbortController y formato seguro
  */
 class RaceStreamLiveCommon {

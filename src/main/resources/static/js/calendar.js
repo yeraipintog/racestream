@@ -4,7 +4,7 @@
  * @version 1.4.1
  * @created 21-04-2026
  * @modified 22-05-2026
- * @description Lógica principal del calendario F1 RaceStream con fechas compactas, limite publico, imagenes seguras y carga reforzada
+ * @description Lógica principal del calendario F1 RaceStream con fechas compactas, límite público, imágenes seguras y carga reforzada
  */
 class RaceStreamCalendarPage {
 
@@ -120,7 +120,7 @@ class RaceStreamCalendarPage {
      * @version 1.0.1
      * @created 21-04-2026
      * @modified 08-05-2026
-     * @description Inicializa la pagina
+     * @description Inicializa la página
      */
     async init() {
         await this.resolvePublicAccess();
@@ -140,7 +140,7 @@ class RaceStreamCalendarPage {
      * @version 1.0.1
      * @created 20-05-2026
      * @modified 20-05-2026
-     * @description Fuerza temporada actual cuando el visitante no ha iniciado sesion
+     * @description Fuerza temporada actual cuando el visitante no ha iniciado sesión
      */
     async resolvePublicAccess() {
         const user = await window.RaceStreamApi.getCurrentUser();
@@ -286,7 +286,7 @@ class RaceStreamCalendarPage {
      * @since 1.0
      * @version 1.0
      * @created 28-04-2026
-     * @description Devuelve fecha vertical de sesion en hora local del visitante
+     * @description Devuelve fecha vertical de sesión en hora local del visitante
      * @param {string} value Fecha ISO
      * @param {string} gmtOffset Offset
      * @returns {{day: string, month: string, label: string}} Fecha
@@ -480,9 +480,9 @@ class RaceStreamCalendarPage {
      * @version 1.0.2
      * @created 22-04-2026
      * @modified 08-05-2026
-     * @description Cuenta atras compacta sin segundos para la franja comun
+     * @description Cuenta atrás compacta sin segundos para la franja común
      * @param {string} startDate Fecha
-     * @returns {string} Cuenta atras
+     * @returns {string} Cuenta atrás
      */
     getCountdownToMeeting(startDate) {
         const diff = new Date(startDate).getTime() - Date.now();
@@ -569,7 +569,7 @@ class RaceStreamCalendarPage {
      * @since 1.0
      * @version 1.0
      * @created 28-04-2026
-     * @description Actualiza el estado situado junto al titulo Detalle del GP
+     * @description Actualiza el estado situado junto al título Detalle del GP
      * @param {Object|null} meeting GP
      */
     renderDetailStatus(meeting) {
@@ -603,9 +603,9 @@ class RaceStreamCalendarPage {
      * @version 1.0
      * @created 22-04-2026
      * @modified 22-04-2026
-     * @description Traduce nombre de sesion
+     * @description Traduce nombre de sesión
      * @param {string} sessionName Nombre
-     * @returns {string} Traduccion
+     * @returns {string} Traducción
      */
     translateSessionName(sessionName) {
         const map = {
@@ -633,9 +633,9 @@ class RaceStreamCalendarPage {
      * @version 1.0
      * @created 22-04-2026
      * @modified 22-04-2026
-     * @description Traduce tipo de sesion
+     * @description Traduce tipo de sesión
      * @param {string} sessionType Tipo
-     * @returns {string} Traduccion
+     * @returns {string} Traducción
      */
     translateSessionType(sessionType) {
         const normalized = (sessionType || '').toLowerCase();
@@ -668,7 +668,7 @@ class RaceStreamCalendarPage {
      * @version 1.0
      * @created 22-04-2026
      * @modified 22-04-2026
-     * @description Devuelve clase CSS de sesion
+     * @description Devuelve clase CSS de sesión
      * @param {string} sessionType Tipo
      * @returns {string} Clase CSS
      */
@@ -692,8 +692,8 @@ class RaceStreamCalendarPage {
      * @version 1.0
      * @created 22-04-2026
      * @modified 22-04-2026
-     * @description Indica si la sesion esta en vivo
-     * @param {Object} session Sesion
+     * @description Indica si la sesión está en vivo
+     * @param {Object} session Sesión
      * @returns {boolean} Resultado
      */
     isSessionLive(session) {
@@ -707,8 +707,8 @@ class RaceStreamCalendarPage {
      * @version 1.0
      * @created 22-04-2026
      * @modified 22-04-2026
-     * @description Indica si la sesion ha terminado
-     * @param {Object} session Sesion
+     * @description Indica si la sesión ha terminado
+     * @param {Object} session Sesión
      * @returns {boolean} Resultado
      */
     isSessionCompleted(session) {
@@ -721,8 +721,8 @@ class RaceStreamCalendarPage {
      * @version 1.0.4
      * @created 27-04-2026
      * @modified 28-04-2026
-     * @description Devuelve estado visual de una sesion del GP
-     * @param {Object} session Sesion
+     * @description Devuelve estado visual de una sesión del GP
+     * @param {Object} session Sesión
      * @param {Object} meeting GP
      * @returns {string} Estado
      */
@@ -748,7 +748,7 @@ class RaceStreamCalendarPage {
      * @version 1.0.2
      * @created 27-04-2026
      * @modified 28-04-2026
-     * @description Traduce estado interno de sesion a etiqueta visible
+     * @description Traduce estado interno de sesión a etiqueta visible
      * @param {string} status Estado interno
      * @returns {string} Etiqueta
      */
@@ -774,11 +774,11 @@ class RaceStreamCalendarPage {
      * @version 1.0.1
      * @created 27-04-2026
      * @modified 04-05-2026
-     * @description Devuelve boton de accion segun el estado de la sesion
+     * @description Devuelve botón de acción según el estado de la sesión
      * @param {string} status Estado interno
-     * @param {Object} session Sesion
+     * @param {Object} session Sesión
      * @param {Object} meeting GP
-     * @returns {string} HTML del boton
+     * @returns {string} HTML del botón
      */
     getSessionActionButton(status, session = null, meeting = null, sessionIndex = 0) {
         if (status === 'completed') {
@@ -803,7 +803,7 @@ class RaceStreamCalendarPage {
      * @version 1.0
      * @created 22-04-2026
      * @modified 22-04-2026
-     * @description Actualiza relojes superiores con el proximo GP
+     * @description Actualiza relojes superiores con el próximo GP
      */
     updateDynamicClocks() {
         if (!this.ownsRaceStrip) return;
@@ -840,7 +840,7 @@ class RaceStreamCalendarPage {
      * @version 1.0.1
      * @created 22-04-2026
      * @modified 30-04-2026
-     * @description Actualiza accion y cuenta atras segun la siguiente sesion del GP
+     * @description Actualiza acción y cuenta atrás según la siguiente sesión del GP
      */
     updateCountdown() {
         if (!this.ownsRaceStrip) return;
@@ -884,8 +884,8 @@ class RaceStreamCalendarPage {
      * @since 1.0
      * @version 1.0.0
      * @created 30-04-2026
-     * @description Devuelve la sesion activa o la siguiente del GP superior
-     * @returns {Object|null} Sesion
+     * @description Devuelve la sesión activa o la siguiente del GP superior
+     * @returns {Object|null} Sesión
      */
     getActiveOrNextTopSession() {
         const now = Date.now();
@@ -897,7 +897,7 @@ class RaceStreamCalendarPage {
      * @since 1.0
      * @version 1.0.0
      * @created 30-04-2026
-     * @description Pinta boton En Vivo o cuenta atras de la siguiente sesion
+     * @description Pinta botón En Vivo o cuenta atrás de la siguiente sesión
      */
     renderRaceStripAction() {
         if (!this.ownsRaceStrip) return;
@@ -931,7 +931,7 @@ class RaceStreamCalendarPage {
      * @version 1.0.1
      * @created 22-04-2026
      * @modified 30-04-2026
-     * @description Actualiza franja superior del proximo GP
+     * @description Actualiza franja superior del próximo GP
      * @param {Object} meeting Próximo GP
      */
     updateRaceStrip(meeting) {
@@ -971,7 +971,7 @@ class RaceStreamCalendarPage {
      * @version 1.0
      * @created 22-04-2026
      * @modified 22-04-2026
-     * @description Actualiza linea superior con circuito seleccionado
+     * @description Actualiza línea superior con circuito seleccionado
      * @param {Object|null} meeting Meeting actual
      */
     updateTopSelectedCircuit(meeting) {
@@ -1015,7 +1015,7 @@ class RaceStreamCalendarPage {
      * @version 1.0.2
      * @created 07-05-2026
      * @modified 08-05-2026
-     * @description Conserva el GP seleccionado al recargar la pagina de temporada actual
+     * @description Conserva el GP seleccionado al recargar la página de temporada actual
      * @param {number|null} meetingKey GP seleccionado
      */
     updateUrl(meetingKey) {
@@ -1115,7 +1115,7 @@ class RaceStreamCalendarPage {
      * @version 1.0.2
      * @created 22-04-2026
      * @modified 07-05-2026
-     * @description Selecciona el GP pedido, actual, siguiente o ultimo disponible
+     * @description Selecciona el GP pedido, actual, siguiente o último disponible
      * @returns {Object|null} Meeting
      */
     selectInitialMeeting() {
@@ -1158,7 +1158,7 @@ class RaceStreamCalendarPage {
      * @version 1.0.1
      * @created 22-04-2026
      * @modified 28-04-2026
-     * @description Devuelve el GP de un dia usando hora de circuito
+     * @description Devuelve el GP de un día usando hora de circuito
      * @param {Date} currentDate Fecha
      * @returns {Object|null} Meeting
      */
@@ -1380,7 +1380,7 @@ class RaceStreamCalendarPage {
      * @since 1.0
      * @version 1.0.0
      * @created 07-05-2026
-     * @description Devuelve bandera aunque OpenF1 no la incluya en temporadas historicas
+     * @description Devuelve bandera aunque OpenF1 no la incluya en temporadas históricas
      * @param {Object} meeting GP
      * @param {string} className Clase extra
      * @returns {string} HTML de bandera
@@ -1420,7 +1420,7 @@ class RaceStreamCalendarPage {
      * @version 1.0.3
      * @created 22-04-2026
      * @modified 30-04-2026
-     * @description Renderiza tarjeta del mapa del circuito con datos tecnicos
+     * @description Renderiza tarjeta del mapa del circuito con datos técnicos
      * @param {Object} meeting GP
      */
     renderSelectedCircuitCard(meeting) {
@@ -1483,7 +1483,7 @@ class RaceStreamCalendarPage {
      * @since 1.0
      * @version 1.0.0
      * @created 07-05-2026
-     * @description Intenta cargar una imagen publica del circuito cuando no existe mapa local
+     * @description Intenta cargar una imagen pública del circuito cuando no existe mapa local
      * @param {Object} meeting GP seleccionado
      */
     async hydrateCircuitThumbnail(meeting) {
@@ -1705,7 +1705,7 @@ class RaceStreamCalendarPage {
  * @version 1.0
  * @created 21-04-2026
  * @modified 22-04-2026
- * @description Inicializa la pagina
+ * @description Inicializa la página
  */
 document.addEventListener('DOMContentLoaded', () => {
     window.raceStreamCalendarPage = new RaceStreamCalendarPage();

@@ -3,7 +3,7 @@
  * @since 1.0
  * @version 1.0.1
  * @created 12-05-2026
- * @description Tests de Jolpica con RestTemplate mockeado para standings, resultados y participantes historicos
+ * @description Tests de Jolpica con RestTemplate mockeado para standings, resultados y participantes históricos
  */
 package com.yerai.racestream.service;
 
@@ -54,7 +54,7 @@ class JolpicaServiceTest {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Verifica paginacion generica de standings con limit y offset
+     * @description Verifica páginación genérica de standings con limit y offset
      */
     @Test
     void driverStandingsUseLimitAndOffsetUntilTotal() {
@@ -74,7 +74,7 @@ class JolpicaServiceTest {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Verifica reconstruccion de pilotos desde race-results cuando standings llega vacio
+     * @description Verifica reconstrucción de pilotos desde race-results cuando standings llega vacío
      */
     @Test
     void emptyDriverStandingsAreRebuiltFromRaceResults() {
@@ -96,7 +96,7 @@ class JolpicaServiceTest {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Verifica que race_count de escuderias cuenta carreras unicas y conserva pilotos
+     * @description Verifica que race_count de escuderías cuenta carreras únicas y conserva pilotos
      */
     @Test
     void constructorRaceCountDoesNotDuplicateTwoCarsInSameRace() {
@@ -135,7 +135,7 @@ class JolpicaServiceTest {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Verifica que una temporada ya cacheada no se sustituye por llamadas posteriores vacias o fallidas
+     * @description Verifica que una temporada ya cacheada no se sustituye por llamadas posteriores vacías o fallidas
      */
     @Test
     void racesUseLastValidCacheOnFollowingCalls() {

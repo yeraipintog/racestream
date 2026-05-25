@@ -623,7 +623,7 @@ document.addEventListener('DOMContentLoaded', () => {
          * @since 1.0
          * @version 1.0.0
          * @created 11-05-2026
-         * @description Activa Ver mas solo cuando el mensaje supera tres lineas reales
+         * @description Activa Ver más solo cuando el mensaje supera tres líneas reales
          */
         const bindForumTextToggles = () => {
             window.requestAnimationFrame(() => {

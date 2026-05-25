@@ -4,7 +4,7 @@
  * @version 1.2.1
  * @created 06-05-2026
  * @modified 22-05-2026
- * @description API privada de administracion para usuarios, roles, bloqueos, contacto, foro y actividad interna
+ * @description API privada de administración para usuarios, roles, bloqueos, contacto, foro y actividad interna
  */
 package com.yerai.racestream.controller;
 
@@ -109,7 +109,7 @@ public class AdminController {
      * @version 1.0.1
      * @created 06-05-2026
      * @modified 06-05-2026
-     * @description Lista ultimos mensajes de contacto priorizando los pendientes
+     * @description Lista últimos mensajes de contacto priorizando los pendientes
      * @return Mensajes recientes
      */
     @GetMapping("/contact-messages")
@@ -124,7 +124,7 @@ public class AdminController {
      * @since 1.0
      * @version 1.0.0
      * @created 06-05-2026
-     * @description Lista publicaciones recientes del foro para moderacion
+     * @description Lista publicaciones recientes del foro para moderación
      * @return Posts recientes del foro
      */
     @GetMapping("/forum-posts")
@@ -238,7 +238,7 @@ public class AdminController {
      * @since 1.0
      * @version 1.0.0
      * @created 06-05-2026
-     * @description Elimina un mensaje de contacto desde administracion
+     * @description Elimina un mensaje de contacto desde administración
      * @param id Identificador del mensaje
      * @return Estado de borrado
      */
@@ -259,7 +259,7 @@ public class AdminController {
      * @version 1.0.1
      * @created 06-05-2026
      * @modified 08-05-2026
-     * @description Elimina una publicacion o respuesta del foro desde administracion con sus dependencias
+     * @description Elimina una publicación o respuesta del foro desde administración con sus dependencias
      * @param id Identificador del post
      * @return Estado de borrado
      */

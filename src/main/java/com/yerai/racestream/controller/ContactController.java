@@ -4,7 +4,7 @@
  * @version 1.2.1
  * @created 05-05-2026
  * @modified 22-05-2026
- * @description API privada para formulario de contacto autenticado con tema, persistencia y envio SMTP opcional
+ * @description API privada para formulario de contacto autenticado con tema, persistencia y envío SMTP opcional
  */
 package com.yerai.racestream.controller;
 
@@ -50,7 +50,7 @@ public class ContactController {
      * @version 1.1.0
      * @created 05-05-2026
      * @modified 19-05-2026
-     * @description Guarda un mensaje con tema enviado por un usuario registrado y lo envia por SMTP si esta activo
+     * @description Guarda un mensaje con tema enviado por un usuario registrado y lo envía por SMTP si está activo
      * @param request Datos del mensaje
      * @param authentication Sesión actual
      * @return Estado de guardado

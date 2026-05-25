@@ -3,7 +3,7 @@
  * @since 1.0
  * @version 1.0.0
  * @created 05-05-2026
- * @description Relaciona un usuario con una publicacion del foro para permitir un unico me gusta
+ * @description Relaciona un usuario con una publicación del foro para permitir un único me gusta
  */
 package com.yerai.racestream.model;
 

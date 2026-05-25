@@ -4,7 +4,7 @@
  * @version 1.6.1
  * @created 30-04-2026
  * @modified 22-05-2026
- * @description Lógica de Sesiones completadas con limite publico, selector por GP, carga reforzada, podios y tablas
+ * @description Lógica de Sesiones completadas con límite público, selector por GP, carga reforzada, podios y tablas
  */
 class RaceStreamSessionsPage {
 
@@ -96,7 +96,7 @@ class RaceStreamSessionsPage {
      * @version 1.0.0
      * @created 20-05-2026
      * @modified 20-05-2026
-     * @description Limita las sesiones anonimas a la temporada actual
+     * @description Limita las sesiones anónimas a la temporada actual
      */
     async resolvePublicAccess() {
         const user = await window.RaceStreamApi.getCurrentUser();
@@ -114,7 +114,7 @@ class RaceStreamSessionsPage {
      * @since 1.0
      * @version 1.0.0
      * @created 07-05-2026
-     * @description Carga temporadas historicas en el selector de sesiones
+     * @description Carga temporadas históricas en el selector de sesiones
      * @returns {Promise<void>} Carga completada
      */
     async loadSeasons() {
@@ -282,7 +282,7 @@ class RaceStreamSessionsPage {
      * @created 14-05-2026
      * @modified 14-05-2026
      * @description Filtra el selector sin bloquear la página con todas las sesiones de la temporada
-     * @param {Array} meetings Grandes Premios con clave util
+     * @param {Array} meetings Grandes Premios con clave útil
      * @param {number} requestId Carga activa
      * @returns {Promise<Array>} Grandes Premios consultables
      */
@@ -416,8 +416,8 @@ class RaceStreamSessionsPage {
      * @since 1.0
      * @version 1.0.0
      * @created 03-05-2026
-     * @description Carga resultados, pilotos y vueltas de una sesion real
-     * @param {Object} session Sesion
+     * @description Carga resultados, pilotos y vueltas de una sesión real
+     * @param {Object} session Sesión
      * @returns {Promise<void>} Carga completada
      */
     async loadSessionData(session) {
@@ -463,8 +463,8 @@ class RaceStreamSessionsPage {
      * @since 1.0
      * @version 1.0.0
      * @created 07-05-2026
-     * @description Devuelve una clave estable para sesiones reales o sinteticas
-     * @param {Object} session Sesion
+     * @description Devuelve una clave estable para sesiones reales o sintéticas
+     * @param {Object} session Sesión
      * @returns {string} Clave
      */
     getSessionCacheKey(session) {
@@ -478,8 +478,8 @@ class RaceStreamSessionsPage {
      * @since 1.0
      * @version 1.0.0
      * @created 07-05-2026
-     * @description Indica si una carrera historica puede usar resultados Jolpica
-     * @param {Object} session Sesion
+     * @description Indica si una carrera histórica puede usar resultados Jolpica
+     * @param {Object} session Sesión
      * @returns {boolean} Resultado
      */
     canUseJolpicaRaceResults(session) {
@@ -569,8 +569,8 @@ class RaceStreamSessionsPage {
      * @since 1.0
      * @version 1.0.0
      * @created 05-05-2026
-     * @description Renderiza el podio compacto de una sesion completada con datos disponibles
-     * @param {Object} session Sesion
+     * @description Renderiza el podio compacto de una sesión completada con datos disponibles
+     * @param {Object} session Sesión
      * @returns {string} HTML del podio
      */
     renderSessionPodium(session) {
@@ -597,8 +597,8 @@ class RaceStreamSessionsPage {
      * @since 1.0
      * @version 1.0.0
      * @created 03-05-2026
-     * @description Indica si una sesion puede cargar resultados reales desde OpenF1
-     * @param {Object} session Sesion
+     * @description Indica si una sesión puede cargar resultados reales desde OpenF1
+     * @param {Object} session Sesión
      * @returns {boolean} Resultado
      */
     shouldLoadSessionDetails(session) {
@@ -614,8 +614,8 @@ class RaceStreamSessionsPage {
      * @since 1.0
      * @version 1.0.0
      * @created 03-05-2026
-     * @description Comprueba si una sesion ya tiene resultados o vueltas cargadas
-     * @param {Object} session Sesion
+     * @description Comprueba si una sesión ya tiene resultados o vueltas cargadas
+     * @param {Object} session Sesión
      * @returns {boolean} Resultado
      */
     hasSessionData(session) {
@@ -671,7 +671,7 @@ class RaceStreamSessionsPage {
      * @since 1.0
      * @version 1.0.0
      * @created 03-05-2026
-     * @description Devuelve posicion visual sin inventar clasificacion para DNFs
+     * @description Devuelve posición visual sin inventar clasificación para DNFs
      * @param {Object} row Resultado
      * @param {number} index Indice
      * @param {boolean} isRace Indica si es carrera
@@ -749,11 +749,11 @@ class RaceStreamSessionsPage {
      * @version 1.0.2
      * @created 06-05-2026
      * @modified 11-05-2026
-     * @description Renderiza avatar con los mismos assets por temporada que pilotos y escuderias
+     * @description Renderiza avatar con los mismos assets por temporada que pilotos y escuderías
      * @param {string} name Nombre del piloto
      * @param {Object} driver Piloto OpenF1
      * @param {Object} row Resultado
-     * @param {Object} session Sesion
+     * @param {Object} session Sesión
      * @param {string} className Clase extra
      * @returns {string} HTML del avatar
      */
@@ -945,8 +945,8 @@ class RaceStreamSessionsPage {
      * @since 1.0
      * @version 1.0.0
      * @created 07-05-2026
-     * @description Lee datos cargados de una sesion real o sintetica
-     * @param {Object} session Sesion
+     * @description Lee datos cargados de una sesión real o sintética
+     * @param {Object} session Sesión
      * @returns {Object|undefined} Datos cacheados
      */
     getSessionData(session) {
@@ -983,7 +983,7 @@ class RaceStreamSessionsPage {
      * @since 1.0
      * @version 1.0.0
      * @created 03-05-2026
-     * @description Calcula diferencia de vueltas cuando OpenF1 no envia texto de gap
+     * @description Calcula diferencia de vueltas cuando OpenF1 no envía texto de gap
      * @param {Object} row Resultado
      * @param {Object} session Sesión
      * @returns {number} Vueltas perdidas
@@ -1027,7 +1027,7 @@ class RaceStreamSessionsPage {
         const best = validLaps.sort((left, right) => Number(left.lap_duration) - Number(right.lap_duration))[0];
         return {
             laps: row.number_of_laps || row.laps || laps.length || '-',
-            bestLap: row.best_lap_time || row.duration || best?.lap_duration || null
+            bestLap: row.best_lap_time || row.duration || bestá.lap_duration || null
         };
     }
 
@@ -1076,7 +1076,7 @@ class RaceStreamSessionsPage {
      * @since 1.0
      * @version 1.0.0
      * @created 03-05-2026
-     * @description Formatea gaps por tiempo o por vueltas conservando la informacion de OpenF1
+     * @description Formatea gaps por tiempo o por vueltas conservando la información de OpenF1
      * @param {number|string} value Gap original
      * @returns {string} Gap visible
      */
@@ -1116,7 +1116,7 @@ class RaceStreamSessionsPage {
      * @version 1.0.0
      * @created 03-05-2026
      * @description Formatea duraciones largas de carrera como horas, minutos y segundos
-     * @param {number|string} value Duracion
+     * @param {number|string} value Duración
      * @returns {string} Tiempo visible
      */
     formatRawRaceTime(value) {
@@ -1167,8 +1167,8 @@ class RaceStreamSessionsPage {
      * @since 1.0
      * @version 1.0.0
      * @created 04-05-2026
-     * @description Devuelve la temporada real de una sesion para usar imagenes historicas correctas
-     * @param {Object} session Sesion
+     * @description Devuelve la temporada real de una sesión para usar imágenes históricas correctas
+     * @param {Object} session Sesión
      * @returns {number} Temporada
      */
     getSessionYear(session) {
@@ -1185,7 +1185,7 @@ class RaceStreamSessionsPage {
      * @version 1.0.1
      * @created 04-05-2026
      * @modified 22-05-2026
-     * @description Normaliza nombres de equipos para rutas de assets de Formula 1
+     * @description Normaliza nombres de equipos para rutas de assets de Fórmula 1
      * @param {string} value Texto original
      * @returns {string} Clave normalizada
      */
@@ -1199,7 +1199,7 @@ class RaceStreamSessionsPage {
      * @version 1.0.1
      * @created 03-05-2026
      * @modified 12-05-2026
-     * @description Lee un array usando el cliente comun con reintento de vacios
+     * @description Lee un array usando el cliente común con reintento de vacíos
      * @param {string} url URL
      * @param {number} attempts Intentos
      * @param {number} delayBase Espera base
@@ -1215,7 +1215,7 @@ class RaceStreamSessionsPage {
      * @version 1.0.2
      * @created 03-05-2026
      * @modified 12-05-2026
-     * @description Lee JSON con cache local segura desde el cliente comun
+     * @description Lee JSON con caché local segura desde el cliente común
      * @param {string} url URL
      * @param {*} fallback Valor por defecto
      * @param {Object} options Opciones de reintento
@@ -1263,7 +1263,7 @@ class RaceStreamSessionsPage {
      * @since 1.0
      * @version 1.0.0
      * @created 07-05-2026
-     * @description Permite meetings reales OpenF1 y meetings historicos sinteticos de Jolpica
+     * @description Permite meetings reales OpenF1 y meetings históricos sintéticos de Jolpica
      * @param {Object} meeting Gran Premio
      * @returns {boolean} Resultado
      */
@@ -1298,7 +1298,7 @@ class RaceStreamSessionsPage {
      * @version 1.0.1
      * @created 03-05-2026
      * @modified 14-05-2026
-     * @description Calcula si una sesión está completada sin tratar fechas ausentes como próximas por error
+     * @description Calcula si una sesión está completada sin tratar fechas ausentes como próximás por error
      * @param {Object} session Sesión
      * @param {Object|null} meeting GP asociado
      * @returns {string} Estado interno

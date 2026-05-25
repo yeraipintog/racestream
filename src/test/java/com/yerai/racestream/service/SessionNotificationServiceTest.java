@@ -134,8 +134,8 @@ class SessionNotificationServiceTest {
      * @version 1.0.0
      * @created 22-05-2026
      * @modified 22-05-2026
-     * @description Comprueba que un aviso ya creado reintenta el correo si SMTP fallo antes
-     * @throws Exception Si falla la construccion JSON de datos simulados
+     * @description Comprueba que un aviso ya creado reintenta el correo si SMTP falló antes
+     * @throws Exception Si falla la construcción JSON de datos simulados
      */
     @Test
     @SuppressWarnings("unchecked")

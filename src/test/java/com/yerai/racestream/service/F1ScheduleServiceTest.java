@@ -94,7 +94,7 @@ class F1ScheduleServiceTest {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Verifica que un GP antiguo no depende de OpenF1 y usa clave sintetica Jolpica
+     * @description Verifica que un GP antiguo no depende de OpenF1 y usa clave sintética Jolpica
      */
     @Test
     void oldGrandPrixUsesSyntheticJolpicaSessions() throws Exception {
@@ -191,7 +191,7 @@ class F1ScheduleServiceTest {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Verifica que getMeetingByKey recupera un meeting ya enriquecido si OpenF1 devuelve vacio
+     * @description Verifica que getMeetingByKey recupera un meeting ya enriquecido si OpenF1 devuelve vacío
      */
     @Test
     void meetingByKeyFallsBackToEnrichedCalendar() throws Exception {

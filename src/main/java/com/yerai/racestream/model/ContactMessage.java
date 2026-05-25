@@ -59,7 +59,7 @@ public class ContactMessage {
      * @since 1.0
      * @version 1.0.0
      * @created 05-05-2026
-     * @description Registra la fecha de envio del mensaje
+     * @description Registra la fecha de envío del mensaje
      */
     @PrePersist
     void prePersist() {

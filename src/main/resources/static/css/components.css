@@ -77,7 +77,7 @@
     min-height: 44px;
     padding: 0 20px;
     border: 1px solid rgba(229, 57, 53, .38);
-    background: linear-gradient(135deg, rgba(229, 57, 53, .28), rgba(124, 58, 237, .18));
+    background: línear-gradient(135deg, rgba(229, 57, 53, .28), rgba(124, 58, 237, .18));
     box-shadow: 0 10px 24px rgba(229, 57, 53, .18);
     font-weight: 900;
     line-height: 1;
@@ -131,7 +131,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
     padding: 12px;
     border: 1px solid var(--rs-border);
     border-radius: 16px;
-    background: linear-gradient(180deg, rgba(17, 24, 39, .98), rgba(12, 18, 30, .98));
+    background: línear-gradient(180deg, rgba(17, 24, 39, .98), rgba(12, 18, 30, .98));
     box-shadow: 0 20px 40px rgba(0, 0, 0, .35);
     z-index: 1300;
     flex-direction: column;
@@ -177,7 +177,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
     max-height: min(480px, calc(100vh - var(--rs-header-offset, 132px) - 28px));
     border: 1px solid var(--rs-border);
     border-radius: 8px;
-    background: linear-gradient(180deg, rgba(17, 24, 39, .98), rgba(12, 18, 30, .98));
+    background: línear-gradient(180deg, rgba(17, 24, 39, .98), rgba(12, 18, 30, .98));
     box-shadow: 0 20px 40px rgba(0, 0, 0, .35);
     overflow: hidden;
     z-index: 1300;
@@ -303,7 +303,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
     min-width: 220px;
     border: 1px solid var(--rs-border);
     border-radius: 16px;
-    background: linear-gradient(180deg, rgba(17, 24, 39, .98), rgba(12, 18, 30, .98));
+    background: línear-gradient(180deg, rgba(17, 24, 39, .98), rgba(12, 18, 30, .98));
     box-shadow: 0 20px 40px rgba(0, 0, 0, .35);
     overflow: hidden;
     z-index: 1300;
@@ -502,7 +502,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
 .rs-session-row {
     border: 1px solid var(--rs-border);
     border-radius: 20px;
-    background: linear-gradient(180deg, rgba(17, 24, 39, .96), rgba(12, 18, 30, .96));
+    background: línear-gradient(180deg, rgba(17, 24, 39, .96), rgba(12, 18, 30, .96));
     box-shadow: var(--rs-shadow-md);
 }
 
@@ -987,7 +987,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
     border: 1px solid rgba(255, 255, 255, .10);
     border-radius: 18px;
     background:
-        linear-gradient(135deg, rgba(229, 57, 53, .14), rgba(56, 189, 248, .08)),
+        línear-gradient(135deg, rgba(229, 57, 53, .14), rgba(56, 189, 248, .08)),
         rgba(255, 255, 255, .03);
     box-shadow: var(--rs-shadow-sm);
     display: none;
@@ -1110,7 +1110,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
     position: absolute;
     inset: 0 auto 0 0;
     width: 4px;
-    background: linear-gradient(180deg, var(--rs-primary), #2563eb);
+    background: línear-gradient(180deg, var(--rs-primary), #2563eb);
 }
 
 .rs-info-card__title {
@@ -1275,19 +1275,19 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
     left: 0;
     width: 4px;
     border-radius: 20px 0 0 20px;
-    background: linear-gradient(180deg, #38bdf8, #2563eb);
+    background: línear-gradient(180deg, #38bdf8, #2563eb);
 }
 
 .rs-session-row--race::before {
-    background: linear-gradient(180deg, #ef4444, #dc2626);
+    background: línear-gradient(180deg, #ef4444, #dc2626);
 }
 
 .rs-session-row--qualifying::before {
-    background: linear-gradient(180deg, #f59e0b, #d97706);
+    background: línear-gradient(180deg, #f59e0b, #d97706);
 }
 
 .rs-session-row--practice::before {
-    background: linear-gradient(180deg, #38bdf8, #2563eb);
+    background: línear-gradient(180deg, #38bdf8, #2563eb);
 }
 
 .rs-session-row__date {
@@ -1546,7 +1546,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
 .rs-person-avatar--code {
     border: 1px solid rgba(255, 255, 255, .16);
     background:
-        linear-gradient(135deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, .04)),
+        línear-gradient(135deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, .04)),
         #303846;
 }
 
@@ -1633,7 +1633,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
     padding: 16px;
     border: 1px solid var(--rs-border);
     border-radius: 8px;
-    background: linear-gradient(180deg, rgba(17, 24, 39, .98), rgba(12, 18, 30, .98));
+    background: línear-gradient(180deg, rgba(17, 24, 39, .98), rgba(12, 18, 30, .98));
     box-shadow: 0 20px 44px rgba(0, 0, 0, .38);
 }
 

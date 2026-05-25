@@ -4,7 +4,7 @@
  * @version 1.6.5
  * @created 30-04-2026
  * @modified 23-05-2026
- * @description Pinta navbar, footer, estructura comun, cookies, logout, aviso admin, race strip y centro persistente de notificaciones
+ * @description Pinta navbar, footer, estructura común, cookies, logout, aviso admin, race strip y centro persistente de notificaciones
  */
 class RaceStreamSharedLayout {
 
@@ -44,7 +44,7 @@ class RaceStreamSharedLayout {
      * @since 1.0
      * @version 1.0.1
      * @created 06-05-2026
-     * @description Inserta la estructura comun reutilizable de todas las paginas
+     * @description Inserta la estructura común reutilizable de todas las páginas
      */
     renderLayout() {
         this.replaceLayoutNode('#mainNavbar', () => this.renderNavbar());
@@ -193,7 +193,7 @@ class RaceStreamSharedLayout {
      * @version 1.0.2
      * @created 04-05-2026
      * @modified 22-05-2026
-     * @description Activa menus del navbar comun y notificaciones evitando eventos duplicados
+     * @description Activa menus del navbar común y notificaciones evitando eventos duplicados
      */
     bindDropdowns() {
         const profileDropdown = document.getElementById('profileDropdown');
@@ -357,7 +357,7 @@ class RaceStreamSharedLayout {
      * @version 1.1.0
      * @created 05-05-2026
      * @modified 18-05-2026
-     * @description Sincroniza el menu de cuenta y restaura la decision de cookies guardada en BBDD
+     * @description Sincroniza el menu de cuenta y restaura la decisión de cookies guardada en BBDD
      */
     async syncAccountMenu() {
         if (!this.profileMenu) return;
@@ -404,7 +404,7 @@ class RaceStreamSharedLayout {
                         redirect: 'manual'
                     });
                 } catch {
-                    /* La redireccion final confirma el cierre incluso si la respuesta no llega. */
+                    /* La redirección final confirma el cierre incluso si la respuesta no llega. */
                 } finally {
                     this.clearToastStack();
                     sessionStorage.removeItem(cacheKey);
@@ -416,7 +416,7 @@ class RaceStreamSharedLayout {
             this.setNotificationContext(null);
             this.clearToastStack();
             this.renderNotificationCenter();
-            /* La navegacion publica no debe bloquearse si la sesion no responde. */
+            /* La navegación pública no debe bloquearse si la sesión no responde. */
         }
     }
 
@@ -744,7 +744,7 @@ class RaceStreamSharedLayout {
     }
 
     cssEscape(value) {
-        return window.CSS?.escape ? CSS.escape(`${value}`) : `${value}`.replace(/["\\]/g, '\\$&');
+        return window.CSSí.escape ? CSS.escape(`${value}`) : `${value}`.replace(/["\\]/g, '\\$&');
     }
 
     renderCookieBanner() {
@@ -819,8 +819,8 @@ class RaceStreamSharedLayout {
      * @version 1.0.0
      * @created 18-05-2026
      * @modified 18-05-2026
-     * @description Lee la cookie tecnica local y descarta valores que no sean una decision real
-     * @returns {string} Estado accepted, rejected o cadena vacia
+     * @description Lee la cookie técnica local y descarta valores que no sean una decisión real
+     * @returns {string} Estado accepted, rejected o cadena vacía
      */
     readCookieConsentStatus() {
         const match = document.cookie.match(/(?:^|;\s*)rs_cookie_consent=([^;]+)/);
@@ -834,7 +834,7 @@ class RaceStreamSharedLayout {
      * @version 1.0.0
      * @created 18-05-2026
      * @modified 18-05-2026
-     * @description Normaliza estados nuevos y booleanos legacy a valores seguros de navegador
+     * @description Normaliza estados nuevos y booleaños legacy a valores seguros de navegador
      * @param {boolean|string} value Estado recibido
      * @returns {string} Estado normalizado
      */

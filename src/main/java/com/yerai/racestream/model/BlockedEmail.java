@@ -3,7 +3,7 @@
  * @since 1.0
  * @version 1.0.0
  * @created 06-05-2026
- * @description Correo bloqueado por administracion para impedir nuevos registros e inicios de sesion
+ * @description Correo bloqueado por administración para impedir nuevos registros e inicios de sesión
  */
 package com.yerai.racestream.model;
 

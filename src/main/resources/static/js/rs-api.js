@@ -4,7 +4,7 @@
  * @version 1.2.0
  * @created 12-05-2026
  * @modified 13-05-2026
- * @description Cliente comun RaceStream para fetch, reintentos, estados de carga, sesion publica y cache local segura
+ * @description Cliente común RaceStream para fetch, reintentos, estados de carga, sesión pública y caché local segura
  */
 class RaceStreamApiClient {
 
@@ -17,7 +17,7 @@ class RaceStreamApiClient {
      * @version 1.1.0
      * @created 12-05-2026
      * @modified 13-05-2026
-     * @description Inicializa estado de la ultima peticion y descarta cache antigua de datos API
+     * @description Inicializa estado de la última petición y descarta caché antigua de datos API
      */
     constructor() {
         this.lastStatus = { state: 'idle', cached: false, partialData: false, url: '' };
@@ -31,7 +31,7 @@ class RaceStreamApiClient {
      * @version 1.1.1
      * @created 12-05-2026
      * @modified 12-05-2026
-     * @description Lee JSON con reintentos, cancelacion y fallback stale sin cachear vacios temporales
+     * @description Lee JSON con reintentos, cancelación y fallback stale sin cachear vacíos temporales
      * @param {string} url URL
      * @param {*} fallback Valor alternativo
      * @param {Object} options Opciones de carga
@@ -96,7 +96,7 @@ class RaceStreamApiClient {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Elimina solo cache API antigua manteniendo favoritos, preferencias y notificaciones
+     * @description Elimina solo caché API antigua manteniendo favoritos, preferencias y notificaciones
      */
     purgeOldApiCache() {
         try {
@@ -108,7 +108,7 @@ class RaceStreamApiClient {
                 .forEach((key) => localStorage.removeItem(key));
             localStorage.setItem(RaceStreamApiClient.CACHE_VERSION_KEY, RaceStreamApiClient.CACHE_VERSION);
         } catch {
-            /* La cache del navegador nunca debe bloquear la carga de datos. */
+            /* La caché del navegador nunca debe bloquear la carga de datos. */
         }
     }
 
@@ -133,7 +133,7 @@ class RaceStreamApiClient {
      * @version 1.0.0
      * @created 20-05-2026
      * @modified 20-05-2026
-     * @description Devuelve la sesion actual reutilizando una unica llamada por carga de pagina
+     * @description Devuelve la sesión actual reutilizando una única llamada por carga de página
      * @returns {Promise<Object>} Usuario autenticado o estado anonimo
      */
     async getCurrentUser() {
@@ -158,9 +158,9 @@ class RaceStreamApiClient {
      * @version 1.0.0
      * @created 12-05-2026
      * @description Genera un bloque reutilizable de reintento
-     * @param {string} title Titulo
+     * @param {string} title Título
      * @param {string} message Mensaje
-     * @param {string} buttonText Texto del boton
+     * @param {string} buttonText Texto del botón
      * @returns {string} HTML seguro
      */
     retryButton(title, message, buttonText = 'Reintentar / Reiniciar página') {
@@ -178,7 +178,7 @@ class RaceStreamApiClient {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Lee cache local descartando arrays vacios
+     * @description Lee caché local descartando arrays vacíos
      * @param {string} cacheKey Clave localStorage
      * @returns {*|null} Dato cacheado
      */
@@ -207,7 +207,7 @@ class RaceStreamApiClient {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Guarda cache versionada solo cuando hay dato util
+     * @description Guarda caché versionada solo cuando hay dato útil
      * @param {string} cacheKey Clave localStorage
      * @param {*} data Dato confirmado
      */
@@ -228,14 +228,14 @@ class RaceStreamApiClient {
      * @since 1.0
      * @version 1.0.0
      * @created 13-05-2026
-     * @description Elimina una entrada de cache API concreta
+     * @description Elimina una entrada de caché API concreta
      * @param {string} cacheKey Clave localStorage
      */
     removeCache(cacheKey) {
         try {
             localStorage.removeItem(cacheKey);
         } catch {
-            /* Sin accion: localStorage puede estar bloqueado. */
+            /* Sin acción: localStorage puede estar bloqueado. */
         }
     }
 
@@ -244,7 +244,7 @@ class RaceStreamApiClient {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Comprueba si el dato es un array vacio
+     * @description Comprueba si el dato es un array vacío
      * @param {*} value Valor
      * @returns {boolean} Resultado
      */

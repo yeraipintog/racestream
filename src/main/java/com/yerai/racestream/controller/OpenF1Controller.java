@@ -4,7 +4,7 @@
  * @version 1.1.1
  * @created 17-04-2026
  * @modified 23-05-2026
- * @description Controlador de OpenF1 con limite publico de temporada
+ * @description Controlador de OpenF1 con límite público de temporada
  * @see https://openf1.org
  */
 package com.yerai.racestream.controller;
@@ -65,7 +65,7 @@ public class OpenF1Controller {
      * @version 1.0.1
      * @created 17-04-2026
      * @modified 22-05-2026
-     * @description Obtener pilotos por sesion numerica o latest
+     * @description Obtener pilotos por sesión numerica o latest
      * @param sessionKey Clave OpenF1
      * @return Pilotos
      */

@@ -22,7 +22,7 @@ public class RacestreamApplication {
 	 * @created 09-03-2026
 	 * @modified 18-05-2026
 	 * @description Arranca la aplicacion Spring Boot de RaceStream
-	 * @param args Argumentos de la linea de comandos
+	 * @param args Argumentos de la línea de comandos
 	 */
 	public static void main(String[] args) {
 		SpringApplication.run(RacestreamApplication.class, args);

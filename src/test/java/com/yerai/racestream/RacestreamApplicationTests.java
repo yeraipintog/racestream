@@ -59,8 +59,8 @@ class RacestreamApplicationTests {
 	 * @version 1.0.1
 	 * @created 06-05-2026
 	 * @modified 12-05-2026
-	 * @description Verifica que el nombre de usuario visible tambien permite
-	 *              iniciar sesion
+	 * @description Verifica que el nombre de usuario visible también permite
+	 *              iniciar sesión
 	 */
 	@Test
 	void registeredUserCanLoginWithUsername() {

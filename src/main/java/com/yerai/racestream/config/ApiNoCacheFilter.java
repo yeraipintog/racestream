@@ -26,8 +26,8 @@ public class ApiNoCacheFilter extends OncePerRequestFilter {
      * @version 1.0.0
      * @created 13-05-2026
      * @modified 13-05-2026
-     * @description Anade cabeceras no-cache solo a rutas /api/
-     * @param request Peticion HTTP
+     * @description Añade cabeceras no-cache solo a rutas /api/
+     * @param request Petición HTTP
      * @param response Respuesta HTTP
      * @param filterChain Cadena de filtros
      * @throws ServletException Si falla el filtro

@@ -4,7 +4,7 @@
  * @version 1.0.1
  * @created 12-05-2026
  * @modified 22-05-2026
- * @description Tests de validacion de contrasena en cuenta de usuario
+ * @description Tests de validación de contraseña en cuenta de usuario
  */
 package com.yerai.racestream.controller;
 
@@ -49,7 +49,7 @@ class UserControllerTest {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Verifica mensaje claro para contrasena debil al actualizar cuenta
+     * @description Verifica mensaje claro para contraseña débil al actualizar cuenta
      */
     @Test
     void passwordReturnsClearWeakPasswordError() {
@@ -80,7 +80,7 @@ class UserControllerTest {
      * @version 1.0.0
      * @created 22-05-2026
      * @modified 22-05-2026
-     * @description Verifica que Mi Cuenta rechaza reutilizar la contrasena actual en el campo nuevo
+     * @description Verifica que Mi Cuenta rechaza reutilizar la contraseña actual en el campo nuevo
      */
     @Test
     void passwordRejectsCurrentPasswordReuse() {

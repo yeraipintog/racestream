@@ -84,7 +84,7 @@ class FavoritesControllerTest {
                 .thenReturn(Optional.of(existing));
 
         var response = controller.create(new FavoritesController.FavoriteRequest(
-                "team", "ferrari", 2005, "Ferrari", "teams.html?year=2005", "Escuderia"), authentication);
+                "team", "ferrari", 2005, "Ferrari", "teams.html?year=2005", "Escudería"), authentication);
 
         assertThat(((Map<?, ?>) response.getBody()).get("seasonYear")).isEqualTo(2005);
         verify(favoriteRepository).save(eq(existing));

@@ -4,7 +4,7 @@
  * @version 1.3.0
  * @created 04-05-2026
  * @modified 14-05-2026
- * @description Lógica de Clasificación con limite publico, aviso histórico de constructores, tablas y detalle por GP
+ * @description Lógica de Clasificación con límite público, aviso histórico de constructores, tablas y detalle por GP
  */
 class RaceStreamStandingsPage {
 
@@ -228,8 +228,8 @@ class RaceStreamStandingsPage {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Devuelve identificador estable de escuderia para filtros y enlaces
-     * @param {Object} row Fila de escuderia
+     * @description Devuelve identificador estable de escudería para filtros y enlaces
+     * @param {Object} row Fila de escudería
      * @returns {string} Identificador estable
      */
     getConstructorFilterId(row) {
@@ -302,17 +302,17 @@ class RaceStreamStandingsPage {
     }
 
     renderConstructorsTable() {
-        const historicalNotice = this.renderHistoricalConstructorsNotice();
+        const históricalNotice = this.renderHistoricalConstructorsNotice();
         if (!this.constructorStandings.length) {
             if (this.year < 1958) {
-                this.tableContent.innerHTML = `${historicalNotice}<p class="empty-state">No hay datos históricos de escuderías para esta temporada.</p>`;
+                this.tableContent.innerHTML = `${históricalNotice}<p class="empty-state">No hay datos históricos de escuderías para esta temporada.</p>`;
             } else {
                 this.renderApiRetry('Escuderías');
             }
             return;
         }
         this.tableContent.innerHTML = `
-            ${historicalNotice}
+            ${históricalNotice}
             <div class="rs-standings-table-wrap">
                 <table class="rs-standings-table">
                     <thead><tr><th>Posición</th><th>Escudería</th><th>Nacionalidad</th><th>Pilotos</th><th>Puntos</th></tr></thead>
@@ -334,7 +334,7 @@ class RaceStreamStandingsPage {
     renderHistoricalConstructorsNotice() {
         if (this.year >= 1958) return '';
         return `
-            <div class="rs-historical-notice">
+            <div class="rs-histórical-notice">
                 El Campeonato de Constructores empezó oficialmente en 1958. En temporadas anteriores estos datos son una referencia histórica por escudería/equipo y no una clasificación oficial del campeonato.
             </div>
         `;

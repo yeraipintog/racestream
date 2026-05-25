@@ -4,7 +4,7 @@
  * @version 1.2.1
  * @created 05-05-2026
  * @modified 22-05-2026
- * @description API de registro, login, recuperacion, sesion, cookies con estado explicito, bloqueo de correos y acceso admin
+ * @description API de registro, login, recuperación, sesión, cookies con estado explícito, bloqueo de correos y acceso admin
  */
 package com.yerai.racestream.controller;
 
@@ -85,10 +85,10 @@ public class AuthController {
      * @version 1.0.7
      * @created 05-05-2026
      * @modified 18-05-2026
-     * @description Registra un usuario local con nombre visible, password cifrada, aceptacion legal, cookies sin decidir y bloqueo administrativo
+     * @description Registra un usuario local con nombre visible, password cifrada, aceptación legal, cookies sin decidir y bloqueo administrativo
      * @param request Datos del formulario de registro
-     * @param servletRequest Peticion HTTP para abrir sesion
-     * @return Usuario registrado sin exponer la contrasena
+     * @param servletRequest Petición HTTP para abrir sesión
+     * @return Usuario registrado sin exponer la contraseña
      */
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request, HttpServletRequest servletRequest) {
@@ -139,9 +139,9 @@ public class AuthController {
      * @version 1.0.3
      * @created 05-05-2026
      * @modified 13-05-2026
-     * @description Inicia sesion por email, nombre de usuario o alias admin usando Spring Security
+     * @description Inicia sesión por email, nombre de usuario o alias admin usando Spring Security
      * @param request Credenciales
-     * @param servletRequest Peticion HTTP para almacenar la sesion
+     * @param servletRequest Petición HTTP para almacenar la sesión
      * @return Usuario autenticado
      */
     @PostMapping("/login")
@@ -177,8 +177,8 @@ public class AuthController {
      * @modified 22-05-2026
      * @description Genera un token temporal y avisa en el campo si el email no existe
      * @param request Email indicado por el usuario
-     * @param servletRequest Peticion HTTP para construir la URL publica
-     * @return Estado del envio o error asociado al campo email
+     * @param servletRequest Petición HTTP para construir la URL pública
+     * @return Estado del envío o error asociado al campo email
      */
     @PostMapping("/password-reset/request")
     public ResponseEntity<?> requestPasswordReset(@RequestBody PasswordResetRequest request, HttpServletRequest servletRequest) {
@@ -224,9 +224,9 @@ public class AuthController {
      * @version 1.0.1
      * @created 07-05-2026
      * @modified 22-05-2026
-     * @description Valida el token, evita repetir contrasena, caduca el enlace y abre sesion
-     * @param request Token y contrasena nueva
-     * @param servletRequest Peticion HTTP para abrir sesion automaticamente
+     * @description Valida el token, evita repetir contraseña, caduca el enlace y abre sesión
+     * @param request Token y contraseña nueva
+     * @param servletRequest Petición HTTP para abrir sesión automáticamente
      * @return Estado de guardado
      */
     @PostMapping("/password-reset/confirm")
@@ -268,9 +268,9 @@ public class AuthController {
      * @since 1.0
      * @version 1.0.0
      * @created 05-05-2026
-     * @description Devuelve el estado de sesion actual
+     * @description Devuelve el estado de sesión actual
      * @param principal Principal autenticado local
-     * @return Datos publicos de sesion
+     * @return Datos públicos de sesión
      */
     @GetMapping("/me")
     public ResponseEntity<?> me(@AuthenticationPrincipal Object principal) {
@@ -285,7 +285,7 @@ public class AuthController {
      * @version 1.1.0
      * @created 05-05-2026
      * @modified 18-05-2026
-     * @description Guarda decision aceptada o rechazada en cookie tecnica y, si hay usuario, en BBDD
+     * @description Guarda decisión aceptada o rechazada en cookie técnica y, si hay usuario, en BBDD
      * @param request Preferencia de cookies
      * @param principal Usuario opcional
      * @param response Respuesta HTTP
@@ -385,8 +385,8 @@ public class AuthController {
      * @version 1.0.0
      * @created 18-05-2026
      * @modified 18-05-2026
-     * @description Convierte la peticion legacy accepted en un estado explicito de cookies
-     * @param request Peticion recibida
+     * @description Convierte la petición legacy accepted en un estado explícito de cookies
+     * @param request Petición recibida
      * @return Estado de consentimiento
      */
     private CookieConsentStatus resolveCookieConsentStatus(CookieRequest request) {
@@ -402,7 +402,7 @@ public class AuthController {
      * @version 1.0.0
      * @created 18-05-2026
      * @modified 18-05-2026
-     * @description Traduce el estado persistente al valor de cookie tecnica usado por el navegador
+     * @description Traduce el estado persistente al valor de cookie técnica usado por el navegador
      * @param status Estado persistente
      * @return Valor de cookie
      */
@@ -434,10 +434,10 @@ public class AuthController {
      * @since 1.0
      * @version 1.0.0
      * @created 07-05-2026
-     * @description Guarda token temporal y lanza el correo de recuperacion sin romper la respuesta si SMTP falla
-     * @param user Usuario que solicita recuperacion
-     * @param request Peticion HTTP original
-     * @return true si el correo salio
+     * @description Guarda token temporal y lanza el correo de recuperación sin romper la respuesta si SMTP falla
+     * @param user Usuario que solicita recuperación
+     * @param request Petición HTTP original
+     * @return true si el correo salió
      */
     private boolean preparePasswordReset(AppUser user, HttpServletRequest request) {
         String token = generateResetToken();
@@ -470,8 +470,8 @@ public class AuthController {
      * @since 1.0
      * @version 1.0.0
      * @created 07-05-2026
-     * @description Construye la URL que abre el formulario de nueva contrasena
-     * @param request Peticion HTTP
+     * @description Construye la URL que abre el formulario de nueva contraseña
+     * @param request Petición HTTP
      * @param token Token temporal
      * @return URL absoluta de restablecimiento
      */
@@ -487,7 +487,7 @@ public class AuthController {
      * @version 1.0.0
      * @created 07-05-2026
      * @description Lee una cabecera HTTP con fallback
-     * @param request Peticion HTTP
+     * @param request Petición HTTP
      * @param header Cabecera
      * @param fallback Valor alternativo
      * @return Valor elegido

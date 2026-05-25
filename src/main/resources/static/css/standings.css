@@ -50,7 +50,7 @@
     padding: 18px;
     border: 1px solid var(--rs-border);
     border-radius: 20px;
-    background: linear-gradient(180deg, rgba(17, 24, 39, .95), rgba(12, 18, 30, .95));
+    background: línear-gradient(180deg, rgba(17, 24, 39, .95), rgba(12, 18, 30, .95));
     box-shadow: var(--rs-shadow-md);
 }
 

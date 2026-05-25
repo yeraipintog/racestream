@@ -4,7 +4,7 @@
  * @version 1.1.6
  * @created 05-05-2026
  * @modified 13-05-2026
- * @description API privada de foro con publicaciones, respuestas en hilo, likes y moderacion basica
+ * @description API privada de foro con publicaciones, respuestas en hilo, likes y moderación básica
  */
 package com.yerai.racestream.controller;
 
@@ -75,7 +75,7 @@ public class ForumController {
      * @version 1.0.3
      * @created 05-05-2026
      * @modified 13-05-2026
-     * @description Publica un mensaje validando limites de titulo y contenido
+     * @description Publica un mensaje validando límites de título y contenido
      * @param request        Datos del post
      * @param authentication Sesión actual
      * @return Post guardado
@@ -135,7 +135,7 @@ public class ForumController {
      * @version 1.0.1
      * @created 05-05-2026
      * @modified 05-05-2026
-     * @description Alterna un me gusta por usuario y publicacion
+     * @description Alterna un me gusta por usuario y publicación
      * @param id             Identificador del post
      * @param authentication Sesión actual
      * @return Post actualizado
@@ -233,9 +233,9 @@ public class ForumController {
      * @since 1.0
      * @version 1.0.0
      * @created 08-05-2026
-     * @description Elimina una publicacion junto a respuestas y me gusta
+     * @description Elimina una publicación junto a respuestas y me gusta
      *              dependientes
-     * @param post Publicacion a borrar
+     * @param post Publicación a borrar
      */
     private void deletePostWithReplies(ForumPost post) {
         List<ForumPost> replies = forumPostRepository.findByParentPostOrderByCreatedAtAsc(post);
@@ -260,7 +260,7 @@ public class ForumController {
      * @since 1.0
      * @version 1.0.0
      * @created 11-05-2026
-     * @description Recorta texto del foro al limite persistible tras limpiar
+     * @description Recorta texto del foro al límite persistible tras limpiar
      *              espacios
      * @param value     Texto original
      * @param maxLength Longitud maxima
@@ -279,11 +279,11 @@ public class ForumController {
      * @since 1.0
      * @version 1.0.0
      * @created 11-05-2026
-     * @description Detecta si un campo supera el limite definido para avisar al
+     * @description Detecta si un campo supera el límite definido para avisar al
      *              usuario
      * @param value     Texto original
      * @param maxLength Longitud maxima
-     * @return Resultado de validacion
+     * @return Resultado de validación
      */
     private boolean exceeds(String value, int maxLength) {
         return value != null && value.trim().length() > maxLength;

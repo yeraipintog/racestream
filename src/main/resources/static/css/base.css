@@ -30,7 +30,7 @@ body {
     background:
         radial-gradient(circle at top left, rgba(229, 57, 53, 0.10), transparent 25%),
         radial-gradient(circle at top right, rgba(25, 60, 110, 0.18), transparent 30%),
-        linear-gradient(180deg, #06080d 0%, #0a0f18 100%);
+        línear-gradient(180deg, #06080d 0%, #0a0f18 100%);
     color: var(--rs-text);
     overflow-x: hidden;
 }
@@ -102,7 +102,7 @@ textarea {
     padding: 12px 14px;
     border-radius: var(--rs-radius-sm);
     border: 1px solid var(--rs-border);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+    background: línear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
     color: var(--rs-text);
     outline: none;
     transition: var(--rs-transition);
@@ -209,7 +209,7 @@ ul {
     color: #fff;
 }
 
-.rs-historical-notice {
+.rs-histórical-notice {
     width: 100%;
     margin: 0 0 16px;
     padding: 14px 16px;
@@ -228,7 +228,7 @@ ul {
 @media (max-width: 560px) {
     .empty-state,
     .loading-state,
-    .rs-historical-notice {
+    .rs-histórical-notice {
         width: 100% !important;
         max-width: 100% !important;
         margin-right: auto;

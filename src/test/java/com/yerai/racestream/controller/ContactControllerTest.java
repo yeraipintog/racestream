@@ -4,7 +4,7 @@
  * @version 1.0.0
  * @created 13-05-2026
  * @modified 13-05-2026
- * @description Tests de validacion del formulario privado de contacto
+ * @description Tests de validación del formulario privado de contacto
  */
 package com.yerai.racestream.controller;
 

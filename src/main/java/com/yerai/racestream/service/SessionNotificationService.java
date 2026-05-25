@@ -188,11 +188,11 @@ public class SessionNotificationService {
      * @since 1.0
      * @version 1.0.0
      * @created 22-05-2026
-     * @description Reintenta el correo si el aviso web ya existia pero el envio SMTP fallo
+     * @description Reintenta el correo si el aviso web ya existía pero el envío SMTP falló
      * @param user Usuario destinatario
-     * @param title Titulo del aviso
+     * @param title Título del aviso
      * @param message Mensaje del aviso
-     * @param log Marca existente de notificacion
+     * @param log Marca existente de notificación
      */
     private void retryMissingEmail(AppUser user, String title, String message, SessionNotificationLog log) {
         if (!user.isEmailNotificationsEnabled() || log.isMailSent()) {
