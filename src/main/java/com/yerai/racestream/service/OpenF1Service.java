@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.0
+ * @version 1.3.0
  * @created 17-04-2026
- * @modified 23-05-2026
+ * @modified 24-05-2026
  * @description Servicio para obtener datos de OpenF1 con autenticación segura,
  *              rate limit, caché por endpoint y tolerancia a respuestas parciales
  * @see https://openf1.org
@@ -357,6 +357,20 @@ public class OpenF1Service {
      */
     public ArrayNode getLatestLocationByDriver(String sessionKey) {
         return latestByDriver(getLocation(sessionKey, null));
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 24-05-2026
+     * @modified 24-05-2026
+     * @description Devuelve un token vigente para el cliente MQTT backend sin
+     *              exponer usuario, contraseña ni token al navegador
+     * @return Token OAuth2 vigente o cadena vacía
+     */
+    public String resolveStreamingAccessToken() {
+        return resolveAccessToken();
     }
 
     /**

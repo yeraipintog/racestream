@@ -1,7 +1,7 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.4.0
+ * @version 1.5.0
  * @created 03-05-2026
  * @modified 23-05-2026
  * @description Estilos responsive de Fórmula 1 En Vivo por bloques, mapa
@@ -137,6 +137,12 @@
         var(--rs-shadow-md);
 }
 
+.rs-live-card--feed {
+    min-height: clamp(360px, 42vw, 500px);
+    display: flex;
+    flex-direction: column;
+}
+
 .rs-live-card__head {
     display: flex;
     align-items: center;
@@ -217,6 +223,15 @@
     gap: 8px;
 }
 
+.rs-live-feed-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: clamp(290px, 34vw, 420px);
+    padding-right: 6px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
 .rs-live-item {
     padding: 10px 12px;
     border-radius: 12px;
@@ -263,7 +278,7 @@
 .rs-live-metrics,
 .rs-live-session-summary__row {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 8px;
 }
 
@@ -366,7 +381,6 @@
 .rs-live-tyre {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
     color: #fff;
     font-size: 12px;
     font-weight: 900;
@@ -385,7 +399,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: #0f172a;
+    color: #fff;
     font-size: 10px;
     font-weight: 900;
 }
@@ -625,21 +639,6 @@
     font-size: 13px;
 }
 
-.rs-live-telemetry-sectors {
-    grid-column: 1 / 3;
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.rs-live-telemetry-chart {
-    grid-column: 3 / -1;
-    width: 100%;
-    min-height: 94px;
-    border-radius: 8px;
-    background: rgba(8, 11, 18, .72);
-}
-
 .rs-live-weather-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -833,10 +832,6 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .rs-live-telemetry-chart {
-        grid-column: 1 / -1;
-    }
-
     .rs-live-map-layout__positions {
         padding-left: 0;
         padding-top: 14px;
@@ -914,11 +909,6 @@
     .rs-live-telemetry-grid,
     .rs-live-weather-grid {
         grid-template-columns: 1fr;
-    }
-
-    .rs-live-telemetry-sectors,
-    .rs-live-telemetry-chart {
-        grid-column: 1;
     }
 
     .rs-live-position-pill {

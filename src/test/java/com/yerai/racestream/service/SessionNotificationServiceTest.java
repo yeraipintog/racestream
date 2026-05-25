@@ -125,7 +125,7 @@ class SessionNotificationServiceTest {
                 .contains("Accede al panel 'En Vivo' para más información.");
         assertThat(saved.get(1).getTitle()).isEqualTo("Resumen de Carrera en Montréal, Canada");
         assertThat(saved.get(1).getMessage())
-                .contains("Resultados: 1. Max Verstappen, 2. Lando Norris, 3. Charles Leclerc");
+                .contains("1. Max Verstappen, 2. Lando Norris, 3. Charles Leclerc");
     }
 
     /**

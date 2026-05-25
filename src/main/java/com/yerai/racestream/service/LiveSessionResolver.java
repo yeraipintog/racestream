@@ -1,7 +1,7 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.1
+ * @version 1.2.2
  * @created 23-05-2026
  * @modified 24-05-2026
  * @description Resuelve la sesión real de En Vivo sin depender solo del horario
@@ -56,10 +56,22 @@ public class LiveSessionResolver {
 
         ObjectNode latestSession = firstObject(openF1Service.getSession("latest"));
         DataPresence latestPresence = detectUsefulLiveData("latest");
-        if (!latestSession.isEmpty() && latestPresence.useful()) {
+        if (!latestSession.isEmpty() && latestPresence.useful()
+                && !(latestPresence.finishedSignal() && !latestPresence.hasLiveSignal())) {
             LiveSessionResolution resolved = buildResolution(latestSession, "latest", latestPresence);
             lastResolved = resolved;
             return resolved;
+        }
+
+        if (!latestSession.isEmpty() && latestPresence.finishedSignal() && !latestPresence.hasLiveSignal()) {
+            ObjectNode nextSession = resolveNextSessionAfter(latestSession);
+            if (!nextSession.isEmpty()) {
+                String key = keyFrom(nextSession, "");
+                DataPresence presence = key.isBlank() ? DataPresence.empty() : detectUsefulLiveData(key);
+                LiveSessionResolution resolved = buildResolution(nextSession, key, presence);
+                lastResolved = resolved;
+                return resolved;
+            }
         }
 
         LiveSessionResolution continuity = keepPreviousIfStillUseful();
@@ -144,6 +156,27 @@ public class LiveSessionResolver {
                 .orElse(objectMapper.createObjectNode());
     }
 
+    private ObjectNode resolveNextSessionAfter(ObjectNode latestSession) {
+        String meetingKey = latestSession.path("meeting_key").asText("");
+        Instant latestStart = safeStart(latestSession);
+        Instant now = Instant.now();
+        JsonNode sessions = openF1Service.getSessionsByYear(LocalDate.now().getYear());
+        List<ObjectNode> rows = new ArrayList<>();
+        if (sessions != null && sessions.isArray()) {
+            sessions.forEach(item -> {
+                if (item != null && item.isObject() && !item.path("is_cancelled").asBoolean(false)) {
+                    rows.add((ObjectNode) item.deepCopy());
+                }
+            });
+        }
+        return rows.stream()
+                .filter(item -> meetingKey.isBlank() || meetingKey.equals(item.path("meeting_key").asText("")))
+                .filter(item -> safeStart(item).isAfter(latestStart))
+                .filter(item -> safeEnd(item).plus(FINISH_GRACE).isAfter(now))
+                .min(Comparator.comparing(this::safeStart))
+                .orElse(objectMapper.createObjectNode());
+    }
+
     private LiveSessionResolution buildResolution(ObjectNode session, String fallbackKey, DataPresence presence) {
         ObjectNode safeSession = session == null ? objectMapper.createObjectNode() : session.deepCopy();
         String key = keyFrom(safeSession, fallbackKey);
@@ -167,7 +200,7 @@ public class LiveSessionResolver {
             }
             return "Esperando datos";
         }
-        if (presence.finishedSignal()) {
+        if (presence.finishedSignal() && !presence.hasLiveSignal()) {
             return "Sesión finalizada";
         }
         if (hasDates && now.isBefore(start)) {
@@ -177,7 +210,7 @@ public class LiveSessionResolver {
             return presence.hasLiveSignal() ? "En directo" : "Esperando datos";
         }
         if (hasDates && now.isAfter(end) && !now.isAfter(end.plus(FINISH_GRACE))) {
-            return presence.hasLiveSignal() ? "Sesión retrasada" : "Sesión finalizada";
+            return presence.hasLiveSignal() ? "Sesión retrasada" : "Esperando datos";
         }
         if (hasDates && now.isAfter(end.plus(FINISH_GRACE))) {
             return presence.hasLiveSignal() ? "Sesión retrasada" : "Sesión finalizada";
@@ -205,7 +238,7 @@ public class LiveSessionResolver {
                 hasItems(openF1Service.getWeather(sessionKey)),
                 hasSessionResult,
                 freshTelemetry,
-                hasFinishSignal(raceControl) || hasSessionResult);
+                hasFinishSignal(raceControl));
     }
 
     private boolean hasItems(JsonNode node) {

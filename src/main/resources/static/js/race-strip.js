@@ -1,7 +1,7 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.6.1
+ * @version 1.6.2
  * @created 04-05-2026
  * @modified 22-05-2026
  * @description Carga la franja comun de proximo GP con fechas, ubicacion, pais, cache inmediata y contador sincronizado
@@ -37,6 +37,7 @@ class RaceStreamRaceStrip {
     constructor() {
         this.year = new Date().getFullYear();
         this.meetingApi = `/api/f1/schedule/current-or-next-meeting?year=${this.year}`;
+        this.liveStatusApi = '/api/f1/live/status';
         this.sessionsApi = (meetingKey) => `/api/f1/schedule/meetings/${meetingKey}/sessions`;
         this.title = document.getElementById('raceStripTitle');
         this.meta = document.getElementById('raceStripMeta');
@@ -44,6 +45,7 @@ class RaceStreamRaceStrip {
         this.clocks = document.getElementById('raceStripClocks');
         this.flag = document.getElementById('raceStripFlag');
         this.meeting = null;
+        this.liveStatus = null;
         this.sessions = [];
         this.clockTimer = null;
         this.init();
@@ -78,7 +80,23 @@ class RaceStreamRaceStrip {
     }
 
     async refresh() {
-        const meeting = await this.fetchJson(this.meetingApi, null, { attempts: 2, allowStaleOnError: false });
+        const [meeting, liveStatus] = await Promise.all([
+            this.fetchJson(this.meetingApi, null, { attempts: 2, allowStaleOnError: false }),
+            this.fetchJson(this.liveStatusApi, null, { attempts: 1, allowStaleOnError: true })
+        ]);
+        this.liveStatus = this.isActiveLiveStatus(liveStatus) ? liveStatus : null;
+        if (this.liveStatus) {
+            this.meeting = this.meetingFromLiveStatus(this.liveStatus, meeting);
+            this.sessions = this.meeting?.meeting_key
+                ? await this.fetchJson(this.sessionsApi(this.meeting.meeting_key), [], { attempts: 2, retryEmpty: false })
+                : [this.liveStatus.session];
+            if (!Array.isArray(this.sessions)) {
+                this.sessions = [this.liveStatus.session].filter(Boolean);
+            }
+            this.writeCache();
+            this.render();
+            return;
+        }
         if (!this.isTrustedMeeting(meeting, false)) {
             if (!this.meeting) this.renderNeutral('Calendario no disponible', 'Sin datos confirmados');
             return;
@@ -136,6 +154,31 @@ class RaceStreamRaceStrip {
         this.renderClocks();
     }
 
+    isActiveLiveStatus(status) {
+        const value = `${status?.status || ''}`.toLowerCase();
+        return Boolean(status?.session?.session_key)
+            && (value.includes('directo') || value.includes('retrasada') || value.includes('esperando datos'));
+    }
+
+    meetingFromLiveStatus(status, scheduledMeeting) {
+        const session = status?.session || {};
+        if (this.isTrustedMeeting(scheduledMeeting, false)
+                && `${scheduledMeeting.meeting_key || ''}` === `${session.meeting_key || ''}`) {
+            return scheduledMeeting;
+        }
+        return {
+            meeting_key: session.meeting_key,
+            meeting_name: session.meeting_name,
+            meeting_official_name: session.meeting_official_name,
+            country_name: session.country_name,
+            country_flag: session.country_flag,
+            location: session.location,
+            date_start: session.date_start,
+            date_end: session.date_end,
+            gmt_offset: session.gmt_offset
+        };
+    }
+
     renderClocks() {
         if (!this.meeting || !this.clocks) return;
         if (!this.clocks.querySelector('.rs-race-strip__clock-card')) {
@@ -159,6 +202,10 @@ class RaceStreamRaceStrip {
 
     renderAction() {
         if (!this.meeting || !this.action) return;
+        if (this.liveStatus?.session?.session_key) {
+            if (!this.action.querySelector('a')) this.action.innerHTML = '<a class="rs-button rs-button--primary" href="/live.html">En Vivo</a>';
+            return;
+        }
         const session = [...this.sessions]
             .filter((item) => !item?.is_cancelled)
             .sort((left, right) => new Date(left.date_start).getTime() - new Date(right.date_start).getTime())

@@ -1,7 +1,7 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.6.4
+ * @version 1.6.5
  * @created 30-04-2026
  * @modified 23-05-2026
  * @description Pinta navbar, footer, estructura comun, cookies, logout, aviso admin, race strip y centro persistente de notificaciones
@@ -17,7 +17,9 @@ class RaceStreamSharedLayout {
         this.notificationList = document.getElementById('notificationList');
         this.notificationBadge = document.getElementById('notificationBadge');
         this.notificationStoreBaseKey = 'rs-active-notifications';
+        this.notificationHiddenBaseKey = 'rs-hidden-notification-toasts';
         this.notificationStoreKey = `${this.notificationStoreBaseKey}:guest`;
+        this.notificationHiddenKey = `${this.notificationHiddenBaseKey}:guest`;
         this.sessionNotifiedKey = 'rs-session-notified:guest';
         this.notificationsAuthenticated = false;
         this.path = window.location.pathname === '/' ? '/index.html' : window.location.pathname;
@@ -479,7 +481,7 @@ class RaceStreamSharedLayout {
             notified[key] = true;
             this.upsertNotification({
                 id: `local:${key}`,
-                title: 'Sesión próxima',
+                title: 'Próxima sesión',
                 message,
                 type: 'SESSION_REMINDER',
                 createdAt: new Date().toISOString()
@@ -562,6 +564,7 @@ class RaceStreamSharedLayout {
         }
         const rows = this.readStoredNotifications();
         const index = rows.findIndex((item) => item.id === notification.id);
+        const isNew = index < 0;
         if (index >= 0) {
             rows[index] = { ...rows[index], ...notification };
         } else {
@@ -569,21 +572,22 @@ class RaceStreamSharedLayout {
         }
         this.writeStoredNotifications(rows);
         this.renderNotificationCenter();
-        this.showPersistentNotification(notification);
+        if (isNew) {
+            this.showPersistentNotification(notification);
+        }
     }
 
     restoreActiveNotifications() {
-        if (!this.notificationsAuthenticated) {
-            return;
-        }
-        this.readStoredNotifications().forEach((notification) => this.showPersistentNotification(notification));
+        this.clearToastStack();
     }
 
     showPersistentNotification(notification) {
         if (!this.notificationsAuthenticated) {
             return;
         }
-        if (!notification?.id || document.querySelector(`[data-rs-toast-id="${this.cssEscape(notification.id)}"]`)) return;
+        if (!notification?.id
+                || this.isToastHidden(notification.id)
+                || document.querySelector(`[data-rs-toast-id="${this.cssEscape(notification.id)}"]`)) return;
         const toast = document.createElement('div');
         toast.className = 'rs-web-toast';
         toast.dataset.rsToastId = notification.id;
@@ -637,6 +641,7 @@ class RaceStreamSharedLayout {
         const rows = this.readStoredNotifications();
         const notification = rows.find((item) => item.id === id);
         this.writeStoredNotifications(rows.filter((item) => item.id !== id));
+        this.unhideToast(id);
         document.querySelector(`[data-rs-toast-id="${this.cssEscape(id)}"]`)?.remove();
         this.renderNotificationCenter();
         if (notification?.serverId) {
@@ -654,18 +659,43 @@ class RaceStreamSharedLayout {
      * @param {string} id Identificador local de notificación
      */
     closeToastOnly(id) {
+        this.hideToast(id);
         document.querySelector(`[data-rs-toast-id="${this.cssEscape(id)}"]`)?.remove();
     }
 
     setNotificationContext(user) {
         if (!user?.authenticated) {
             this.notificationStoreKey = `${this.notificationStoreBaseKey}:guest`;
+            this.notificationHiddenKey = `${this.notificationHiddenBaseKey}:guest`;
             this.sessionNotifiedKey = 'rs-session-notified:guest';
             return;
         }
         const identity = this.storageIdentity(user);
         this.notificationStoreKey = `${this.notificationStoreBaseKey}:${identity}`;
+        this.notificationHiddenKey = `${this.notificationHiddenBaseKey}:${identity}`;
         this.sessionNotifiedKey = `rs-session-notified:${identity}`;
+    }
+
+    hiddenToasts() {
+        const rows = this.readJson(this.notificationHiddenKey, []);
+        return Array.isArray(rows) ? rows.filter(Boolean) : [];
+    }
+
+    isToastHidden(id) {
+        return this.hiddenToasts().includes(id);
+    }
+
+    hideToast(id) {
+        if (!id || !this.notificationsAuthenticated) return;
+        const rows = new Set(this.hiddenToasts());
+        rows.add(id);
+        localStorage.setItem(this.notificationHiddenKey, JSON.stringify([...rows].slice(-80)));
+    }
+
+    unhideToast(id) {
+        if (!id || !this.notificationsAuthenticated) return;
+        const rows = this.hiddenToasts().filter((item) => item !== id);
+        localStorage.setItem(this.notificationHiddenKey, JSON.stringify(rows));
     }
 
     storageIdentity(user) {

@@ -1,7 +1,7 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.5.0
+ * @version 1.6.0
  * @created 03-05-2026
  * @modified 24-05-2026
  * @description Fórmula 1 En Vivo con mapa Canvas, timing limpio, telemetría
@@ -21,9 +21,11 @@ class RaceStreamLivePage {
         this.common = new window.RaceStreamLiveCommon();
         this.driverMap = new Map();
         this.leaderboardMap = new Map();
-        this.telemetryBuffers = new Map();
         this.gapMode = 'leader';
         this.selectedDriver = null;
+        this.stream = null;
+        this.streamSessionKey = '';
+        this.liveRefreshTimers = new Map();
         this.map = {
             points: new Map(),
             targets: new Map(),
@@ -51,7 +53,7 @@ class RaceStreamLivePage {
     init() {
         this.common.schedule('status', () => this.refreshStatus(), 5000, 5);
         if (this.page === 'home') {
-            this.common.schedule('map', () => this.refreshMap(), 900, 8);
+            this.common.schedule('map', () => this.refreshMap(), 800, 8);
         } else if (this.page === 'timing') {
             this.common.schedule('timing', () => this.refreshTiming(), 4500, 5);
         } else if (this.page === 'race') {
@@ -59,6 +61,7 @@ class RaceStreamLivePage {
         }
         window.addEventListener('beforeunload', () => {
             window.cancelAnimationFrame(this.map.raf);
+            this.stream?.close();
             this.common.stop();
         });
     }
@@ -79,9 +82,52 @@ class RaceStreamLivePage {
         if (!data || typeof data !== 'object') return;
         this.statusData = data;
         this.common.renderStatusCard(data);
+        this.startLiveStream(data.sessionKey);
         if (!this.blockData) {
             this.common.setGeneratedAt(data.generatedAt);
         }
+    }
+
+    startLiveStream(sessionKey) {
+        const key = `${sessionKey || ''}`.trim();
+        if (!key || !window.EventSource || this.streamSessionKey === key) return;
+        this.stream?.close();
+        this.streamSessionKey = key;
+        this.stream = new EventSource(`/api/f1/live/stream?sessionKey=${encodeURIComponent(key)}`);
+        this.stream.addEventListener('live-event', (event) => this.handleLiveEvent(event));
+        this.stream.addEventListener('stream-status', () => {});
+        this.stream.onerror = () => {};
+    }
+
+    handleLiveEvent(event) {
+        let payload = null;
+        try {
+            payload = JSON.parse(event.data || '{}');
+        } catch {
+            return;
+        }
+        const field = payload?.field;
+        if (!field) return;
+        if (['sessions', 'laps'].includes(field)) {
+            this.queueLiveRefresh('status-live', () => this.refreshStatus(), 300);
+        }
+        if (this.page === 'home' && ['drivers', 'position', 'intervals', 'laps', 'stints', 'carData', 'location'].includes(field)) {
+            this.queueLiveRefresh('map-live', () => this.refreshMap(), 320);
+        }
+        if (this.page === 'timing' && ['drivers', 'position', 'intervals', 'laps', 'stints', 'sessionResult'].includes(field)) {
+            this.queueLiveRefresh('timing-live', () => this.refreshTiming(), 220);
+        }
+        if (this.page === 'race' && ['raceControl', 'teamRadio', 'overtakes', 'pits', 'weather'].includes(field)) {
+            this.queueLiveRefresh('race-live', () => this.refreshRace(), 240);
+        }
+    }
+
+    queueLiveRefresh(name, callback, delay) {
+        window.clearTimeout(this.liveRefreshTimers.get(name));
+        this.liveRefreshTimers.set(name, window.setTimeout(async () => {
+            this.liveRefreshTimers.delete(name);
+            await callback();
+        }, delay));
     }
 
     async refreshMap() {
@@ -92,7 +138,6 @@ class RaceStreamLivePage {
         }
         this.blockData = data;
         this.indexDrivers(data);
-        this.pushTelemetry(data.carDataLatest);
         this.common.setGeneratedAt(data.generatedAt);
         this.common.renderStaleFlags(data);
         this.renderPositionStrip(data);
@@ -222,7 +267,7 @@ class RaceStreamLivePage {
     renderRace(data) {
         if (this.weatherPanel) this.renderWeather(data);
         if (this.raceControlPanel) {
-            const items = [...this.common.safeArray(data.raceControl)].reverse();
+            const items = this.common.safeArray(data.raceControl);
             this.raceControlPanel.innerHTML = items.length
                 ? this.common.renderRows(items, (item, index) => {
                     const label = item.category || item.flag || item.scope || 'Aviso';
@@ -286,15 +331,15 @@ class RaceStreamLivePage {
         const locations = this.normalizedLocations(data.locationLatest);
         const trace = this.normalizedLocations(data.locationTrace);
         const carData = this.common.safeArray(data.carDataLatest);
-        if (locations.length < 2) {
+        if (locations.length < 2 || trace.length < 12) {
             panel.innerHTML = carData.length
                 ? `<div class="rs-live-map rs-live-map--empty">${this.telemetryCards(carData)}</div><p class="rs-live-map__note">Hay telemetría del coche, pero OpenF1 todavía no ha publicado ubicación suficiente para dibujar el mapa.</p>`
                 : this.common.empty(this.message(data, 'locationLatest', 'Esperando telemetría del mapa.'));
             return;
         }
 
-        this.map.trace = trace.length >= 12 ? trace : [];
-        this.map.bounds = this.locationBounds(this.map.trace.length ? this.map.trace : locations);
+        this.map.trace = trace;
+        this.map.bounds = this.locationBounds(this.map.trace);
         if (!this.map.bounds) {
             panel.innerHTML = this.common.empty('Esperando telemetría del mapa.');
             return;
@@ -397,10 +442,6 @@ class RaceStreamLivePage {
             if (!groups.has(key)) groups.set(key, []);
             groups.get(key).push(this.projectLocation(item, this.map.bounds));
         });
-        if (!groups.size) {
-            this.drawFallbackTrack(context, width, height);
-            return;
-        }
         groups.forEach((items) => {
             if (items.length < 4) return;
             items.sort((left, right) => new Date(left.date).getTime() - new Date(right.date).getTime());
@@ -413,20 +454,6 @@ class RaceStreamLivePage {
             });
             context.stroke();
         });
-    }
-
-    drawFallbackTrack(context, width, height) {
-        const points = [
-            [.12, .58], [.20, .40], [.36, .50], [.50, .62], [.67, .52],
-            [.58, .34], [.42, .20], [.67, .17], [.88, .23], [.78, .45],
-            [.55, .39], [.28, .43], [.12, .58]
-        ];
-        context.beginPath();
-        points.forEach(([x, y], index) => {
-            if (index === 0) context.moveTo(x * width, y * height);
-            else context.lineTo(x * width, y * height);
-        });
-        context.stroke();
     }
 
     selectDriverFromCanvas(event, data) {
@@ -464,19 +491,12 @@ class RaceStreamLivePage {
                     <div class="rs-live-telemetry-meta">
                         <span>Neumático</span>${this.renderTyre(selected.tyre)}
                         <span>Vuelta</span><strong>${this.escape(selected.currentLap || '—')}</strong>
-                        <span>Gap</span><strong>${this.escape(this.formatGap(selected.gap, selected.position))}</strong>
+                        <span>Líder</span><strong>${this.escape(this.formatGap(selected.gap, selected.position))}</strong>
                         <span>Intervalo</span><strong>${this.escape(this.formatGap(selected.interval, selected.position))}</strong>
                     </div>
-                    <div class="rs-live-telemetry-sectors">
-                        ${this.sector(selected.s1, selected.s1Status)}
-                        ${this.sector(selected.s2, selected.s2Status)}
-                        ${this.sector(selected.s3, selected.s3Status)}
-                    </div>
-                    <canvas class="rs-live-telemetry-chart" aria-label="Gráfico de acelerador, freno y DRS"></canvas>
                 </div>
             </article>
         `;
-        this.drawTelemetryChart(this.telemetryPanel.querySelector('canvas'), driverNumber);
     }
 
     gauge(label, value, max, unit) {
@@ -488,63 +508,6 @@ class RaceStreamLivePage {
                 <small>${this.escape(unit)}</small>
             </div>
         `;
-    }
-
-    drawTelemetryChart(canvas, driverNumber) {
-        if (!canvas) return;
-        const buffer = this.telemetryBuffers.get(Number(driverNumber)) || [];
-        const rect = canvas.getBoundingClientRect();
-        const ratio = window.devicePixelRatio || 1;
-        canvas.width = Math.max(1, Math.round(rect.width * ratio));
-        canvas.height = Math.max(1, Math.round(rect.height * ratio));
-        const context = canvas.getContext('2d');
-        if (!context) return;
-        context.scale(ratio, ratio);
-        const width = canvas.width / ratio;
-        const height = canvas.height / ratio;
-        context.clearRect(0, 0, width, height);
-        context.strokeStyle = 'rgba(255,255,255,.12)';
-        context.lineWidth = 1;
-        for (let i = 1; i < 4; i++) {
-            context.beginPath();
-            context.moveTo(0, (height / 4) * i);
-            context.lineTo(width, (height / 4) * i);
-            context.stroke();
-        }
-        if (buffer.length < 2) return;
-        context.beginPath();
-        buffer.forEach((item, index) => {
-            const x = (index / Math.max(1, buffer.length - 1)) * width;
-            const y = height - (Number(item.throttle || 0) / 100) * height;
-            if (index === 0) context.moveTo(x, y);
-            else context.lineTo(x, y);
-        });
-        context.strokeStyle = '#22c55e';
-        context.lineWidth = 2;
-        context.stroke();
-        buffer.forEach((item, index) => {
-            const x = (index / Math.max(1, buffer.length - 1)) * width;
-            if (Number(item.brake || 0) > 0) {
-                context.fillStyle = 'rgba(239, 68, 68, .55)';
-                context.fillRect(x, height - 14, 4, 14);
-            }
-            if (this.drsState(item.drs).active) {
-                context.fillStyle = 'rgba(56, 189, 248, .55)';
-                context.fillRect(x, 0, 4, 14);
-            }
-        });
-    }
-
-    pushTelemetry(items) {
-        this.common.safeArray(items).forEach((item) => {
-            const number = Number(item.driver_number);
-            if (!number) return;
-            const buffer = this.telemetryBuffers.get(number) || [];
-            if (!buffer.length || buffer[buffer.length - 1].date !== item.date) {
-                buffer.push(item);
-            }
-            this.telemetryBuffers.set(number, buffer.slice(-40));
-        });
     }
 
     telemetryCards(items) {
@@ -635,7 +598,7 @@ class RaceStreamLivePage {
             wet: ['W', 'Lluvia'],
             unknown: ['—', '—']
         }[key];
-        return `<span class="rs-live-tyre rs-live-tyre--${key}"><span class="rs-live-tyre__icon" aria-hidden="true">${this.escape(config[0])}</span>${this.escape(config[1])}</span>`;
+        return `<span class="rs-live-tyre rs-live-tyre--${key}" title="${this.escape(config[1])}" aria-label="${this.escape(config[1])}"><span class="rs-live-tyre__icon">${this.escape(config[0])}</span></span>`;
     }
 
     sector(value, status) {

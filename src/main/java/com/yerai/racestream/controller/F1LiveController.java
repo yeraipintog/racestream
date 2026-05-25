@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.3.0
+ * @version 1.4.0
  * @created 21-04-2026
- * @modified 23-05-2026
+ * @modified 24-05-2026
  * @description Controlador REST para exponer datos del Live Center de Formula 1
  *              desde OpenF1
  */
@@ -11,11 +11,14 @@ package com.yerai.racestream.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.yerai.racestream.service.F1LiveService;
+import com.yerai.racestream.service.OpenF1MqttStreamService;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/api/f1/live")
@@ -23,18 +26,37 @@ import org.springframework.web.bind.annotation.RestController;
 public class F1LiveController {
 
     private final F1LiveService f1LiveService;
+    private final OpenF1MqttStreamService openF1MqttStreamService;
 
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.1.0
+     * @version 1.2.0
      * @created 21-04-2026
-     * @modified 27-04-2026
-     * @description Constructor con inyeccion del servicio live
+     * @modified 24-05-2026
+     * @description Constructor con inyección del servicio live y streaming MQTT
      * @param f1LiveService Servicio de datos en vivo
+     * @param openF1MqttStreamService Servicio de streaming OpenF1
      */
-    public F1LiveController(F1LiveService f1LiveService) {
+    public F1LiveController(F1LiveService f1LiveService, OpenF1MqttStreamService openF1MqttStreamService) {
         this.f1LiveService = f1LiveService;
+        this.openF1MqttStreamService = openF1MqttStreamService;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 24-05-2026
+     * @modified 24-05-2026
+     * @description Abre un canal SSE alimentado por MQTT OpenF1 para recibir
+     *              eventos en directo sin hacer polling constante
+     * @param sessionKey Clave de sesión OpenF1 opcional
+     * @return Stream SSE live
+     */
+    @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamLive(@RequestParam(required = false) String sessionKey) {
+        return openF1MqttStreamService.subscribe(sessionKey);
     }
 
     /**

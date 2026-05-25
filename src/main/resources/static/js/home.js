@@ -1,7 +1,7 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.5.0
+ * @version 1.5.1
  * @created 30-04-2026
  * @modified 19-05-2026
  * @description Lógica de Inicio con contadores estables, última carrera,
@@ -26,9 +26,11 @@ class RaceStreamHomePage {
         this.driverStandingsApi = `/api/f1/standings/drivers?year=${this.year}`;
         this.constructorStandingsApi = `/api/f1/standings/constructors?year=${this.year}`;
         this.raceResultsApi = `/api/f1/standings/race-results?year=${this.year}`;
+        this.liveStatusApi = '/api/f1/live/status';
         this.newsApi = '/api/news/f1?limit=10';
         this.nextMeeting = null;
         this.nextSession = null;
+        this.liveStatus = null;
         this.refreshingSession = false;
         this.glossary = {
             SC: ['Safety Car', 'Coche de seguridad que reduce el ritmo y agrupa a los pilotos cuando hay peligro en pista.'],
@@ -120,9 +122,15 @@ class RaceStreamHomePage {
      * @description Carga calendario y calcula próximo GP/sesión
      */
     async loadHomeData() {
-        const meetings = await this.fetchJson(this.meetingsApi, []);
+        const [meetings, liveStatus] = await Promise.all([
+            this.fetchJson(this.meetingsApi, []),
+            this.fetchJson(this.liveStatusApi, null)
+        ]);
         const safeMeetings = Array.isArray(meetings) ? meetings : [];
-        this.nextMeeting = this.getCurrentOrNextMeeting(safeMeetings);
+        this.liveStatus = this.isActiveLiveStatus(liveStatus) ? liveStatus : null;
+        this.nextMeeting = this.liveStatus
+            ? this.meetingFromLiveStatus(this.liveStatus, safeMeetings)
+            : this.getCurrentOrNextMeeting(safeMeetings);
         await this.loadNextSession();
         this.renderHeroSession();
     }
@@ -141,6 +149,32 @@ class RaceStreamHomePage {
         return meetings.find((meeting) => new Date(meeting.date_end).getTime() >= now) || meetings[meetings.length - 1] || null;
     }
 
+    isActiveLiveStatus(status) {
+        const value = `${status?.status || ''}`.toLowerCase();
+        return Boolean(status?.session?.session_key)
+            && (value.includes('directo') || value.includes('retrasada') || value.includes('esperando datos'));
+    }
+
+    meetingFromLiveStatus(status, meetings) {
+        const session = status?.session || {};
+        const meetingKey = `${session.meeting_key || ''}`;
+        const scheduled = meetings.find((meeting) => `${meeting.meeting_key || ''}` === meetingKey);
+        if (scheduled) {
+            return scheduled;
+        }
+        return {
+            meeting_key: session.meeting_key,
+            meeting_name: session.meeting_name,
+            meeting_official_name: session.meeting_official_name,
+            country_name: session.country_name,
+            country_flag: session.country_flag,
+            location: session.location,
+            date_start: session.date_start,
+            date_end: session.date_end,
+            gmt_offset: session.gmt_offset
+        };
+    }
+
     /**
      * @author Yerai Pinto
      * @since 1.0
@@ -149,6 +183,10 @@ class RaceStreamHomePage {
      * @description Carga sesiones del próximo GP para elegir la siguiente
      */
     async loadNextSession() {
+        if (this.liveStatus?.session?.session_key) {
+            this.nextSession = this.liveStatus.session;
+            return;
+        }
         if (!this.nextMeeting?.meeting_key) {
             return;
         }
@@ -178,7 +216,11 @@ class RaceStreamHomePage {
         }
 
         const header = document.querySelector('.rs-home-next-card .rs-home-card__header span');
-        if (header) header.textContent = `Próxima sesión · ${this.formatSessionDate(session?.date_start || meeting.date_start)}`;
+        if (header) {
+            header.textContent = this.liveStatus
+                ? `En Vivo · ${this.liveStatus.status || 'Sesión actual'}`
+                : `Próxima sesión · ${this.formatSessionDate(session?.date_start || meeting.date_start)}`;
+        }
         this.heroSessionTitle.textContent = session
             ? `${this.translateSessionName(session.session_name)}`
             : 'Sesión por confirmar';
@@ -199,7 +241,13 @@ class RaceStreamHomePage {
      */
     async loadLastSession() {
         if (!this.lastSessionResults) return;
-        const meetings = await this.fetchJson(this.meetingsApi, []);
+        const [meetings, liveStatus] = await Promise.all([
+            this.fetchJson(this.meetingsApi, []),
+            this.fetchJson(this.liveStatusApi, null)
+        ]);
+        const activeSessionKey = this.isActiveLiveStatus(liveStatus)
+            ? `${liveStatus.session.session_key || ''}`
+            : '';
         const completedMeetings = (Array.isArray(meetings) ? meetings : [])
             .filter((meeting) => Number(meeting.meeting_key) > 0 && new Date(meeting.date_end).getTime() < Date.now())
             .sort((left, right) => new Date(right.date_end).getTime() - new Date(left.date_end).getTime())
@@ -209,6 +257,7 @@ class RaceStreamHomePage {
             const sessions = await this.fetchJson(this.sessionsByMeetingApi(meeting.meeting_key), []);
             const completedSessions = (Array.isArray(sessions) ? sessions : [])
                 .filter((session) => session.session_key && new Date(session.date_end).getTime() < Date.now())
+                .filter((session) => `${session.session_key}` !== activeSessionKey)
                 .filter((session) => this.isRaceSession(session.session_name))
                 .sort((left, right) => new Date(right.date_end).getTime() - new Date(left.date_end).getTime());
             for (const session of completedSessions) {
@@ -260,7 +309,7 @@ class RaceStreamHomePage {
                 this.getDriverName(row.Driver),
                 this.getDriverMeta(row),
                 `${row.points || 0} pts`,
-                this.getDriverImage(row.Driver),
+                this.getDriverImage(row.Driver, this.getDriverConstructor(row)),
                 'driver'
             ]));
         } else {
@@ -293,17 +342,20 @@ class RaceStreamHomePage {
     async loadSeasonStats() {
         if (!this.seasonStatsPanel) return;
         this.seasonStatsPanel.innerHTML = '<div class="loading-state">Calculando estadísticas...</div>';
-        const [drivers, races] = await Promise.all([
+        const [drivers, constructors, races] = await Promise.all([
             this.fetchJson(this.driverStandingsApi, []),
+            this.fetchJson(this.constructorStandingsApi, []),
             this.fetchJson(this.raceResultsApi, [])
         ]);
-        const topWins = this.topDriverByField(Array.isArray(drivers) ? drivers : [], 'wins', 'victorias');
+        const safeDrivers = Array.isArray(drivers) ? drivers : [];
+        const safeConstructors = Array.isArray(constructors) ? constructors : [];
+        const topWins = this.topDriverByField(safeDrivers, 'wins', 'victorias');
         const topFastestLaps = this.topFastestLaps(Array.isArray(races) ? races : []);
         const stats = [
             topWins,
-            this.pendingStat('Más victorias Sprint', 'OpenF1 lo publica por sesión Sprint; se mostrará cuando haya datos agregables.'),
+            this.driverChampionshipLeader(safeDrivers),
             topFastestLaps,
-            this.pendingStat('Más adelantamientos', 'OpenF1 devuelve adelantamientos por sesión, no una clasificación anual consolidada.')
+            this.constructorChampionshipLeader(safeConstructors)
         ];
         this.seasonStatsPanel.innerHTML = stats.map((item) => `
             <div class="rs-home-season-stat">
@@ -330,6 +382,34 @@ class RaceStreamHomePage {
             label: 'Más victorias',
             value: leader.name,
             meta: `${leader.value} ${leader.value === 1 ? 'victoria' : suffix}`
+        };
+    }
+
+    driverChampionshipLeader(rows) {
+        const leader = [...rows]
+            .filter((row) => row?.Driver)
+            .sort((left, right) => (Number(left.position) || 999) - (Number(right.position) || 999))[0];
+        if (!leader) {
+            return this.pendingStat('Líder del Mundial', 'Jolpica todavía no devuelve clasificación de pilotos.');
+        }
+        return {
+            label: 'Líder del Mundial',
+            value: this.getDriverName(leader.Driver),
+            meta: `${leader.points || 0} pts`
+        };
+    }
+
+    constructorChampionshipLeader(rows) {
+        const leader = [...rows]
+            .filter((row) => row?.Constructor)
+            .sort((left, right) => (Number(left.position) || 999) - (Number(right.position) || 999))[0];
+        if (!leader) {
+            return this.pendingStat('Mejor escudería', 'Jolpica todavía no devuelve clasificación de constructores.');
+        }
+        return {
+            label: 'Mejor escudería',
+            value: leader.Constructor?.name || 'Escudería',
+            meta: `${leader.points || 0} pts`
         };
     }
 
@@ -689,6 +769,10 @@ class RaceStreamHomePage {
         return `${team || row?.Driver?.nationality || 'Piloto'} · ${wins} ${wins === 1 ? 'victoria' : 'victorias'}`;
     }
 
+    getDriverConstructor(row) {
+        return Array.isArray(row?.Constructors) ? row.Constructors[0] : row?.Constructor;
+    }
+
     getConstructorLogo(value) {
         const key = `${value || ''}`.toLowerCase().replace(/\s+/g, '-');
         const teams = { mercedes: 'mercedes', ferrari: 'ferrari', mclaren: 'mclaren', red_bull: 'red-bull-racing', 'red-bull': 'red-bull-racing', 'red-bull-racing': 'red-bull-racing', williams: 'williams', alpine: 'alpine', haas: 'haas', 'aston-martin': 'aston-martin', rb: 'racing-bulls', 'racing-bulls': 'racing-bulls', sauber: 'kick-sauber', audi: 'audi', cadillac: 'cadillac' };
@@ -784,8 +868,15 @@ class RaceStreamHomePage {
      * @param {Object} driver Piloto de Jolpica
      * @returns {string} URL de imagen o fallback local
      */
-    getDriverImage(driver) {
-        const number = driver?.permanentNumber || driver?.permanent_number || driver?.number;
+    getDriverImage(driver, constructor = null) {
+        const assetImage = this.assets?.getDriverImage?.(driver, constructor, this.year, 64);
+        if (assetImage) {
+            return assetImage;
+        }
+        const number = this.assets?.getDriverNumber?.(driver)
+            || driver?.permanentNumber
+            || driver?.permanent_number
+            || driver?.number;
         return number ? `/api/f1/media/driver?number=${number}` : '/assets/img/LogoRS2.png';
     }
 

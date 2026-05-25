@@ -1,7 +1,7 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.4.0
+ * @version 1.4.1
  * @created 30-04-2026
  * @modified 19-05-2026
  * @description Estilos responsive de Inicio con offset de cabecera, última
@@ -97,7 +97,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 16px;
     margin-bottom: 16px;
 }
 
@@ -128,9 +128,10 @@
 }
 
 .rs-home-card__live-link {
-    min-height: 34px;
-    padding: 0 14px;
+    min-height: 28px;
+    padding: 0 4px;
     font-size: 12px;
+    line-height: 1;
 }
 
 .rs-home-next-card h2,

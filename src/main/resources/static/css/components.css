@@ -1932,7 +1932,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
 
 }
 
-@media (max-width: 640px) {
+@media (max-width: 639px) {
     .rs-race-strip .rs-container {
         padding-inline: 12px;
     }
@@ -2112,7 +2112,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
     }
 }
 
-@media (min-width: 641px) and (max-width: 820px) {
+@media (min-width: 640px) and (max-width: 820px) {
     .rs-race-strip .rs-container {
         padding-inline: 20px;
         margin-top: 5px;

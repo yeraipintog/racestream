@@ -1,7 +1,7 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.2
+ * @version 1.1.3
  * @created 23-05-2026
  * @modified 24-05-2026
  * @description Utilidades comunes para páginas de Fórmula 1 En Vivo con
@@ -72,6 +72,9 @@ class RaceStreamLiveCommon {
         const cached = data?.fromCache || data?.fromLastValid
             ? '<p class="rs-live-session-summary__notice">Mostrando el último dato válido mientras se confirma una actualización nueva.</p>'
             : '';
+        const metric = data?.sessionMetric?.label
+            ? `<div class="rs-live-metric"><span class="rs-live-metric__label">${this.escape(data.sessionMetric.label)}</span><strong>${this.escape(data.sessionMetric.value || '—')}</strong></div>`
+            : '';
         card.innerHTML = `
             <div class="rs-live-session-summary">
                 <div class="rs-live-session-summary__gp">
@@ -82,6 +85,7 @@ class RaceStreamLiveCommon {
                     <div class="rs-live-metric"><span class="rs-live-metric__label">Sesión</span><strong>${this.escape(sessionLabel)}</strong></div>
                     <div class="rs-live-metric"><span class="rs-live-metric__label">Inicio</span><strong>${this.formatDateTime(session.date_start)}</strong></div>
                     <div class="rs-live-metric"><span class="rs-live-metric__label">Fin teórico</span><strong>${this.formatDateTime(session.date_end)}</strong></div>
+                    ${metric}
                 </div>
                 ${cached}
             </div>

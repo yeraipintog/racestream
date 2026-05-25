@@ -1,11 +1,12 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.3.0
+ * @version 1.4.0
  * @created 21-04-2026
- * @modified 23-05-2026
+ * @modified 24-05-2026
  * @description Servicio del Live Center que construye bloques ligeros,
- *              cacheados y tolerantes a sesiones retrasadas de OpenF1
+ *              cacheados, fusionados con streaming y tolerantes a sesiones
+ *              retrasadas de OpenF1
  */
 package com.yerai.racestream.service;
 
@@ -31,24 +32,35 @@ public class F1LiveService {
     private static final String DASH = "—";
     private final OpenF1Service openF1Service;
     private final LiveSessionResolver liveSessionResolver;
+    private final F1ScheduleService f1ScheduleService;
+    private final LiveDataStreamState liveDataStreamState;
     private final ObjectMapper objectMapper;
     private final Map<String, BlockCacheEntry> blockCache = new ConcurrentHashMap<>();
 
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.2.0
+     * @version 1.3.0
      * @created 21-04-2026
-     * @modified 23-05-2026
+     * @modified 24-05-2026
      * @description Constructor con dependencias necesarias para consultar OpenF1,
      *              resolver la sesión live y construir respuestas JSON
      * @param openF1Service Servicio base de OpenF1
      * @param liveSessionResolver Resolvedor central de sesiones live
+     * @param f1ScheduleService Servicio de calendario enriquecido
+     * @param liveDataStreamState Estado MQTT recibido en backend
      * @param objectMapper Mapper para construir respuestas agregadas
      */
-    public F1LiveService(OpenF1Service openF1Service, LiveSessionResolver liveSessionResolver, ObjectMapper objectMapper) {
+    public F1LiveService(
+            OpenF1Service openF1Service,
+            LiveSessionResolver liveSessionResolver,
+            F1ScheduleService f1ScheduleService,
+            LiveDataStreamState liveDataStreamState,
+            ObjectMapper objectMapper) {
         this.openF1Service = openF1Service;
         this.liveSessionResolver = liveSessionResolver;
+        this.f1ScheduleService = f1ScheduleService;
+        this.liveDataStreamState = liveDataStreamState;
         this.objectMapper = objectMapper;
     }
 
@@ -153,16 +165,23 @@ public class F1LiveService {
                 return response;
             }
 
-            ArrayNode drivers = array(openF1Service.getDrivers(sessionKey));
-            ArrayNode position = latestByDriver(openF1Service.getPosition(sessionKey));
-            ArrayNode intervals = latestByDriver(openF1Service.getIntervals(sessionKey));
-            ArrayNode lapsRaw = array(openF1Service.getLaps(sessionKey));
+            ArrayNode drivers = mergeStream(sessionKey, "drivers", openF1Service.getDrivers(sessionKey),
+                    "driver_number");
+            ArrayNode position = latestByDriver(mergeStream(sessionKey, "position",
+                    openF1Service.getPosition(sessionKey), "driver_number"));
+            ArrayNode intervals = latestByDriver(mergeStream(sessionKey, "intervals",
+                    openF1Service.getIntervals(sessionKey), "driver_number"));
+            ArrayNode lapsRaw = mergeStream(sessionKey, "laps", openF1Service.getLaps(sessionKey),
+                    "driver_number", "lap_number");
             ArrayNode laps = latestCompletedLapByDriver(lapsRaw);
-            ArrayNode stints = latestByDriver(openF1Service.getStints(sessionKey));
-            ArrayNode carDataRaw = array(openF1Service.getCarData(sessionKey, null, 90));
-            ArrayNode locationRaw = array(openF1Service.getLocation(sessionKey, null, 240));
-            ArrayNode carDataLatest = latestByDriver(carDataRaw);
-            ArrayNode locationLatest = latestByDriver(locationRaw);
+            ArrayNode stints = latestStintByDriver(mergeStream(sessionKey, "stints",
+                    openF1Service.getStints(sessionKey), "driver_number", "stint_number", "lap_start"));
+            ArrayNode carDataRaw = mergeStream(sessionKey, "carData", openF1Service.getCarData(sessionKey, null, 150),
+                    "driver_number", "date");
+            ArrayNode locationRaw = mergeStream(sessionKey, "location",
+                    openF1Service.getLocation(sessionKey, null, 180), "driver_number", "date");
+            ArrayNode carDataLatest = filterFreshByDate(latestByDriver(carDataRaw), 150);
+            ArrayNode locationLatest = filterFreshByDate(latestByDriver(locationRaw), 150);
             ArrayNode leaderboard = buildLeaderboard(drivers, objectMapper.createArrayNode(), position, intervals,
                     lapsRaw, laps, stints, carDataLatest);
 
@@ -202,13 +221,22 @@ public class F1LiveService {
                 return response;
             }
 
-            ArrayNode drivers = array(openF1Service.getDrivers(sessionKey));
-            ArrayNode sessionResult = array(openF1Service.getSessionResults(sessionKey));
-            ArrayNode position = latestByDriver(openF1Service.getPosition(sessionKey));
-            ArrayNode intervals = latestByDriver(openF1Service.getIntervals(sessionKey));
-            ArrayNode lapsRaw = array(openF1Service.getLaps(sessionKey));
+            ArrayNode drivers = mergeStream(sessionKey, "drivers", openF1Service.getDrivers(sessionKey),
+                    "driver_number");
+            ArrayNode sessionResult = mergeStream(sessionKey, "sessionResult",
+                    openF1Service.getSessionResults(sessionKey), "driver_number");
+            ArrayNode rankingResult = "Sesión finalizada".equals(resolution.status())
+                    ? sessionResult
+                    : objectMapper.createArrayNode();
+            ArrayNode position = latestByDriver(mergeStream(sessionKey, "position",
+                    openF1Service.getPosition(sessionKey), "driver_number"));
+            ArrayNode intervals = latestByDriver(mergeStream(sessionKey, "intervals",
+                    openF1Service.getIntervals(sessionKey), "driver_number"));
+            ArrayNode lapsRaw = mergeStream(sessionKey, "laps", openF1Service.getLaps(sessionKey),
+                    "driver_number", "lap_number");
             ArrayNode laps = latestCompletedLapByDriver(lapsRaw);
-            ArrayNode stints = latestByDriver(openF1Service.getStints(sessionKey));
+            ArrayNode stints = latestStintByDriver(mergeStream(sessionKey, "stints",
+                    openF1Service.getStints(sessionKey), "driver_number", "stint_number", "lap_start"));
 
             response.set("drivers", drivers);
             response.set("sessionResult", sessionResult);
@@ -216,7 +244,7 @@ public class F1LiveService {
             response.set("intervals", intervals);
             response.set("laps", laps);
             response.set("stints", stints);
-            response.set("leaderboard", buildLeaderboard(drivers, sessionResult, position, intervals, lapsRaw, laps,
+            response.set("leaderboard", buildLeaderboard(drivers, rankingResult, position, intervals, lapsRaw, laps,
                     stints, objectMapper.createArrayNode()));
             putBlockMessages(response);
             return response;
@@ -244,16 +272,24 @@ public class F1LiveService {
                 return response;
             }
 
-            ArrayNode drivers = array(openF1Service.getDrivers(sessionKey));
-            ArrayNode lapsRaw = array(openF1Service.getLaps(sessionKey));
-            ArrayNode overtakes = lastItems(openF1Service.getOvertakes(sessionKey), 18);
+            ArrayNode drivers = mergeStream(sessionKey, "drivers", openF1Service.getDrivers(sessionKey),
+                    "driver_number");
+            ArrayNode lapsRaw = mergeStream(sessionKey, "laps", openF1Service.getLaps(sessionKey),
+                    "driver_number", "lap_number");
+            ArrayNode overtakes = recentItems(mergeStream(sessionKey, "overtakes",
+                    openF1Service.getOvertakes(sessionKey), "date", "overtaking_driver_number",
+                    "overtaken_driver_number"), 120);
 
             response.set("drivers", drivers);
-            response.set("raceControl", lastItems(openF1Service.getRaceControl(sessionKey), 18));
-            response.set("weather", lastItems(openF1Service.getWeather(sessionKey), 4));
-            response.set("pits", lastItems(openF1Service.getPitStops(sessionKey), 18));
+            response.set("raceControl", recentItems(mergeStream(sessionKey, "raceControl",
+                    openF1Service.getRaceControl(sessionKey), "date", "message"), 120));
+            response.set("weather", recentItems(mergeStream(sessionKey, "weather",
+                    openF1Service.getWeather(sessionKey), "date"), 12));
+            response.set("pits", recentItems(mergeStream(sessionKey, "pits",
+                    openF1Service.getPitStops(sessionKey), "driver_number", "lap_number", "date"), 120));
             response.set("pitStops", response.get("pits"));
-            response.set("teamRadio", lastItems(openF1Service.getTeamRadio(sessionKey), 12));
+            response.set("teamRadio", recentItems(mergeStream(sessionKey, "teamRadio",
+                    openF1Service.getTeamRadio(sessionKey), "date", "driver_number"), 120));
             response.set("overtakes", enrichOvertakes(overtakes, lapsRaw));
             putBlockMessages(response);
             return response;
@@ -283,7 +319,7 @@ public class F1LiveService {
 
     private JsonNode cachedBlock(String cacheKey, Duration ttl, Supplier<ObjectNode> supplier) {
         BlockCacheEntry cached = blockCache.get(cacheKey);
-        if (cached != null && cached.isFresh()) {
+        if (cached != null && cached.isFresh() && !liveDataStreamState.hasChangedSince(cached.fetchedAt())) {
             ObjectNode copy = cached.copy();
             copy.put("fromCache", true);
             return copy;
@@ -307,6 +343,7 @@ public class F1LiveService {
 
     private ObjectNode baseResponse(LiveSessionResolver.LiveSessionResolution resolution, String block) {
         ObjectNode response = objectMapper.createObjectNode();
+        ObjectNode session = enrichSession(resolution.session());
         response.put("generatedAt", Instant.now().toString());
         response.put("block", block);
         response.put("fromCache", false);
@@ -314,10 +351,68 @@ public class F1LiveService {
         response.put("status", resolution.status());
         response.put("sessionKey", resolution.sessionKey());
         response.put("hasUsefulData", resolution.usefulData());
-        response.set("session", resolution.session());
+        response.set("session", session);
+        ObjectNode metric = sessionMetric(resolution, session);
+        if (!metric.isEmpty()) {
+            response.set("sessionMetric", metric);
+        }
         response.putObject("stale");
         response.putObject("messages");
         return response;
+    }
+
+    private ObjectNode enrichSession(ObjectNode session) {
+        ObjectNode result = session == null ? objectMapper.createObjectNode() : session.deepCopy();
+        if (result.isEmpty()) {
+            return result;
+        }
+        int meetingKey = result.path("meeting_key").asInt(-1);
+        if (meetingKey <= 0) {
+            return result;
+        }
+        ObjectNode meeting = firstObject(openF1Service.getMeeting(meetingKey));
+        if (!meeting.isEmpty()) {
+            copyIfMissing(result, meeting, "meeting_official_name");
+            copyIfMissing(result, meeting, "meeting_name");
+            copyIfMissing(result, meeting, "country_name");
+            copyIfMissing(result, meeting, "location");
+            copyIfMissing(result, meeting, "gmt_offset");
+        }
+        JsonNode calendarMeeting = f1ScheduleService.getMeetingByKey(meetingKey);
+        copyIfMissing(result, calendarMeeting, "total_laps");
+        copyIfMissing(result, calendarMeeting, "race_distance");
+        copyIfMissing(result, calendarMeeting, "circuit_lap_record");
+        return result;
+    }
+
+    private ObjectNode sessionMetric(LiveSessionResolver.LiveSessionResolution resolution, ObjectNode session) {
+        ObjectNode metric = objectMapper.createObjectNode();
+        if (resolution.sessionKey().isBlank() || session == null || session.isEmpty()) {
+            return metric;
+        }
+        String sessionName = firstText(session, "session_name").toLowerCase();
+        if (sessionName.contains("race") || sessionName.equals("sprint")) {
+            ArrayNode laps = mergeStream(resolution.sessionKey(), "laps",
+                    openF1Service.getLaps(resolution.sessionKey()), "driver_number", "lap_number");
+            int currentLap = maxLap(laps);
+            int totalLaps = firstPositiveInt(session, "total_laps", "laps", "scheduled_laps", "race_laps");
+            metric.put("label", "Vueltas");
+            metric.put("value", currentLap > 0
+                    ? currentLap + (totalLaps > 0 ? "/" + totalLaps : "")
+                    : (totalLaps > 0 ? DASH + "/" + totalLaps : DASH));
+            return metric;
+        }
+        if (sessionName.contains("qualifying") || sessionName.contains("shootout")) {
+            metric.put("label", "Clasificación");
+            metric.put("value", qualificationPhase(openF1Service.getRaceControl(resolution.sessionKey()), session)
+                    + remainingSuffix(session));
+            return metric;
+        }
+        if (sessionName.contains("practice")) {
+            metric.put("label", "Tiempo restante");
+            metric.put("value", remainingTime(session));
+        }
+        return metric;
     }
 
     private void merge(ObjectNode target, ObjectNode source) {
@@ -333,7 +428,7 @@ public class F1LiveService {
             return true;
         }
         List<String> metaFields = List.of("generatedAt", "block", "fromCache", "fromLastValid", "status",
-                "sessionKey", "hasUsefulData", "session", "stale", "messages");
+                "sessionKey", "hasUsefulData", "session", "sessionMetric", "stale", "messages");
         var fields = node.fields();
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> entry = fields.next();
@@ -393,6 +488,7 @@ public class F1LiveService {
         Map<Integer, JsonNode> positionByNumber = byDriver(position);
         Map<Integer, JsonNode> intervalsByNumber = byDriver(intervals);
         Map<Integer, JsonNode> latestLapByNumber = byDriver(laps);
+        Map<Integer, JsonNode> latestSectorLapByNumber = latestSectorLapByDriver(lapsRaw);
         Map<Integer, JsonNode> bestLapByNumber = bestLapByDriver(lapsRaw);
         Map<Integer, JsonNode> stintsByNumber = byDriver(stints);
         Map<Integer, JsonNode> carByNumber = byDriver(carDataLatest);
@@ -410,6 +506,7 @@ public class F1LiveService {
             JsonNode positionRow = positionByNumber.getOrDefault(driverNumber, item);
             JsonNode interval = intervalsByNumber.getOrDefault(driverNumber, objectMapper.createObjectNode());
             JsonNode latestLap = latestLapByNumber.getOrDefault(driverNumber, objectMapper.createObjectNode());
+            JsonNode latestSectorLap = latestSectorLapByNumber.getOrDefault(driverNumber, latestLap);
             JsonNode bestLap = bestLapByNumber.getOrDefault(driverNumber, objectMapper.createObjectNode());
             JsonNode stint = stintsByNumber.getOrDefault(driverNumber, objectMapper.createObjectNode());
             JsonNode car = carByNumber.getOrDefault(driverNumber, objectMapper.createObjectNode());
@@ -428,9 +525,9 @@ public class F1LiveService {
             row.put("currentLap", currentLap(latestLap, car));
             row.put("tyre", text(firstText(stint, "compound")));
             row.put("tyreLaps", tyreLaps(latestLap, stint));
-            putSector(row, "s1", latestLap, "duration_sector_1", sectorStats);
-            putSector(row, "s2", latestLap, "duration_sector_2", sectorStats);
-            putSector(row, "s3", latestLap, "duration_sector_3", sectorStats);
+            putSector(row, "s1", latestSectorLap, "duration_sector_1", sectorStats);
+            putSector(row, "s2", latestSectorLap, "duration_sector_2", sectorStats);
+            putSector(row, "s3", latestSectorLap, "duration_sector_3", sectorStats);
             row.put("throttle", text(firstText(car, "throttle")));
             row.put("brake", text(firstText(car, "brake")));
             row.put("lastUpdated", text(firstText(car, "date"), firstText(positionRow, "date"),
@@ -455,10 +552,39 @@ public class F1LiveService {
     private String tyreLaps(JsonNode latestLap, JsonNode stint) {
         int currentLap = latestLap.path("lap_number").asInt(-1);
         int startLap = stint.path("lap_start").asInt(-1);
-        if (currentLap > 0 && startLap > 0 && currentLap >= startLap) {
-            return String.valueOf(currentLap - startLap + 1);
+        if (currentLap > 0 && startLap > 0) {
+            return String.valueOf(Math.max(1, currentLap - startLap + 1));
         }
         return text(firstText(stint, "tyre_age_at_start"));
+    }
+
+    private Map<Integer, JsonNode> latestSectorLapByDriver(ArrayNode laps) {
+        Map<Integer, JsonNode> result = new LinkedHashMap<>();
+        laps.forEach(item -> {
+            int driverNumber = item.path("driver_number").asInt(-1);
+            if (driverNumber <= 0 || !hasAnySector(item)) {
+                return;
+            }
+            JsonNode current = result.get(driverNumber);
+            if (current == null || item.path("lap_number").asInt(-1) > current.path("lap_number").asInt(-1)
+                    || (item.path("lap_number").asInt(-1) == current.path("lap_number").asInt(-1)
+                            && safeInstant(item.path("date_start").asText(""))
+                                    .isAfter(safeInstant(current.path("date_start").asText(""))))) {
+                result.put(driverNumber, item);
+            }
+        });
+        return result;
+    }
+
+    private boolean hasAnySector(JsonNode lap) {
+        return hasTiming(lap, "duration_sector_1")
+                || hasTiming(lap, "duration_sector_2")
+                || hasTiming(lap, "duration_sector_3");
+    }
+
+    private boolean hasTiming(JsonNode node, String field) {
+        double value = number(node == null ? "" : node.path(field).asText(""));
+        return value != Double.MAX_VALUE && value > 0;
     }
 
     private Map<Integer, JsonNode> byDriver(ArrayNode source) {
@@ -477,7 +603,7 @@ public class F1LiveService {
         laps.forEach(item -> {
             int driverNumber = item.path("driver_number").asInt(-1);
             double duration = number(item.path("lap_duration").asText(""));
-            if (driverNumber <= 0 || duration <= 0) {
+            if (driverNumber <= 0 || duration == Double.MAX_VALUE || duration <= 0) {
                 return;
             }
             JsonNode current = result.get(driverNumber);
@@ -493,7 +619,7 @@ public class F1LiveService {
         laps.forEach(item -> {
             int driverNumber = item.path("driver_number").asInt(-1);
             double duration = number(item.path("lap_duration").asText(""));
-            if (driverNumber <= 0 || duration <= 0) {
+            if (driverNumber <= 0 || duration == Double.MAX_VALUE || duration <= 0) {
                 return;
             }
             JsonNode current = result.get(driverNumber);
@@ -526,6 +652,18 @@ public class F1LiveService {
         for (int i = 0; i < source.size(); i += step) {
             result.add(source.get(i).deepCopy());
         }
+        return result;
+    }
+
+    private ArrayNode filterFreshByDate(ArrayNode source, long maxAgeSeconds) {
+        ArrayNode result = objectMapper.createArrayNode();
+        Instant threshold = Instant.now().minusSeconds(maxAgeSeconds);
+        source.forEach(item -> {
+            Instant date = safeInstant(item.path("date").asText(""));
+            if (!Instant.EPOCH.equals(date) && date.isAfter(threshold)) {
+                result.add(item.deepCopy());
+            }
+        });
         return result;
     }
 
@@ -562,6 +700,59 @@ public class F1LiveService {
         return lapNumber > 0 ? String.valueOf(lapNumber) : DASH;
     }
 
+    private ArrayNode mergeStream(String sessionKey, String field, JsonNode restItems, String... keyFields) {
+        Map<String, JsonNode> rows = new LinkedHashMap<>();
+        array(restItems).forEach(item -> rows.put(rowKey(item, keyFields), item.deepCopy()));
+        liveDataStreamState.getItems(sessionKey, field)
+                .forEach(item -> rows.put(rowKey(item, keyFields), item.deepCopy()));
+        ArrayNode result = objectMapper.createArrayNode();
+        rows.values().forEach(result::add);
+        return result;
+    }
+
+    private String rowKey(JsonNode item, String... keyFields) {
+        String key = firstText(item, "_key", "_id");
+        if (!key.isBlank()) {
+            return key;
+        }
+        List<String> parts = new ArrayList<>();
+        for (String field : keyFields) {
+            String value = firstText(item, field);
+            if (!value.isBlank()) {
+                parts.add(value);
+            }
+        }
+        if (!parts.isEmpty()) {
+            return String.join(":", parts);
+        }
+        return firstText(item, "date", "date_start") + ":" + item.hashCode();
+    }
+
+    private ArrayNode latestStintByDriver(JsonNode items) {
+        Map<Integer, JsonNode> rows = new LinkedHashMap<>();
+        if (items != null && items.isArray()) {
+            items.forEach(item -> {
+                int driverNumber = item.path("driver_number").asInt(-1);
+                if (driverNumber <= 0) {
+                    return;
+                }
+                JsonNode current = rows.get(driverNumber);
+                if (current == null || stintSortValue(item) >= stintSortValue(current)) {
+                    rows.put(driverNumber, item);
+                }
+            });
+        }
+        ArrayNode result = objectMapper.createArrayNode();
+        rows.values().forEach(item -> result.add(item.deepCopy()));
+        return result;
+    }
+
+    private int stintSortValue(JsonNode item) {
+        int stint = item.path("stint_number").asInt(-1);
+        int lapStart = item.path("lap_start").asInt(-1);
+        return Math.max(stint, 0) * 1000 + Math.max(lapStart, 0);
+    }
+
     private ArrayNode latestByDriver(JsonNode items) {
         Map<Integer, JsonNode> rows = new LinkedHashMap<>();
         if (items != null && items.isArray()) {
@@ -581,13 +772,13 @@ public class F1LiveService {
         return result;
     }
 
-    private ArrayNode lastItems(JsonNode items, int limit) {
-        ArrayNode source = array(items);
+    private ArrayNode recentItems(JsonNode items, int limit) {
+        List<JsonNode> rows = new ArrayList<>();
+        array(items).forEach(item -> rows.add(item.deepCopy()));
+        rows.sort((left, right) -> safeInstant(firstText(right, "date", "date_start", "created_at"))
+                .compareTo(safeInstant(firstText(left, "date", "date_start", "created_at"))));
         ArrayNode result = objectMapper.createArrayNode();
-        int start = Math.max(0, source.size() - limit);
-        for (int i = start; i < source.size(); i++) {
-            result.add(source.get(i).deepCopy());
-        }
+        rows.stream().limit(Math.max(0, limit)).forEach(result::add);
         return result;
     }
 
@@ -597,6 +788,93 @@ public class F1LiveService {
             node.forEach(item -> result.add(item.deepCopy()));
         }
         return result;
+    }
+
+    private ObjectNode firstObject(JsonNode node) {
+        if (node != null && node.isArray() && !node.isEmpty() && node.get(0).isObject()) {
+            return (ObjectNode) node.get(0).deepCopy();
+        }
+        return objectMapper.createObjectNode();
+    }
+
+    private void copyIfMissing(ObjectNode target, JsonNode source, String field) {
+        if (target.hasNonNull(field) || source == null || !source.hasNonNull(field)) {
+            return;
+        }
+        target.set(field, source.get(field).deepCopy());
+    }
+
+    private int maxLap(ArrayNode laps) {
+        int max = -1;
+        for (JsonNode lap : laps) {
+            max = Math.max(max, lap.path("lap_number").asInt(-1));
+        }
+        return max;
+    }
+
+    private int firstPositiveInt(JsonNode node, String... fields) {
+        if (node == null) {
+            return -1;
+        }
+        for (String field : fields) {
+            int value = node.path(field).asInt(-1);
+            if (value > 0) {
+                return value;
+            }
+        }
+        return -1;
+    }
+
+    private String qualificationPhase(JsonNode raceControl, ObjectNode session) {
+        String fallback = firstText(session, "session_name").toLowerCase().contains("sprint") ? "SQ" : "Q";
+        ArrayNode messages = recentItems(raceControl, 30);
+        for (JsonNode item : messages) {
+            String text = (item.path("message").asText("") + " "
+                    + item.path("category").asText("") + " "
+                    + item.path("flag").asText("")).toUpperCase();
+            if (text.contains("SQ3")) {
+                return "SQ3";
+            }
+            if (text.contains("SQ2")) {
+                return "SQ2";
+            }
+            if (text.contains("SQ1")) {
+                return "SQ1";
+            }
+            if (text.contains("Q3")) {
+                return "Q3";
+            }
+            if (text.contains("Q2")) {
+                return "Q2";
+            }
+            if (text.contains("Q1")) {
+                return "Q1";
+            }
+        }
+        return fallback;
+    }
+
+    private String remainingSuffix(ObjectNode session) {
+        String remaining = remainingTime(session);
+        return DASH.equals(remaining) ? "" : " · " + remaining;
+    }
+
+    private String remainingTime(ObjectNode session) {
+        Instant end = safeInstant(firstText(session, "date_end"));
+        if (Instant.EPOCH.equals(end)) {
+            return DASH;
+        }
+        long seconds = Duration.between(Instant.now(), end).toSeconds();
+        if (seconds <= 0) {
+            return "En directo";
+        }
+        long hours = seconds / 3600;
+        long minutes = (seconds % 3600) / 60;
+        long rest = seconds % 60;
+        if (hours > 0) {
+            return "%dh %02dm".formatted(hours, minutes);
+        }
+        return "%02dm %02ds".formatted(minutes, rest);
     }
 
     private String driverName(JsonNode driver, int number) {

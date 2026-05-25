@@ -1,7 +1,7 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.0
+ * @version 1.1.1
  * @created 20-05-2026
  * @modified 24-05-2026
  * @description Genera avisos de inicio y resumen de sesiones favoritas en app y por correo
@@ -107,7 +107,7 @@ public class SessionNotificationService {
                     if (isInWindow(now, end, SUMMARY_WINDOW)) {
                         String topThree = buildTopThreeResults(session.path("session_key").asText(""));
                         if (topThree == null) return;
-                        String message = "Resultados: " + topThree;
+                        String message = topThree;
                         deliverOnce(user, "session-summary:" + sessionKey, "Resumen de " + sessionName + " en " + place, message, "SESSION_SUMMARY");
                     }
                 }));
