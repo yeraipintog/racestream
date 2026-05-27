@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.3.0
+ * @version 1.3.2
  * @created 17-04-2026
- * @modified 24-05-2026
+ * @modified 27-05-2026
  * @description Servicio para obtener datos de OpenF1 con autenticación segura,
  *              rate limit, caché por endpoint y tolerancia a respuestas parciales
  * @see https://openf1.org
@@ -98,7 +98,7 @@ public class OpenF1Service {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 23-05-2026
      * @description Prepara el token en segundo plano al arrancar sin bloquear
      *              indefinidamente la aplicación
@@ -241,52 +241,188 @@ public class OpenF1Service {
         return key.isBlank() ? objectMapper.createArrayNode() : fetchArray("/session_result", "session_key", key);
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Obtener clima de una sesión OpenF1
+     * @param sessionKey Clave OpenF1
+     * @return Registros meteorológicos
+     */
     public JsonNode getWeather(String sessionKey) {
-        return fetchArray("/weather", "session_key", clean(sessionKey));
+        return getSessionEndpoint("/weather", sessionKey);
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Obtener mensajes de dirección de carrera
+     * @param sessionKey Clave OpenF1
+     * @return Mensajes de control
+     */
     public JsonNode getRaceControl(String sessionKey) {
-        return fetchArray("/race_control", "session_key", clean(sessionKey));
+        return getSessionEndpoint("/race_control", sessionKey);
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Obtener paradas en boxes
+     * @param sessionKey Clave OpenF1
+     * @return Paradas
+     */
     public JsonNode getPitStops(String sessionKey) {
-        return fetchArray("/pit", "session_key", clean(sessionKey));
+        return getSessionEndpoint("/pit", sessionKey);
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Obtener stints de neumáticos
+     * @param sessionKey Clave OpenF1
+     * @return Stints
+     */
     public JsonNode getStints(String sessionKey) {
-        return fetchArray("/stints", "session_key", clean(sessionKey));
+        return getSessionEndpoint("/stints", sessionKey);
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Obtener radio de equipo
+     * @param sessionKey Clave OpenF1
+     * @return Mensajes de radio
+     */
     public JsonNode getTeamRadio(String sessionKey) {
-        return fetchArray("/team_radio", "session_key", clean(sessionKey));
+        return getSessionEndpoint("/team_radio", sessionKey);
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Obtener posiciones de pilotos
+     * @param sessionKey Clave OpenF1
+     * @return Posiciones
+     */
     public JsonNode getPosition(String sessionKey) {
-        return fetchArray("/position", "session_key", clean(sessionKey));
+        return getSessionEndpoint("/position", sessionKey);
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Obtener intervalos entre pilotos
+     * @param sessionKey Clave OpenF1
+     * @return Intervalos
+     */
     public JsonNode getIntervals(String sessionKey) {
-        return fetchArray("/intervals", "session_key", clean(sessionKey));
+        return getSessionEndpoint("/intervals", sessionKey);
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Obtener vueltas de la sesión
+     * @param sessionKey Clave OpenF1
+     * @return Vueltas
+     */
     public JsonNode getLaps(String sessionKey) {
-        return fetchArray("/laps", "session_key", clean(sessionKey));
+        return getSessionEndpoint("/laps", sessionKey);
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Obtener adelantamientos
+     * @param sessionKey Clave OpenF1
+     * @return Adelantamientos
+     */
     public JsonNode getOvertakes(String sessionKey) {
-        return fetchArray("/overtakes", "session_key", clean(sessionKey));
+        return getSessionEndpoint("/overtakes", sessionKey);
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Obtener parrilla de salida
+     * @param sessionKey Clave OpenF1
+     * @return Parrilla
+     */
     public JsonNode getStartingGrid(String sessionKey) {
-        return fetchArray("/starting_grid", "session_key", clean(sessionKey));
+        return getSessionEndpoint("/starting_grid", sessionKey);
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Obtener clasificación de pilotos de la sesión
+     * @param sessionKey Clave OpenF1
+     * @return Clasificación de pilotos
+     */
     public JsonNode getChampionshipDrivers(String sessionKey) {
-        return fetchArray("/championship_drivers", "session_key", clean(sessionKey));
+        return getSessionEndpoint("/championship_drivers", sessionKey);
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Obtener clasificación de equipos de la sesión
+     * @param sessionKey Clave OpenF1
+     * @return Clasificación de equipos
+     */
     public JsonNode getChampionshipTeams(String sessionKey) {
-        return fetchArray("/championship_teams", "session_key", clean(sessionKey));
+        return getSessionEndpoint("/championship_teams", sessionKey);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Consulta endpoints de OpenF1 filtrados por session_key sin duplicar validaciones
+     * @param path Endpoint OpenF1
+     * @param sessionKey Clave OpenF1
+     * @return Array JSON seguro
+     */
+    private JsonNode getSessionEndpoint(String path, String sessionKey) {
+        String key = clean(sessionKey);
+        return key.isBlank() ? objectMapper.createArrayNode() : fetchArray(path, "session_key", key);
     }
 
     /**
@@ -304,6 +440,18 @@ public class OpenF1Service {
         return getCarData(sessionKey, driverNumber, 120);
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Obtener telemetría reciente con ventana temporal configurable
+     * @param sessionKey Clave OpenF1
+     * @param driverNumber Número de piloto opcional
+     * @param lookbackSeconds Segundos hacia atrás para limitar la respuesta
+     * @return Datos del coche
+     */
     public JsonNode getCarData(String sessionKey, Integer driverNumber, int lookbackSeconds) {
         UriComponentsBuilder builder = endpoint("/car_data")
                 .queryParam("session_key", clean(sessionKey))
@@ -326,6 +474,18 @@ public class OpenF1Service {
         return getLocation(sessionKey, driverNumber, 120);
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Obtener ubicación reciente con ventana temporal configurable
+     * @param sessionKey Clave OpenF1
+     * @param driverNumber Número de piloto opcional
+     * @param lookbackSeconds Segundos hacia atrás para limitar la respuesta
+     * @return Ubicación en pista
+     */
     public JsonNode getLocation(String sessionKey, Integer driverNumber, int lookbackSeconds) {
         UriComponentsBuilder builder = endpoint("/location")
                 .queryParam("session_key", clean(sessionKey))
@@ -378,8 +538,9 @@ public class OpenF1Service {
      * @since 1.0
      * @version 1.0.0
      * @created 23-05-2026
+     * @modified 27-05-2026
      * @description Comprueba si la última respuesta de una URL concreta llegó desde
-     *              caché antigua por falló, 429 o vacío temporal
+     *              caché antigua por fallo, 429 o vacío temporal
      * @param url URL consultada
      * @return true si la respuesta fue stale
      */
@@ -390,11 +551,11 @@ public class OpenF1Service {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 23-05-2026
-     * @modified 23-05-2026
+     * @modified 27-05-2026
      * @description Comprueba si el endpoint y parámetros indicados han usado la
-     *              última respuesta válida por falló, rate limit o vacío temporal
+     *              última respuesta válida por fallo, rate limit o vacío temporal
      * @param path Endpoint OpenF1
      * @param params Parámetros públicos usados
      * @return true si la última respuesta conocida es stale

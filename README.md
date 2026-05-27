@@ -1,119 +1,177 @@
 # RaceStream
 
-RaceStream es una aplicación web de Fórmula 1 desarrollada como TFG por Yerai Pinto. Su objetivo es reunir calendario, sesiones, clasificaciones, directo, favoritos, noticias, cuenta de usuario y ayuda contextual en una interfaz clara, visual y fácil de entender incluso para usuarios sin conocimientos previos de F1.
+RaceStream es una aplicación web de Fórmula 1 desarrollada como TFG por Yerai Pinto González. Reúne calendario, sesiones, clasificaciones, directo, pilotos, escuderías, favoritos, noticias, cuenta de usuario y ayuda contextual en una interfaz visual, clara y pensada para usuarios que no tienen por qué conocer la Fórmula 1.
 
-## Resumen Del Proyecto
+## Resumen del proyecto
 
 - Aplicación full-stack con Spring Boot, MySQL y frontend estático en HTML, CSS y JavaScript.
-- Experiencia visual común en todas las páginas mediante navbar, franja de próximo GP y footer reutilizados.
-- Datos deportivos integrados desde OpenF1, Jolpica y F1DB, con caché defensiva para evitar mostrar resultados vacíos como definitivos.
-- Gestión de usuarios con registro local, inicio de sesión JSON, sesiones técnicas, preferencias, favoritos y roles.
-- Páginas públicas de información, calendario, sesiones, clasificaciones, pilotos, equipos, noticias, ayuda, FAQ y páginas legales.
-- Páginas privadas para cuenta, favoritos, preferencias, privacidad, foro y contacto.
-- Zona de administración protegida por rol `ADMIN`.
+- Navbar, franja de próximo GP, cabecera visual y footer coherentes en todas las páginas.
+- Datos deportivos integrados desde OpenF1, Jolpica y F1DB, con caché, reintentos y protección frente a respuestas vacías temporales.
+- Registro local, inicio de sesión JSON, sesiones con Spring Security, cookies técnicas, favoritos, notificaciones y roles.
+- Temporada actual visible para usuarios invitados; filtros históricos desbloqueados solo al iniciar sesión.
+- Zona En Vivo, cuenta, favoritos, preferencias, privacidad, foro, contacto y administración protegidas.
+- Panel de administración con usuario demo para la defensa del proyecto.
 
 ## Tecnologías
 
 - Java 17.
-- Spring Boot 3.
+- Spring Boot 3.5.
 - Spring Security.
 - Spring Data JPA e Hibernate.
 - MySQL en ejecución normal.
 - H2 en pruebas automatizadas.
-- HTML, CSS y JavaScript sin frameworks frontend.
-- Maven Wrapper para ejecutar el proyecto y los tests.
+- Flyway para migraciones.
+- HTML, CSS y JavaScript sin framework frontend.
+- Maven Wrapper para ejecución y tests.
 
-## Fuentes De Datos
+## Fuentes de datos
 
-- OpenF1: sesiones, directo, clima, control de carrera y datos operativos.
-- Jolpica: calendario oficial, resultados y clasificaciones.
-- F1DB: fuente de datos históricos utilizada para enriquecer información de circuitos, temporadas y Grandes Premios.
-- BBDD propia: usuarios, favoritos, preferencias, foro, contacto, cookies y datos internos.
+- OpenF1 Premium: fuente principal para meetings, sesiones, directo, clima, control de carrera, telemetría, posiciones, vueltas, adelantamientos, radio de equipo y resultados de sesión disponibles.
+- Jolpica: clasificaciones, resultados oficiales, calendario histórico y respaldo cuando OpenF1 no cubre una temporada o sesión concreta.
+- F1DB: enriquecimiento de circuitos, datos históricos y Grandes Premios.
+- Base de datos propia: usuarios, favoritos, preferencias, foro, contacto, cookies, notificaciones y administración.
 - GNews: noticias externas complementarias cuando la clave esté configurada.
 
-## Funcionalidades Principales
+La integración con OpenF1 centraliza autenticación, token, caché, reintentos y rate limit en backend. Jolpica y F1DB se usan como apoyo para completar datos históricos sin sustituir a OpenF1 cuando OpenF1 ofrece datos válidos.
 
-- Inicio con resumen visual de la temporada y acceso rápido a secciones clave.
-- Calendario con próximos Grandes Premios, sesiones y horarios.
-- Sesiones con explicación para usuarios no expertos.
-- Clasificaciones de pilotos y constructores.
-- Páginas de pilotos, equipos, noticias y directo.
-- Favoritos de usuario para seguir contenido relevante.
-- Cuenta privada con preferencias, privacidad y notificaciones.
-- Foro y contacto protegidos para usuarios autenticados.
+## Funcionalidades principales
+
+- Inicio con resumen visual de la temporada y accesos rápidos.
+- Calendario por temporada con Grandes Premios, horarios y sesiones.
+- Sesiones completadas con resultados, podios, vueltas y explicaciones visuales.
+- Clasificaciones de pilotos y constructores con detalle por Gran Premio.
+- Páginas de pilotos y escuderías con tarjetas por temporada.
+- En Vivo privado con mapa, timing, carrera, datos recientes y estados de sesión.
+- Favoritos y recordatorios para usuarios autenticados.
+- Noticias externas filtradas por temática F1.
+- Cuenta privada con perfil, contraseña, preferencias, privacidad y notificaciones.
+- Foro, contacto y panel de administración protegidos.
 - Páginas legales: términos, privacidad y cookies.
 
-## Autenticación Y Seguridad
+## Reglas de acceso
 
-RaceStream usa un login propio mediante `/api/auth/login`; no depende del formulario genérico de Spring Security. Las páginas privadas redirigen a `/login.html` y las APIs privadas devuelven error JSON `401` cuando falta autenticación.
+- Invitado:
+  - Puede ver páginas públicas y datos de la temporada actual.
+  - No puede entrar en En Vivo.
+  - No puede usar filtros históricos de temporada.
+  - No puede usar favoritos, foro, contacto, cuenta, preferencias ni administración.
+- Usuario autenticado:
+  - Puede usar filtros históricos.
+  - Puede gestionar favoritos, cuenta, privacidad, preferencias, foro y contacto.
+  - Puede acceder a En Vivo.
+- Administrador:
+  - Puede entrar en `/admin.html`.
+  - Puede revisar usuarios, mensajes, correos bloqueados y publicaciones.
 
-Rutas principales:
+## Rutas principales
 
-- `/login.html`: acceso y registro visual de RaceStream.
-- `/login`: redirección corta a `/login.html`.
-- `/register`: redirección corta a `/login.html#registro`.
-- `/api/auth/me`: estado de sesión actual.
-- `/api/auth/logout`: cierre de sesión.
+- `/index.html`: inicio.
+- `/calendar.html`: calendario.
+- `/sessions.html`: sesiones.
+- `/standings.html`: clasificaciones.
+- `/drivers.html`: pilotos.
+- `/teams.html`: escuderías.
+- `/news.html`: noticias.
+- `/live.html`, `/live-timing.html`, `/live-race.html`: En Vivo privado.
+- `/login.html`: acceso, registro y recuperación de contraseña.
+- `/account.html`: cuenta.
+- `/favorites.html`: favoritos.
+- `/forum.html`: foro.
+- `/contact.html`: contacto.
+- `/admin.html`: administración.
 
-## Cookies
+## Configuración local
 
-RaceStream usa la cookie técnica `rs_cookie_consent` para recordar la decisión del usuario. No se usan cookies analíticas ni publicitarias desde la aplicación.
+El proyecto está pensado para presentarse con `src/main/resources/application.properties`.
 
-- Si se aceptan cookies, se guarda `rs_cookie_consent=accepted`, se oculta el banner y, si el usuario está autenticado, se guarda el estado `ACCEPTED` en BBDD.
-- Si se rechazan cookies, se guarda `rs_cookie_consent=rejected`, se oculta el banner y, si el usuario está autenticado, se guarda el estado `REJECTED` en BBDD.
-- Si no se ha decidido todavía, no debe existir `rs_cookie_consent` y el estado del usuario es `UNDECIDED`; el banner se muestra.
-- Al iniciar sesión sin cookie local, `/api/auth/me` permite restaurar `accepted` o `rejected` desde BBDD. Si el estado es `UNDECIDED`, el banner permanece visible.
-- La decisión se puede cambiar desde `/cookies.html`.
+1. Crear la base de datos MySQL `racestream_db`.
+2. Copiar `src/main/resources/application-example.properties` como `src/main/resources/application.properties`.
+3. Completar las credenciales locales de MySQL, OpenF1, GNews y correo si se quieren probar esas funciones.
+4. Mantener `src/test/resources/application.properties` para tests con H2.
 
-Pruebas manuales recomendadas de cookies:
+Propiedades importantes:
 
-1. Abrir la web sin `rs_cookie_consent` y comprobar que aparece el banner.
-2. Aceptar cookies y verificar en DevTools que existe `rs_cookie_consent=accepted`.
-3. Borrar la cookie local, iniciar sesión con un usuario que haya aceptado y comprobar que se restaura `accepted`.
-4. Rechazar cookies y verificar `rs_cookie_consent=rejected`.
-5. Borrar la cookie local, iniciar sesión con un usuario que haya rechazado y comprobar que se restaura `rejected` sin mostrar el banner.
-6. Registrar un usuario nuevo y comprobar que `/api/auth/me` devuelve `cookieConsentStatus=UNDECIDED`.
-7. Cambiar la decisión desde `/cookies.html` y comprobar que la cookie cambia.
+- `openf1.api.base-url`
+- `openf1.auth.username`
+- `openf1.auth.password`
+- `openf1.auth.access-token`
+- `openf1.stream.enabled`
+- `jolpica.api.base-url`
+- `f1db.splitted-json-url`
+- `gnews.api.key`
+- `racestream.contact.mail-enabled`
+- `racestream.password-reset.mail-enabled`
+- `spring.mail.*`
 
-## Estructura
+## Ejecución local
 
-- `src/main/java/com/yerai/racestream/config`: configuración de seguridad, contraseñas, filtros y arranque de admin.
-- `src/main/java/com/yerai/racestream/controller`: APIs REST y redirecciónes de páginas.
-- `src/main/java/com/yerai/racestream/model`: entidades JPA y enums.
-- `src/main/java/com/yerai/racestream/repository`: repositorios Spring Data.
-- `src/main/java/com/yerai/racestream/service`: integración con fuentes externas y lógica de dominio.
-- `src/main/resources/static`: páginas HTML, estilos CSS, JavaScript y assets.
-- `src/test/java`: tests unitarios e integración.
-
-## Ejecución Local
-
-1. Preparar una base de datos MySQL para RaceStream.
-2. Configurar las propiedades o variables necesarias en el entorno local.
-3. Ejecutar la aplicación:
-
-```bash
-./mvnw spring-boot:run
-```
-
-En Windows también se puede usar:
+Windows:
 
 ```bat
 mvnw.cmd spring-boot:run
 ```
 
+Linux o macOS:
+
+```bash
+./mvnw spring-boot:run
+```
+
+La aplicación queda disponible en:
+
+```text
+http://localhost:8080
+```
+
 ## Tests
 
-Ejecutar toda la suite:
+Windows:
+
+```bat
+mvnw.cmd test
+```
+
+Linux o macOS:
 
 ```bash
 ./mvnw test
 ```
 
-En Windows:
+La suite usa H2 en memoria y no necesita MySQL real.
 
-```bat
-mvnw.cmd test
-```
+## Cookies
+
+RaceStream usa la cookie técnica `rs_cookie_consent` para recordar la decisión del usuario. No se usan cookies analíticas ni publicitarias desde la aplicación.
+
+- `accepted`: cookies técnicas aceptadas.
+- `rejected`: cookies técnicas rechazadas.
+- `UNDECIDED`: estado inicial en base de datos cuando el usuario todavía no ha elegido.
+
+La decisión puede cambiarse desde `/cookies.html`.
+
+## Estructura del proyecto
+
+- `src/main/java/com/yerai/racestream/config`: seguridad, filtros, contraseñas, RestTemplate y usuario admin.
+- `src/main/java/com/yerai/racestream/controller`: APIs REST y redirecciones.
+- `src/main/java/com/yerai/racestream/model`: entidades JPA y enums.
+- `src/main/java/com/yerai/racestream/repository`: repositorios Spring Data.
+- `src/main/java/com/yerai/racestream/service`: integraciones externas y lógica de dominio.
+- `src/main/resources/db/migration`: migraciones Flyway.
+- `src/main/resources/static`: HTML, CSS, JavaScript y assets.
+- `src/test/java`: tests unitarios e integración.
+- `src/test/resources`: configuración de tests.
+
+## Estado esperado para la defensa
+
+Antes de presentar:
+
+1. Ejecutar `mvnw.cmd test`.
+2. Ejecutar `mvnw.cmd spring-boot:run`.
+3. Verificar páginas públicas en escritorio y móvil.
+4. Verificar que En Vivo redirige al login sin sesión.
+5. Verificar que los filtros históricos quedan bloqueados sin sesión.
+6. Iniciar sesión y comprobar filtros históricos, favoritos y cuenta.
+7. Entrar como `admin` y revisar administración.
 
 ## Autor
 

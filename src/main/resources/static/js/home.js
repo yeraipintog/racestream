@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.5.1
+ * @version 1.5.2
  * @created 30-04-2026
- * @modified 19-05-2026
+ * @modified 26-05-2026
  * @description Lógica de Inicio con contadores estables, última carrera,
  *              próxima sesión, estadísticas reales y ayuda contextual
  */
@@ -447,10 +447,11 @@ class RaceStreamHomePage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.2
+     * @version 1.0.3
      * @created 30-04-2026
-     * @modified 03-05-2026
-     * @description Carga titulares reales de GNews filtrando solo contenido de Fórmula 1
+     * @modified 26-05-2026
+     * @description Carga titulares reales de GNews filtrando y escapando solo
+     *              contenido de Fórmula 1
      */
     async loadNews() {
         const news = await this.fetchJson(this.newsApi, []);
@@ -462,8 +463,8 @@ class RaceStreamHomePage {
 
         const highlightedNews = f1News.slice(0, 4);
         this.homeNews.innerHTML = highlightedNews.map((item, index) => {
-            const title = item.title || 'Noticia de Fórmula 1';
-            const image = item.image || '/assets/img/LogoRS2.png';
+            const title = this.escapeHtml(item.title || 'Noticia de Fórmula 1');
+            const image = this.safeImageUrl(item.image || '/assets/img/LogoRS2.png');
             return `
                 <a class="rs-home-news__item" href="/news.html#top">
                     <img class="rs-home-news__image" src="${image}" alt="Imagen de ${title}" loading="lazy" onerror="this.src='/assets/img/LogoRS2.png';">
@@ -856,6 +857,36 @@ class RaceStreamHomePage {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 26-05-2026
+     * @modified 26-05-2026
+     * @description Valida URLs de imagen antes de insertarlas en el DOM
+     * @param {string} value URL recibida desde noticias externas
+     * @returns {string} URL segura o imagen local de fallback
+     */
+    safeImageUrl(value) {
+        const fallback = '/assets/img/LogoRS2.png';
+        const raw = `${value || ''}`.trim();
+        if (!raw) {
+            return fallback;
+        }
+        try {
+            const url = new URL(raw, window.location.origin);
+            if (!['http:', 'https:'].includes(url.protocol)) {
+                return fallback;
+            }
+            const safeUrl = url.origin === window.location.origin
+                ? `${url.pathname}${url.search}${url.hash}`
+                : url.href;
+            return this.escapeHtml(safeUrl);
+        } catch {
+            return fallback;
+        }
     }
 
     /**

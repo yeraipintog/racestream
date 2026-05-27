@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.4.1
+ * @version 1.4.2
  * @created 21-04-2026
- * @modified 25-05-2026
+ * @modified 26-05-2026
  * @description Controlador REST para exponer datos del Live Center de Fórmula 1
  *              desde OpenF1
  */
@@ -213,10 +213,10 @@ public class F1LiveController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 21-04-2026
-     * @modified 27-04-2026
-     * @description Devuelve posiciónes de pilotos
+     * @modified 26-05-2026
+     * @description Devuelve posiciones de pilotos
      * @param sessionKey Clave de sesión OpenF1
      * @return Datos de posición
      */

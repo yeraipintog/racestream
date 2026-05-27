@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.4.1
+ * @version 1.6.0
  * @created 04-05-2026
- * @modified 22-05-2026
- * @description Lógica compartida para Pilotos y Escuderías con límite público, aviso histórico y tarjetas por temporada
+ * @modified 27-05-2026
+ * @description Lógica compartida para Pilotos y Escuderías con histórico autenticado, aviso histórico y tarjetas por temporada
  */
 class RaceStreamParticipantsPage {
 
@@ -13,7 +13,6 @@ class RaceStreamParticipantsPage {
         this.mode = document.body.dataset.rsPage || 'drivers';
         this.params = new URLSearchParams(window.location.search);
         this.year = Number(this.params.get('year')) || new Date().getFullYear();
-        this.publicLimited = false;
         this.pendingDriverId = this.params.get('driverId');
         this.pendingConstructorId = this.params.get('constructorId');
         this.driverStandings = [];
@@ -21,6 +20,7 @@ class RaceStreamParticipantsPage {
         this.driverTitles = [];
         this.constructorTitles = [];
         this.raceResults = [];
+        this.seasonFilterLocked = false;
         this.requestId = 0;
         this.abortController = null;
         this.cacheDom();
@@ -43,10 +43,8 @@ class RaceStreamParticipantsPage {
 
     bindEvents() {
         this.yearInput.addEventListener('change', () => {
-            if (this.publicLimited) {
-                this.year = new Date().getFullYear();
+            if (this.seasonFilterLocked) {
                 this.yearInput.value = String(this.year);
-                window.history.replaceState({}, '', `?year=${this.year}`);
                 return;
             }
             this.year = Number(this.yearInput.value);
@@ -55,28 +53,51 @@ class RaceStreamParticipantsPage {
         });
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.1.0
+     * @created 04-05-2026
+     * @modified 27-05-2026
+     * @description Inicializa acceso público, selector de temporadas y tarjetas
+     * @returns {Promise<void>} Carga completada
+     */
     async init() {
-        await this.resolvePublicAccess();
+        await this.applySeasonAccess();
         await this.loadSeasons();
         await this.loadSeason();
     }
 
-    async resolvePublicAccess() {
-        const user = await window.RaceStreamApi.getCurrentUser();
-        this.publicLimited = !user?.authenticated;
-        if (!this.publicLimited) return;
-        this.year = new Date().getFullYear();
-        this.pendingDriverId = null;
-        this.pendingConstructorId = null;
-        window.history.replaceState({}, '', `?year=${this.year}`);
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Bloquea históricos para invitados y fuerza la temporada actual
+     * @returns {Promise<void>} Acceso aplicado
+     */
+    async applySeasonAccess() {
+        const access = await window.RaceStreamApi.resolveSeasonAccess(this.year);
+        this.seasonFilterLocked = access.locked;
+        this.year = access.year;
+        this.yearInput.value = String(this.year);
+        if (access.locked && this.params.get('year') && Number(this.params.get('year')) !== access.currentYear) {
+            window.history.replaceState({}, '', `?year=${this.year}`);
+        }
+        window.RaceStreamApi.setSeasonFilterLocked(this.yearInput, this.seasonFilterLocked);
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.1
+     * @created 04-05-2026
+     * @modified 27-05-2026
+     * @description Carga temporadas disponibles y conserva el bloqueo público
+     * @returns {Promise<void>} Carga completada
+     */
     async loadSeasons() {
-        if (this.publicLimited) {
-            this.yearInput.innerHTML = `<option value="${this.year}" selected>${this.year}</option>`;
-            this.yearInput.disabled = true;
-            return;
-        }
         const seasons = await this.fetchJson('/api/f1/standings/seasons', []);
         const safeSeasons = Array.isArray(seasons) && seasons.length
             ? seasons
@@ -84,6 +105,7 @@ class RaceStreamParticipantsPage {
         this.yearInput.innerHTML = safeSeasons
             .map((item) => `<option value="${item.season}" ${Number(item.season) === this.year ? 'selected' : ''}>${item.season}</option>`)
             .join('');
+        window.RaceStreamApi.setSeasonFilterLocked(this.yearInput, this.seasonFilterLocked);
     }
 
     async loadSeason() {
@@ -108,8 +130,9 @@ class RaceStreamParticipantsPage {
         this.constructorStandings = constructors;
         this.driverTitles = driverTitles;
         this.constructorTitles = constructorTitles;
-        this.yearInput.disabled = this.publicLimited;
+        this.yearInput.disabled = this.seasonFilterLocked;
         this.yearInput.removeAttribute('aria-busy');
+        window.RaceStreamApi.setSeasonFilterLocked(this.yearInput, this.seasonFilterLocked);
         this.render();
     }
 
@@ -199,16 +222,16 @@ class RaceStreamParticipantsPage {
 
     renderTeams() {
         this.seasonMeta.textContent = `Temporada ${this.year} · ${this.constructorStandings.length} escuderías`;
-        const históricalNotice = this.renderHistoricalConstructorsNotice();
+        const historicalNotice = this.renderHistoricalConstructorsNotice();
         if (!this.constructorStandings.length) {
             if (this.year < 1958) {
-                this.grid.innerHTML = `${históricalNotice}<p class="empty-state">No hay datos históricos de escuderías para esta temporada.</p>`;
+                this.grid.innerHTML = `${historicalNotice}<p class="empty-state">No hay datos históricos de escuderías para esta temporada.</p>`;
             } else {
                 this.renderApiRetry('Escuderías');
             }
             return;
         }
-        this.grid.innerHTML = históricalNotice + this.constructorStandings.map((row, index) => this.renderTeamCard(row, index)).join('');
+        this.grid.innerHTML = historicalNotice + this.constructorStandings.map((row, index) => this.renderTeamCard(row, index)).join('');
     }
 
     /**
@@ -223,8 +246,8 @@ class RaceStreamParticipantsPage {
     renderHistoricalConstructorsNotice() {
         if (this.year >= 1958) return '';
         return `
-            <div class="rs-histórical-notice">
-                El Campeonato de Constructores empezó oficialmente en 1958. En temporadas anteriores estos datos son una referencia histórica por escudería/equipo y no una clasificación oficial del campeonato.
+            <div class="rs-historical-notice">
+                El Campeonato de Constructores empezó oficialmente en 1958. En temporadas anteriores estos datos son una referencia histórica y no una clasificación oficial del campeonato.
             </div>
         `;
     }
@@ -402,9 +425,9 @@ class RaceStreamParticipantsPage {
 
     expandRequestedCard() {
         const target = this.mode === 'teams' && this.pendingConstructorId
-            ? this.grid.querySelector(`[data-constructor-id="${CSS.escape(this.pendingConstructorId)}"]`)
+            ? this.grid.querySelector(`[data-constructor-id="${this.escapeSelector(this.pendingConstructorId)}"]`)
             : this.pendingDriverId
-                ? this.grid.querySelector(`[data-driver-id="${CSS.escape(this.pendingDriverId)}"]`)
+                ? this.grid.querySelector(`[data-driver-id="${this.escapeSelector(this.pendingDriverId)}"]`)
                 : null;
         if (!target) return;
         this.toggleCard(target.dataset.cardId);
@@ -413,6 +436,24 @@ class RaceStreamParticipantsPage {
         window.setTimeout(() => target.classList.remove('rs-participant-card--target'), 2200);
         this.pendingDriverId = null;
         this.pendingConstructorId = null;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 26-05-2026
+     * @modified 26-05-2026
+     * @description Escapa selectores CSS sin depender de navegadores antiguos que no soporten CSS.escape
+     * @param {string} value Valor usado en un selector de atributo
+     * @returns {string} Selector seguro
+     */
+    escapeSelector(value) {
+        const text = `${value || ''}`;
+        if (window.CSS && typeof CSS.escape === 'function') {
+            return CSS.escape(text);
+        }
+        return text.replace(/["\\]/g, '\\$&');
     }
 
     formatBirthDate(value) {

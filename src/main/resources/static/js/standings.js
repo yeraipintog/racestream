@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.3.0
+ * @version 1.5.0
  * @created 04-05-2026
- * @modified 14-05-2026
- * @description Lógica de Clasificación con límite público, aviso histórico de constructores, tablas y detalle por GP
+ * @modified 27-05-2026
+ * @description Lógica de Clasificación con histórico autenticado, aviso histórico de constructores, tablas y detalle por GP
  */
 class RaceStreamStandingsPage {
 
@@ -12,7 +12,6 @@ class RaceStreamStandingsPage {
         this.assets = window.RaceStreamF1Assets;
         this.params = new URLSearchParams(window.location.search);
         this.year = Number(this.params.get('year')) || new Date().getFullYear();
-        this.publicLimited = false;
         this.activeType = this.params.get('type') === 'constructors' ? 'constructors' : 'drivers';
         this.selectedDriver = this.params.get('driverId') || 'all';
         this.selectedConstructor = this.params.get('constructorId') || 'all';
@@ -20,6 +19,7 @@ class RaceStreamStandingsPage {
         this.constructorStandings = [];
         this.meetings = [];
         this.raceResults = null;
+        this.seasonFilterLocked = false;
         this.requestId = 0;
         this.abortController = null;
         this.cacheDom();
@@ -47,10 +47,8 @@ class RaceStreamStandingsPage {
 
     bindEvents() {
         this.yearInput.addEventListener('change', () => {
-            if (this.publicLimited) {
-                this.year = new Date().getFullYear();
+            if (this.seasonFilterLocked) {
                 this.yearInput.value = String(this.year);
-                this.updateUrl();
                 return;
             }
             this.year = Number(this.yearInput.value);
@@ -62,14 +60,6 @@ class RaceStreamStandingsPage {
         this.driversTab.addEventListener('click', () => this.setActiveType('drivers'));
         this.constructorsTab.addEventListener('click', () => this.setActiveType('constructors'));
         this.entityFilter.addEventListener('change', () => {
-            if (this.publicLimited) {
-                this.selectedDriver = 'all';
-                this.selectedConstructor = 'all';
-                this.entityFilter.value = 'all';
-                this.updateUrl();
-                this.renderActiveTable();
-                return;
-            }
             if (this.activeType === 'drivers') {
                 this.selectedDriver = this.entityFilter.value;
             } else {
@@ -80,28 +70,53 @@ class RaceStreamStandingsPage {
         });
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.1.0
+     * @created 04-05-2026
+     * @modified 27-05-2026
+     * @description Inicializa acceso público, selector de temporadas y datos de clasificación
+     * @returns {Promise<void>} Carga completada
+     */
     async init() {
-        await this.resolvePublicAccess();
+        await this.applySeasonAccess();
         await this.loadSeasons();
         await this.loadSeason();
     }
 
-    async resolvePublicAccess() {
-        const user = await window.RaceStreamApi.getCurrentUser();
-        this.publicLimited = !user?.authenticated;
-        if (!this.publicLimited) return;
-        this.year = new Date().getFullYear();
-        this.selectedDriver = 'all';
-        this.selectedConstructor = 'all';
-        this.updateUrl();
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Fuerza temporada actual y bloquea el selector histórico cuando no hay sesión
+     * @returns {Promise<void>} Acceso aplicado
+     */
+    async applySeasonAccess() {
+        const access = await window.RaceStreamApi.resolveSeasonAccess(this.year);
+        this.seasonFilterLocked = access.locked;
+        this.year = access.year;
+        this.yearInput.value = String(this.year);
+        if (access.locked && this.params.get('year') && Number(this.params.get('year')) !== access.currentYear) {
+            this.selectedDriver = 'all';
+            this.selectedConstructor = 'all';
+            this.updateUrl();
+        }
+        window.RaceStreamApi.setSeasonFilterLocked(this.yearInput, this.seasonFilterLocked);
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.1
+     * @created 04-05-2026
+     * @modified 27-05-2026
+     * @description Carga temporadas disponibles y mantiene bloqueado el selector para invitados
+     * @returns {Promise<void>} Carga completada
+     */
     async loadSeasons() {
-        if (this.publicLimited) {
-            this.yearInput.innerHTML = `<option value="${this.year}" selected>${this.year}</option>`;
-            this.yearInput.disabled = true;
-            return;
-        }
         const seasons = await this.fetchJson('/api/f1/standings/seasons', []);
         const safeSeasons = Array.isArray(seasons) && seasons.length
             ? seasons
@@ -109,6 +124,7 @@ class RaceStreamStandingsPage {
         this.yearInput.innerHTML = safeSeasons
             .map((item) => `<option value="${item.season}" ${Number(item.season) === this.year ? 'selected' : ''}>${item.season}</option>`)
             .join('');
+        window.RaceStreamApi.setSeasonFilterLocked(this.yearInput, this.seasonFilterLocked);
     }
 
     async loadSeason() {
@@ -138,9 +154,10 @@ class RaceStreamStandingsPage {
         this.syncTypeControls();
         this.populateEntityFilter();
         this.updateUrl();
-        this.yearInput.disabled = this.publicLimited;
+        this.yearInput.disabled = this.seasonFilterLocked;
         this.yearInput.removeAttribute('aria-busy');
-        this.entityFilter.disabled = this.publicLimited;
+        window.RaceStreamApi.setSeasonFilterLocked(this.yearInput, this.seasonFilterLocked);
+        this.entityFilter.disabled = false;
         this.renderActiveTable();
     }
 
@@ -302,17 +319,17 @@ class RaceStreamStandingsPage {
     }
 
     renderConstructorsTable() {
-        const históricalNotice = this.renderHistoricalConstructorsNotice();
+        const historicalNotice = this.renderHistoricalConstructorsNotice();
         if (!this.constructorStandings.length) {
             if (this.year < 1958) {
-                this.tableContent.innerHTML = `${históricalNotice}<p class="empty-state">No hay datos históricos de escuderías para esta temporada.</p>`;
+                this.tableContent.innerHTML = `${historicalNotice}<p class="empty-state">No hay datos históricos de escuderías para esta temporada.</p>`;
             } else {
                 this.renderApiRetry('Escuderías');
             }
             return;
         }
         this.tableContent.innerHTML = `
-            ${históricalNotice}
+            ${historicalNotice}
             <div class="rs-standings-table-wrap">
                 <table class="rs-standings-table">
                     <thead><tr><th>Posición</th><th>Escudería</th><th>Nacionalidad</th><th>Pilotos</th><th>Puntos</th></tr></thead>
@@ -334,8 +351,8 @@ class RaceStreamStandingsPage {
     renderHistoricalConstructorsNotice() {
         if (this.year >= 1958) return '';
         return `
-            <div class="rs-histórical-notice">
-                El Campeonato de Constructores empezó oficialmente en 1958. En temporadas anteriores estos datos son una referencia histórica por escudería/equipo y no una clasificación oficial del campeonato.
+            <div class="rs-historical-notice">
+                El Campeonato de Constructores empezó oficialmente en 1958. En temporadas anteriores estos datos son una referencia histórica y no una clasificación oficial del campeonato.
             </div>
         `;
     }

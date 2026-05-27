@@ -1,10 +1,12 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.0
+ * @version 1.3.0
  * @created 30-04-2026
- * @modified 13-05-2026
- * @description Controlador REST para exponer clasificaciones, temporadas y resultados de Fórmula 1 desde Jolpica con límite público
+ * @modified 27-05-2026
+ * @description Controlador REST para exponer clasificaciones, temporadas y
+ *              resultados de Fórmula 1 desde Jolpica con bloqueo histórico
+ *              para usuarios anónimos
  */
 package com.yerai.racestream.controller;
 
@@ -32,8 +34,9 @@ public class F1StandingsController {
      * @version 1.0.1
      * @created 30-04-2026
      * @modified 13-05-2026
-     * @description Constructor con servicio Jolpica
+     * @description Constructor con servicios de datos Jolpica y acceso por temporada
      * @param jolpicaService Servicio de datos Jolpica
+     * @param publicSeasonAccessService Servicio de bloqueo de históricos para invitados
      */
     public F1StandingsController(JolpicaService jolpicaService, PublicSeasonAccessService publicSeasonAccessService) {
         this.jolpicaService = jolpicaService;
@@ -47,6 +50,7 @@ public class F1StandingsController {
      * @created 30-04-2026
      * @description Devuelve clasificación de pilotos
      * @param year Temporada
+     * @param principal Usuario autenticado o anónimo
      * @return Pilotos ordenados por puntos
      */
     @GetMapping("/drivers")
@@ -62,6 +66,7 @@ public class F1StandingsController {
      * @modified 13-05-2026
      * @description Devuelve clasificación de constructores
      * @param year Temporada
+     * @param principal Usuario autenticado o anónimo
      * @return Constructores ordenados por puntos
      */
     @GetMapping("/constructors")
@@ -79,10 +84,7 @@ public class F1StandingsController {
      * @return Temporadas disponibles
      */
     @GetMapping("/seasons")
-    public JsonNode getAvailableSeasons(@AuthenticationPrincipal Object principal) {
-        if (!publicSeasonAccessService.isAuthenticated(principal)) {
-            return publicSeasonAccessService.currentSeasonOnly();
-        }
+    public JsonNode getAvailableSeasons() {
         return jolpicaService.getAvailableSeasons();
     }
 
@@ -93,11 +95,44 @@ public class F1StandingsController {
      * @created 04-05-2026
      * @description Devuelve carreras con resultados para detalles de clasificación
      * @param year Temporada
+     * @param principal Usuario autenticado o anónimo
      * @return Carreras con resultados oficiales
      */
     @GetMapping("/race-results")
     public JsonNode getRaceResults(@RequestParam(required = false) Integer year, @AuthenticationPrincipal Object principal) {
         return jolpicaService.getRaceResultsByYear(publicSeasonAccessService.resolveYear(year, principal));
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Devuelve carreras con resultados de clasificación para sesiones históricas
+     * @param year Temporada
+     * @param principal Usuario autenticado
+     * @return Carreras con resultados de clasificación
+     */
+    @GetMapping("/qualifying-results")
+    public JsonNode getQualifyingResults(@RequestParam(required = false) Integer year, @AuthenticationPrincipal Object principal) {
+        return jolpicaService.getQualifyingResultsByYear(publicSeasonAccessService.resolveYear(year, principal));
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Devuelve carreras con resultados sprint para sesiones históricas
+     * @param year Temporada
+     * @param principal Usuario autenticado
+     * @return Carreras con resultados sprint
+     */
+    @GetMapping("/sprint-results")
+    public JsonNode getSprintResults(@RequestParam(required = false) Integer year, @AuthenticationPrincipal Object principal) {
+        return jolpicaService.getSprintResultsByYear(publicSeasonAccessService.resolveYear(year, principal));
     }
 
     /**

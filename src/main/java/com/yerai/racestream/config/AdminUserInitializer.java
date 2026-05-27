@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.2
+ * @version 1.2.3
  * @created 06-05-2026
- * @modified 25-05-2026
+ * @modified 27-05-2026
  * @description Inicializa el acceso administrador de demo y datos reales de
  *              prueba, foro, likes y favoritos sin duplicados
  */
@@ -66,9 +66,9 @@ public class AdminUserInitializer {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 19-05-2026
-     * @modified 19-05-2026
+     * @modified 27-05-2026
      * @description Crea usuarios, publicaciones, likes y favoritos de prueba con datos de F1 reales sin duplicar registros
      * @param appUserRepository Repositorio de usuarios
      * @param contactMessageRepository Repositorio de contacto
@@ -109,7 +109,7 @@ public class AdminUserInitializer {
                     "El Madring será un circuito urbano en IFEMA Madrid con rectas largas y zonas de frenada fuertes. Puede ser clave explicar los sectores antes del debut.",
                     "demo-forum-madrid-2026", null);
             ensureForumPost(forumPostRepository, nico, "Grand Prix", "Re: GP Madrid 2026",
-                    "También ayudaría comparar el trazado con circuitos urbaños actuales para que un usuario nuevo entienda dónde pueden aparecer adelantamientos.",
+                    "También ayudaría comparar el trazado con circuitos urbanos actuales para que un usuario nuevo entienda dónde pueden aparecer adelantamientos.",
                     "demo-forum-madrid-2026-reply", madridPost);
 
             ForumPost tyresPost = ensureForumPost(forumPostRepository, laura, "Sesión", "Neumáticos 2026",

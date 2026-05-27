@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.6.1
+ * @version 1.8.0
  * @created 30-04-2026
- * @modified 22-05-2026
- * @description Lógica de Sesiones completadas con límite público, selector por GP, carga reforzada, podios y tablas
+ * @modified 27-05-2026
+ * @description Lógica de Sesiones completadas con histórico autenticado, selector por GP, carga reforzada, podios y tablas
  */
 class RaceStreamSessionsPage {
 
@@ -13,7 +13,6 @@ class RaceStreamSessionsPage {
         this.initialParams = new URLSearchParams(window.location.search);
         const requestedYear = Number(this.initialParams.get('year'));
         this.year = Number.isInteger(requestedYear) && requestedYear >= 1950 ? requestedYear : new Date().getFullYear();
-        this.publicLimited = false;
         this.raceStripYear = new Date().getFullYear();
         this.currentMeetingApi = `/api/f1/schedule/current-or-next-meeting?year=${this.raceStripYear}`;
         this.meetingsApi = (year) => `/api/f1/schedule/calendar-meetings?year=${year}`;
@@ -22,6 +21,8 @@ class RaceStreamSessionsPage {
         this.driversApi = (sessionKey) => `/api/f1/drivers?sessionKey=${sessionKey}`;
         this.lapsApi = (sessionKey) => `/api/f1/live/laps?sessionKey=${sessionKey}`;
         this.raceResultsApi = (year) => `/api/f1/standings/race-results?year=${year}`;
+        this.qualifyingResultsApi = (year) => `/api/f1/standings/qualifying-results?year=${year}`;
+        this.sprintResultsApi = (year) => `/api/f1/standings/sprint-results?year=${year}`;
         this.yearInput = document.getElementById('sessionsYearInput');
         this.meetingSelect = document.getElementById('meetingSelect');
         this.sessionsList = document.getElementById('sessionsList');
@@ -38,6 +39,7 @@ class RaceStreamSessionsPage {
         this.topMeeting = null;
         this.topSessions = [];
         this.ownsRaceStrip = !window.raceStreamRaceStrip;
+        this.seasonFilterLocked = false;
         this.sessionData = new Map();
         this.completedSessionsByMeetingKey = new Map();
         this.currentSessions = [];
@@ -60,10 +62,8 @@ class RaceStreamSessionsPage {
     bindEvents() {
         this.yearInput.value = String(this.year);
         this.yearInput.addEventListener('change', () => {
-            if (this.publicLimited) {
-                this.year = new Date().getFullYear();
+            if (this.seasonFilterLocked) {
                 this.yearInput.value = String(this.year);
-                this.updateUrl(this.year, null);
                 return;
             }
             this.initialParams.delete('meetingKey');
@@ -78,13 +78,14 @@ class RaceStreamSessionsPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.1.0
      * @created 07-05-2026
-     * @description Inicializa temporadas, strip superior y meetings seleccionables
+     * @modified 27-05-2026
+     * @description Inicializa acceso público, temporadas, strip superior y meetings seleccionables
      * @returns {Promise<void>} Carga completada
      */
     async init() {
-        await this.resolvePublicAccess();
+        await this.applySeasonAccess();
         await this.loadSeasons();
         if (this.ownsRaceStrip) this.loadRaceStripMeeting();
         await this.loadMeetings();
@@ -94,37 +95,36 @@ class RaceStreamSessionsPage {
      * @author Yerai Pinto
      * @since 1.0
      * @version 1.0.0
-     * @created 20-05-2026
-     * @modified 20-05-2026
-     * @description Limita las sesiones anónimas a la temporada actual
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Bloquea temporadas históricas para invitados y limpia filtros de URL no permitidos
+     * @returns {Promise<void>} Acceso aplicado
      */
-    async resolvePublicAccess() {
-        const user = await window.RaceStreamApi.getCurrentUser();
-        this.publicLimited = !user?.authenticated;
-        if (!this.publicLimited) return;
-        this.year = new Date().getFullYear();
-        this.initialParams.delete('meetingKey');
-        this.initialParams.delete('sessionKey');
-        this.initialParams.delete('sessionIndex');
-        this.updateUrl(this.year, null);
+    async applySeasonAccess() {
+        const access = await window.RaceStreamApi.resolveSeasonAccess(this.year);
+        this.seasonFilterLocked = access.locked;
+        this.year = access.year;
+        this.yearInput.value = String(this.year);
+        if (access.locked && this.initialParams.get('year') && Number(this.initialParams.get('year')) !== access.currentYear) {
+            this.initialParams.delete('meetingKey');
+            this.initialParams.delete('sessionKey');
+            this.initialParams.delete('sessionIndex');
+            this.updateUrl(this.year, null);
+        }
+        window.RaceStreamApi.setSeasonFilterLocked(this.yearInput, this.seasonFilterLocked);
     }
 
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 07-05-2026
+     * @modified 27-05-2026
      * @description Carga temporadas históricas en el selector de sesiones
      * @returns {Promise<void>} Carga completada
      */
     async loadSeasons() {
         const currentYear = new Date().getFullYear();
-        if (this.publicLimited) {
-            this.year = currentYear;
-            this.yearInput.innerHTML = `<option value="${currentYear}" selected>${currentYear}</option>`;
-            this.yearInput.disabled = true;
-            return;
-        }
         const seasons = await this.fetchJson('/api/f1/standings/seasons', []);
         const safeSeasons = Array.isArray(seasons) && seasons.length
             ? seasons
@@ -132,6 +132,7 @@ class RaceStreamSessionsPage {
         this.yearInput.innerHTML = safeSeasons
             .map((item) => `<option value="${item.season}" ${Number(item.season) === this.year ? 'selected' : ''}>${item.season}</option>`)
             .join('');
+        window.RaceStreamApi.setSeasonFilterLocked(this.yearInput, this.seasonFilterLocked);
     }
 
     /**
@@ -166,8 +167,9 @@ class RaceStreamSessionsPage {
         }
         if (!Array.isArray(this.meetings) || !this.meetings.length) {
             this.meetingSelect.innerHTML = '<option value="">Sin datos</option>';
-            this.yearInput.disabled = this.publicLimited;
+            this.yearInput.disabled = this.seasonFilterLocked;
             this.yearInput.removeAttribute('aria-busy');
+            window.RaceStreamApi.setSeasonFilterLocked(this.yearInput, this.seasonFilterLocked);
             this.renderSessionsRetry('No hay sesiones disponibles para esta temporada.');
             this.renderSelectedMeetingInfo(null);
             this.updateSelectedTitle(null);
@@ -192,16 +194,18 @@ class RaceStreamSessionsPage {
             || this.getCurrentOrNextMeeting(this.selectableMeetings);
         if (!selected) {
             this.meetingSelect.innerHTML = '<option value="">Sin Grandes Premios</option>';
-            this.yearInput.disabled = this.publicLimited;
+            this.yearInput.disabled = this.seasonFilterLocked;
             this.yearInput.removeAttribute('aria-busy');
+            window.RaceStreamApi.setSeasonFilterLocked(this.yearInput, this.seasonFilterLocked);
             this.renderSessionsRetry('Todavía no hay Grandes Premios con sesiones completadas en esta temporada.');
             this.renderSelectedMeetingInfo(null);
             this.updateSelectedTitle(null);
             return;
         }
         this.meetingSelect.disabled = false;
-        this.yearInput.disabled = this.publicLimited;
+        this.yearInput.disabled = this.seasonFilterLocked;
         this.yearInput.removeAttribute('aria-busy');
+        window.RaceStreamApi.setSeasonFilterLocked(this.yearInput, this.seasonFilterLocked);
         this.meetingSelect.value = selected.meeting_key;
         this.initialParams.delete('meetingKey');
         if (requestId !== this.meetingsRequestId) {
@@ -425,8 +429,8 @@ class RaceStreamSessionsPage {
         if (!cacheKey || this.sessionData.has(cacheKey)) {
             return;
         }
-        if (this.canUseJolpicaRaceResults(session)) {
-            const results = await this.loadJolpicaRaceRows();
+        if (this.canUseJolpicaSessionResults(session)) {
+            const results = await this.loadJolpicaSessionRows(session);
             this.sessionData.set(cacheKey, {
                 results,
                 laps: [],
@@ -477,14 +481,17 @@ class RaceStreamSessionsPage {
      * @author Yerai Pinto
      * @since 1.0
      * @version 1.0.0
-     * @created 07-05-2026
-     * @description Indica si una carrera histórica puede usar resultados Jolpica
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Indica si una sesión histórica puede usar resultados Jolpica reales
      * @param {Object} session Sesión
      * @returns {boolean} Resultado
      */
-    canUseJolpicaRaceResults(session) {
+    canUseJolpicaSessionResults(session) {
+        const hasOfficialResults = session?.has_official_results !== false && session?.has_official_results !== 'false';
         return !session?.session_key
-            && /race/i.test(`${session?.session_name || ''} ${session?.session_type || ''}`)
+            && hasOfficialResults
+            && Boolean(this.getJolpicaSessionKind(session))
             && Boolean(this.selectedMeeting?.jolpica_round);
     }
 
@@ -492,19 +499,69 @@ class RaceStreamSessionsPage {
      * @author Yerai Pinto
      * @since 1.0
      * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Clasifica sesiones sintéticas según el endpoint histórico compatible
+     * @param {Object} session Sesión
+     * @returns {string} Tipo Jolpica compatible
+     */
+    getJolpicaSessionKind(session) {
+        const label = `${session?.session_name || ''} ${session?.session_type || ''}`;
+        if (/sprint qualifying|sprint shootout|practice/i.test(label)) return '';
+        if (/qualifying/i.test(label)) return 'qualifying';
+        if (/sprint/i.test(label)) return 'sprint';
+        if (/race/i.test(label)) return 'race';
+        return '';
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Elige el adaptador Jolpica correcto para carrera, sprint o clasificación
+     * @param {Object} session Sesión
+     * @returns {Promise<Array>} Resultados adaptados
+     */
+    async loadJolpicaSessionRows(session) {
+        const kind = this.getJolpicaSessionKind(session);
+        if (kind === 'qualifying') return this.loadJolpicaQualifyingRows();
+        if (kind === 'sprint') return this.loadJolpicaSprintRows();
+        return this.loadJolpicaRaceRows();
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.1
      * @created 07-05-2026
+     * @modified 27-05-2026
      * @description Adapta resultados Jolpica al formato de tabla de sesiones
      * @returns {Promise<Array>} Resultados de carrera adaptados
      */
     async loadJolpicaRaceRows() {
         const races = await this.fetchArrayWithRetry(this.raceResultsApi(this.year), 4, 280);
-        const race = races.find((item) => `${item.round || ''}` === `${this.selectedMeeting?.jolpica_round || ''}`)
-            || races.find((item) => this.normalizeAssetKey(item.raceName) === this.normalizeAssetKey(this.selectedMeeting?.meeting_name));
-        return (race?.Results || []).map((result) => {
+        return (this.findJolpicaRace(races)?.Results || []).map((result) => this.mapJolpicaRaceResult(result));
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Adapta resultados de clasificación Jolpica al formato de tabla de sesiones
+     * @returns {Promise<Array>} Resultados de clasificación adaptados
+     */
+    async loadJolpicaQualifyingRows() {
+        const races = await this.fetchArrayWithRetry(this.qualifyingResultsApi(this.year), 4, 280);
+        return (this.findJolpicaRace(races)?.QualifyingResults || []).map((result, index) => {
             const driver = result.Driver || {};
             const constructor = result.Constructor || {};
-            const time = result.Time?.time || '';
-            const isLeader = Number(result.positionOrder || result.position) === 1;
+            const q1 = result.Q1 || result.q1 || '';
+            const q2 = result.Q2 || result.q2 || '';
+            const q3 = result.Q3 || result.q3 || '';
             return {
                 Driver: driver,
                 Constructor: constructor,
@@ -512,14 +569,77 @@ class RaceStreamSessionsPage {
                 driver_code: driver.code || '',
                 full_name: [driver.givenName, driver.familyName].filter(Boolean).join(' ') || driver.code || 'Piloto',
                 team_name: constructor.name || '-',
-                position: result.positionOrder || result.position || result.positionText,
-                number_of_laps: result.laps || '-',
-                duration: isLeader ? time : null,
-                gap_to_leader: !isLeader && time.startsWith('+') ? time : null,
-                points: result.points || 0,
-                status: result.status || '-'
+                position: result.position || result.positionText || index + 1,
+                number_of_laps: '-',
+                duration: [q1, q2, q3],
+                q1,
+                q2,
+                q3,
+                points: 0,
+                status: q1 || q2 || q3 ? 'Clasificado' : 'Sin tiempo'
             };
         });
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Adapta resultados sprint Jolpica al formato de tabla de sesiones
+     * @returns {Promise<Array>} Resultados sprint adaptados
+     */
+    async loadJolpicaSprintRows() {
+        const races = await this.fetchArrayWithRetry(this.sprintResultsApi(this.year), 4, 280);
+        return (this.findJolpicaRace(races)?.SprintResults || []).map((result) => this.mapJolpicaRaceResult(result));
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Busca la carrera Jolpica seleccionada por ronda o nombre normalizado
+     * @param {Array} races Carreras candidatas
+     * @returns {Object|undefined} Carrera seleccionada
+     */
+    findJolpicaRace(races) {
+        const safeRaces = Array.isArray(races) ? races : [];
+        return safeRaces.find((item) => `${item.round || ''}` === `${this.selectedMeeting?.jolpica_round || ''}`)
+            || safeRaces.find((item) => this.normalizeAssetKey(item.raceName) === this.normalizeAssetKey(this.selectedMeeting?.meeting_name));
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Normaliza un resultado Jolpica de carrera o sprint para la tabla
+     * @param {Object} result Resultado Jolpica
+     * @returns {Object} Resultado adaptado
+     */
+    mapJolpicaRaceResult(result) {
+        const driver = result.Driver || {};
+        const constructor = result.Constructor || {};
+        const time = result.Time?.time || '';
+        const isLeader = Number(result.positionOrder || result.position) === 1;
+        return {
+            Driver: driver,
+            Constructor: constructor,
+            driver_number: result.number || driver.permanentNumber || '',
+            driver_code: driver.code || '',
+            full_name: [driver.givenName, driver.familyName].filter(Boolean).join(' ') || driver.code || 'Piloto',
+            team_name: constructor.name || '-',
+            position: result.positionOrder || result.position || result.positionText,
+            number_of_laps: result.laps || '-',
+            duration: isLeader ? time : null,
+            gap_to_leader: !isLeader && time.startsWith('+') ? time : null,
+            points: result.points || 0,
+            status: result.status || '-'
+        };
     }
 
     /**
@@ -540,16 +660,19 @@ class RaceStreamSessionsPage {
             const canOpen = this.shouldLoadSessionDetails(session) || hasData;
             const expanded = canOpen && this.expandedSessionIndex === index;
             const loading = this.loadingSessionKeys.has(key);
-            const pendingText = unavailable ? 'Sin resultados oficiales' : canOpen ? 'Pulsa para cargar resultados' : 'Sin resultados oficiales';
+            const pendingText = loading ? 'Cargando resultados...' : this.getSessionResultHint(session, canOpen, unavailable);
             return `
                 <article class="${this.getSessionTypeClass(session.session_type)}${expanded ? ' rs-session-row--expanded' : ''}${canOpen ? '' : ' rs-session-row--disabled'}" data-session-index="${index}" data-session-open="${canOpen}" aria-expanded="${expanded}">
                     <div class="rs-session-row__date"><strong>${date.getDate()}</strong><span>${date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}</span></div>
                     <div class="rs-session-row__main">
                         <div class="rs-session-row__title"><h4>${this.translateSessionName(session.session_name)}</h4></div>
-                        <div class="rs-session-row__meta">${this.translateSessionType(session.session_type)}</div>
+                        <div class="rs-session-row__meta">
+                            <span>${this.translateSessionType(session.session_type)} · ${this.formatSessionTimeRange(session.date_start, session.date_end)}</span>
+                            ${this.renderSessionSourcePill(session)}
+                        </div>
                     </div>
                     <div class="rs-session-row__summary">
-                        ${hasData ? this.renderSessionPodium(session) : `<div class="rs-session-row__pending">${loading ? 'Cargando resultados...' : pendingText}</div>`}
+                        ${hasData ? this.renderSessionPodium(session) : `<div class="rs-session-row__pending">${pendingText}</div>`}
                     </div>
                     <div class="rs-session-row__details">
                         ${expanded && hasData ? this.renderResultTable(session) : expanded && loading ? '<p class="loading-state">Cargando datos de la sesión...</p>' : ''}
@@ -562,6 +685,47 @@ class RaceStreamSessionsPage {
             row.addEventListener('click', () => this.toggleSession(Number(row.dataset.sessionIndex)));
         });
         this.hydrateDriverImages();
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Muestra el estado correcto de resultados sin ocultar horarios de Libres históricos
+     * @param {Object} session Sesión
+     * @param {boolean} canOpen Indica si puede cargar resultados
+     * @param {boolean} unavailable Indica si ya se confirmó que no hay resultados
+     * @returns {string} Texto visible
+     */
+    getSessionResultHint(session, canOpen, unavailable) {
+        if (unavailable) return 'Sin resultados oficiales';
+        if (canOpen) return 'Pulsa para cargar resultados';
+        if (/practice/i.test(`${session?.session_name || ''} ${session?.session_type || ''}`)) {
+            return session?.is_inferred_schedule ? 'Horario estimado' : 'Horario histórico disponible';
+        }
+        return 'Sin resultados oficiales';
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Pinta el origen de sesiones históricas sin repetir texto si no aporta valor
+     * @param {Object} session Sesión
+     * @returns {string} HTML del indicador
+     */
+    renderSessionSourcePill(session) {
+        if (session?.is_inferred_schedule) {
+            return '<span class="rs-session-row__source">Estimado</span>';
+        }
+        if (session?.is_jolpica_fallback) {
+            return '<span class="rs-session-row__source">Histórico</span>';
+        }
+        return '';
     }
 
     /**
@@ -605,7 +769,7 @@ class RaceStreamSessionsPage {
         if (this.unavailableSessionKeys.has(this.getSessionCacheKey(session))) {
             return false;
         }
-        return (Boolean(session?.session_key) || this.canUseJolpicaRaceResults(session))
+        return (Boolean(session?.session_key) || this.canUseJolpicaSessionResults(session))
             && this.getSessionStatus(session) === 'completed';
     }
 
@@ -631,7 +795,6 @@ class RaceStreamSessionsPage {
 
         const isQualifying = this.isQualifyingSession(session);
         const isRace = /race|sprint/i.test(`${session.session_type || ''} ${session.session_name || ''}`) && !isQualifying;
-        const isPractice = !isRace && !isQualifying;
         const headers = isRace
             ? ['Posición', 'Piloto', 'Código', 'Número', 'Escudería', 'Vueltas realizadas', 'Tiempo / gap', 'Puntos', 'Estado']
             : isQualifying
@@ -642,13 +805,13 @@ class RaceStreamSessionsPage {
             <div class="rs-session-table-wrap">
                 <table class="rs-session-table">
                     <thead><tr>${headers.map((header) => `<th>${header}</th>`).join('')}</tr></thead>
-                    <tbody>${rows.map((row, index) => this.renderResultRow(row, session, index, isRace, isQualifying, isPractice)).join('')}</tbody>
+                    <tbody>${rows.map((row, index) => this.renderResultRow(row, session, index, isRace, isQualifying)).join('')}</tbody>
                 </table>
             </div>
         `;
     }
 
-    renderResultRow(row, session, index, isRace, isQualifying, isPractice) {
+    renderResultRow(row, session, index, isRace, isQualifying) {
         const driver = this.getDriver(row, session);
         const position = this.getResultPosition(row, index, isRace);
         const stats = this.getLapStats(row, session);
@@ -1027,7 +1190,7 @@ class RaceStreamSessionsPage {
         const best = validLaps.sort((left, right) => Number(left.lap_duration) - Number(right.lap_duration))[0];
         return {
             laps: row.number_of_laps || row.laps || laps.length || '-',
-            bestLap: row.best_lap_time || row.duration || bestá.lap_duration || null
+            bestLap: row.best_lap_time || row.duration || best?.lap_duration || null
         };
     }
 
@@ -1249,19 +1412,6 @@ class RaceStreamSessionsPage {
      * @author Yerai Pinto
      * @since 1.0
      * @version 1.0.0
-     * @created 03-05-2026
-     * @description Confirma que el GP tiene clave real de OpenF1 para poder pedir resultados
-     * @param {Object} meeting Gran Premio
-     * @returns {boolean} Resultado
-     */
-    hasRealMeetingKey(meeting) {
-        return Number(meeting?.meeting_key) > 0 && !meeting?.is_jolpica_fallback;
-    }
-
-    /**
-     * @author Yerai Pinto
-     * @since 1.0
-     * @version 1.0.0
      * @created 07-05-2026
      * @description Permite meetings reales OpenF1 y meetings históricos sintéticos de Jolpica
      * @param {Object} meeting Gran Premio
@@ -1298,7 +1448,7 @@ class RaceStreamSessionsPage {
      * @version 1.0.1
      * @created 03-05-2026
      * @modified 14-05-2026
-     * @description Calcula si una sesión está completada sin tratar fechas ausentes como próximás por error
+     * @description Calcula si una sesión está completada sin tratar fechas ausentes como próximas por error
      * @param {Object} session Sesión
      * @param {Object|null} meeting GP asociado
      * @returns {string} Estado interno
@@ -1343,11 +1493,29 @@ class RaceStreamSessionsPage {
     }
 
     translateSessionType(type) {
-        return ({ Practice: 'Practice', Qualifying: 'Qualifying', Race: 'Race', Sprint: 'Race' })[type] || type || 'Sesión';
+        return ({ Practice: 'Libres', Qualifying: 'Clasificación', Race: 'Carrera', Sprint: 'Sprint' })[type] || type || 'Sesión';
     }
 
-    formatDateTime(value) {
-        return value ? new Date(value).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' }) : '-';
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Formatea el rango horario local de una sesión
+     * @param {string} startValue Inicio ISO
+     * @param {string} endValue Fin ISO
+     * @returns {string} Rango horario
+     */
+    formatSessionTimeRange(startValue, endValue) {
+        const start = new Date(startValue);
+        const end = new Date(endValue);
+        if (!Number.isFinite(start.getTime())) return 'Horario por confirmar';
+        const startText = start.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        const endText = Number.isFinite(end.getTime())
+            ? end.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+            : '';
+        return endText ? `${startText}-${endText}` : startText;
     }
 
     formatDateRange(startValue, endValue) {

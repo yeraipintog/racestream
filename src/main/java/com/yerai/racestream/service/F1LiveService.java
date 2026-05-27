@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.4.0
+ * @version 1.4.1
  * @created 21-04-2026
- * @modified 24-05-2026
+ * @modified 26-05-2026
  * @description Servicio del Live Center que construye bloques ligeros,
  *              cacheados, fusionados con streaming y tolerantes a sesiones
  *              retrasadas de OpenF1
@@ -202,10 +202,10 @@ public class F1LiveService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 23-05-2026
-     * @modified 23-05-2026
-     * @description Devuelve tabla de tiempos con resultado final o posiciónes live
+     * @modified 26-05-2026
+     * @description Devuelve tabla de tiempos con resultado final o posiciones live
      * @param requestedSessionKey Clave de sesión opcional
      * @return Bloque de timing live
      */
@@ -217,7 +217,7 @@ public class F1LiveService {
             if (sessionKey.isBlank()) {
                 emptyFields(response, "drivers", "leaderboard", "sessionResult", "position", "intervals", "laps",
                         "stints");
-                objectChild(response, "messages").put("leaderboard", "Esperando clasificación o posiciónes confirmadas.");
+                objectChild(response, "messages").put("leaderboard", "Esperando clasificación o posiciones confirmadas.");
                 return response;
             }
 
@@ -448,7 +448,7 @@ public class F1LiveService {
 
     private void putBlockMessages(ObjectNode response) {
         ObjectNode messages = objectChild(response, "messages");
-        putEmptyMessage(messages, response, "leaderboard", "Esperando clasificación o posiciónes confirmadas.");
+        putEmptyMessage(messages, response, "leaderboard", "Esperando clasificación o posiciones confirmadas.");
         putEmptyMessage(messages, response, "weather",
                 "El clima aparecerá cuando OpenF1 publique mediciones para esta sesión.");
         putEmptyMessage(messages, response, "raceControl",

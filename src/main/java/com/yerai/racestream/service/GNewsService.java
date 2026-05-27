@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.1
+ * @version 1.1.2
  * @created 30-04-2026
- * @modified 03-05-2026
+ * @modified 27-05-2026
  * @description Servicio para obtener noticias de Fórmula 1 en español desde GNews con búsqueda robusta y filtro temático
  */
 package com.yerai.racestream.service;
@@ -91,12 +91,13 @@ public class GNewsService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 30-04-2026
+     * @modified 27-05-2026
      * @description Ejecuta una búsqueda GNews sin propagar errores a la vista de Inicio
      * @param query Consulta simple comprobada contra GNews
      * @param max Máximo solicitado a GNews
-     * @return Articulos recibidos
+     * @return Artículos recibidos
      */
     private JsonNode fetchArticles(String query, int max) {
         URI url = UriComponentsBuilder
@@ -133,13 +134,13 @@ public class GNewsService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 30-04-2026
-     * @modified 03-05-2026
+     * @modified 27-05-2026
      * @description Copia artículos válidos de Fórmula 1 hasta el límite pedido
-     * @param articles Articulos recibidos de GNews
-     * @param max Limite final
-     * @return Articulos filtrados
+     * @param articles Artículos recibidos de GNews
+     * @param max Límite final
+     * @return Artículos filtrados
      */
     private ArrayNode copyLimited(JsonNode articles, int max) {
         ArrayNode target = objectMapper.createArrayNode();
@@ -160,7 +161,7 @@ public class GNewsService {
      * @version 1.0.0
      * @created 03-05-2026
      * @description Comprueba que la noticia contenga señales claras de Fórmula 1
-     * @param article Articulo de GNews
+     * @param article Artículo de GNews
      * @return true si pertenece a Fórmula 1
      */
     private boolean isFormulaOneArticle(JsonNode article) {

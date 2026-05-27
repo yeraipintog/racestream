@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.8
+ * @version 1.1.9
  * @created 05-05-2026
- * @modified 22-05-2026
+ * @modified 26-05-2026
  * @description Gestiona login, registro, recuperación, hashes de panel sin scroll intermedio y validación
  */
 document.addEventListener('DOMContentLoaded', () => {
@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const response = await fetch(url, {
             method: 'POST',
             cache: 'no-store',
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+            headers: window.RaceStreamCsrf.headers({ 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' }),
             body: JSON.stringify(body)
         });
         const data = await response.json().catch(() => ({}));

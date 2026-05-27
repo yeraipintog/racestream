@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.1
+ * @version 1.1.2
  * @created 20-05-2026
- * @modified 24-05-2026
+ * @modified 27-05-2026
  * @description Genera avisos de inicio y resumen de sesiones favoritas en app y por correo
  */
 package com.yerai.racestream.service;
@@ -186,9 +186,11 @@ public class SessionNotificationService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 22-05-2026
-     * @description Reintenta el correo si el aviso web ya existía pero el envío SMTP falló
+     * @modified 27-05-2026
+     * @description Reintenta el correo si el aviso web ya existía pero el envío
+     *              SMTP había fallado
      * @param user Usuario destinatario
      * @param title Título del aviso
      * @param message Mensaje del aviso

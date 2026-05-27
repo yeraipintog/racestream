@@ -60,7 +60,7 @@ public class ForumPost {
      * @since 1.0
      * @version 1.0.0
      * @created 05-05-2026
-     * @description Registra la fecha de creacion del post
+     * @description Registra la fecha de creación del post
      */
     @PrePersist
     void prePersist() {

@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.6
+ * @version 1.0.7
  * @created 04-05-2026
- * @modified 22-05-2026
+ * @modified 26-05-2026
  * @description Estilos responsive de Clasificación con filtros, tablas, banderas, detalle por GP y títulos legibles
  */
 
@@ -50,7 +50,7 @@
     padding: 18px;
     border: 1px solid var(--rs-border);
     border-radius: 20px;
-    background: línear-gradient(180deg, rgba(17, 24, 39, .95), rgba(12, 18, 30, .95));
+    background: linear-gradient(180deg, rgba(17, 24, 39, .95), rgba(12, 18, 30, .95));
     box-shadow: var(--rs-shadow-md);
 }
 

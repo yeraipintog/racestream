@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.3
+ * @version 1.0.4
  * @created 05-05-2026
- * @modified 22-05-2026
+ * @modified 27-05-2026
  * @description Repositorio de usuarios para autenticación, cuenta y restablecimiento de contraseña
  */
 package com.yerai.racestream.repository;
@@ -35,12 +35,12 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 22-05-2026
-     * @modified 22-05-2026
+     * @modified 27-05-2026
      * @description Comprueba si un token de recuperación existe y no ha caducado
      * @param passwordResetToken Token de recuperación
-     * @param expiresAt Fecha minima de vigencia
+     * @param expiresAt Fecha mínima de vigencia
      * @return true si el token está vigente
      */
     boolean existsByPasswordResetTokenAndPasswordResetExpiresAtAfter(String passwordResetToken, Instant expiresAt);

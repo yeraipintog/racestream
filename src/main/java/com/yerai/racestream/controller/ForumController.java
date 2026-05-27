@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.6
+ * @version 1.1.7
  * @created 05-05-2026
- * @modified 13-05-2026
+ * @modified 27-05-2026
  * @description API privada de foro con publicaciones, respuestas en hilo, likes y moderación básica
  */
 package com.yerai.racestream.controller;
@@ -132,7 +132,7 @@ public class ForumController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.0
      * @created 05-05-2026
      * @modified 05-05-2026
      * @description Alterna un me gusta por usuario y publicación
@@ -206,7 +206,7 @@ public class ForumController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 08-05-2026
      * @description Convierte una respuesta del foro en JSON seguro para el frontend
      * @param post Respuesta del hilo
@@ -231,7 +231,7 @@ public class ForumController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 08-05-2026
      * @description Elimina una publicación junto a respuestas y me gusta
      *              dependientes
@@ -260,10 +260,11 @@ public class ForumController {
      * @since 1.0
      * @version 1.0.0
      * @created 11-05-2026
+     * @modified 27-05-2026
      * @description Recorta texto del foro al límite persistible tras limpiar
      *              espacios
      * @param value     Texto original
-     * @param maxLength Longitud maxima
+     * @param maxLength Longitud máxima
      * @return Texto normalizado
      */
     private String normalizeLimitedText(String value, int maxLength) {
@@ -277,12 +278,13 @@ public class ForumController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 11-05-2026
+     * @modified 27-05-2026
      * @description Detecta si un campo supera el límite definido para avisar al
      *              usuario
      * @param value     Texto original
-     * @param maxLength Longitud maxima
+     * @param maxLength Longitud máxima
      * @return Resultado de validación
      */
     private boolean exceeds(String value, int maxLength) {

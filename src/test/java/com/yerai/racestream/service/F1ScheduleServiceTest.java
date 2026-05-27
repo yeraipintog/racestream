@@ -1,8 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.0
+ * @version 1.0.1
  * @created 12-05-2026
+ * @modified 27-05-2026
  * @description Tests de sesiones F1 con OpenF1 y fallback Jolpica sin llamadas externas
  */
 package com.yerai.racestream.service;
@@ -17,6 +18,8 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class F1ScheduleServiceTest {
@@ -47,16 +50,38 @@ class F1ScheduleServiceTest {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Verifica que un GP normal conserva las 5 sesiones esperadas aunque OpenF1 devuelva solo una
+     * @description Verifica que un GP real usa solo OpenF1 cuando la API principal devuelve sesiones
      */
     @Test
-    void normalGrandPrixUsesJolpicaToCompleteFiveSessions() throws Exception {
+    void realOpenF1MeetingUsesOnlyOpenF1SessionsWhenAvailable() throws Exception {
         when(openF1Service.getMeeting(123)).thenReturn(array("""
                 [{"meeting_key":123,"meeting_name":"Spanish Grand Prix","country_name":"Spain","location":"Montmelo","year":2026,"date_start":"2026-06-12T00:00:00+00:00","date_end":"2026-06-14T23:59:00+00:00"}]
                 """));
         when(openF1Service.getSessions(123)).thenReturn(array("""
                 [{"session_key":9001,"session_name":"Race","session_type":"Race","date_start":"2026-06-14T13:00:00+00:00","date_end":"2026-06-14T15:00:00+00:00"}]
                 """));
+
+        ArrayNode sessions = (ArrayNode) service.getSessionsByMeeting(123);
+
+        assertThat(sessionNames(sessions)).containsExactly("Race");
+        assertThat(sessions).hasSize(1);
+        verify(jolpicaService, never()).getRacesByYear(2026);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Verifica que Jolpica solo completa sesiones cuando OpenF1 devuelve vacío
+     */
+    @Test
+    void realOpenF1MeetingFallsBackToJolpicaWhenSessionsAreEmpty() throws Exception {
+        when(openF1Service.getMeeting(123)).thenReturn(array("""
+                [{"meeting_key":123,"meeting_name":"Spanish Grand Prix","country_name":"Spain","location":"Montmelo","year":2026,"date_start":"2026-06-12T00:00:00+00:00","date_end":"2026-06-14T23:59:00+00:00"}]
+                """));
+        when(openF1Service.getSessions(123)).thenReturn(objectMapper.createArrayNode());
         when(jolpicaService.getRacesByYear(2026)).thenReturn(array("""
                 [{"round":"10","raceName":"Spanish Grand Prix","date":"2026-06-14","time":"13:00:00Z","Circuit":{"circuitName":"Circuit de Barcelona-Catalunya","Location":{"locality":"Montmelo","country":"Spain"}},"FirstPractice":{"date":"2026-06-12"},"SecondPractice":{"date":"2026-06-12"},"ThirdPractice":{"date":"2026-06-13"},"Qualifying":{"date":"2026-06-13"}}]
                 """));
@@ -113,6 +138,51 @@ class F1ScheduleServiceTest {
      * @author Yerai Pinto
      * @since 1.0
      * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Verifica que un GP histórico de 2006 conserva los Libres publicados por Jolpica
+     */
+    @Test
+    void historicalGrandPrixKeepsJolpicaFreePracticeSessions() throws Exception {
+        int meetingKey = -(2006 * 1000 + 1);
+        when(jolpicaService.getRacesByYear(2006)).thenReturn(array("""
+                [{"season":"2006","round":"1","raceName":"Bahrain Grand Prix","date":"2006-03-12","time":"14:30:00Z","Circuit":{"circuitName":"Bahrain International Circuit","Location":{"locality":"Sakhir","country":"Bahrain"}},"FirstPractice":{"date":"2006-03-10","time":"09:00:00Z"},"SecondPractice":{"date":"2006-03-10","time":"12:00:00Z"},"ThirdPractice":{"date":"2006-03-11","time":"08:00:00Z"},"Qualifying":{"date":"2006-03-11","time":"11:00:00Z"}}]
+                """));
+
+        ArrayNode sessions = (ArrayNode) service.getSessionsByMeeting(meetingKey);
+
+        assertThat(sessionNames(sessions)).containsExactly("Practice 1", "Practice 2", "Practice 3", "Qualifying", "Race");
+        assertThat(sessions).filteredOn((session) -> session.path("session_type").asText().equals("Practice"))
+                .allMatch((session) -> !session.path("is_inferred_schedule").asBoolean(false));
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Verifica que 2006-2022 infiere Libres si la fuente externa omite esos nodos
+     */
+    @Test
+    void historicalGrandPrixInfersFreePracticeSessionsWhenProviderOmitsPracticeNodes() throws Exception {
+        int meetingKey = -(2010 * 1000 + 1);
+        when(jolpicaService.getRacesByYear(2010)).thenReturn(array("""
+                [{"season":"2010","round":"1","raceName":"Bahrain Grand Prix","date":"2010-03-14","time":"12:00:00Z","Circuit":{"circuitName":"Bahrain International Circuit","Location":{"locality":"Sakhir","country":"Bahrain"}},"Qualifying":{"date":"2010-03-13","time":"11:00:00Z"}}]
+                """));
+
+        ArrayNode sessions = (ArrayNode) service.getSessionsByMeeting(meetingKey);
+
+        assertThat(sessionNames(sessions)).containsExactly("Practice 1", "Practice 2", "Practice 3", "Qualifying", "Race");
+        assertThat(sessions).filteredOn((session) -> session.path("session_type").asText().equals("Practice"))
+                .allMatch((session) -> session.path("is_inferred_schedule").asBoolean(false))
+                .allMatch((session) -> !session.path("has_official_results").asBoolean(true));
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
      * @created 12-05-2026
      * @description Verifica que un GP cancelado mantiene sesiones visibles y marcadas como canceladas
      */
@@ -149,14 +219,13 @@ class F1ScheduleServiceTest {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Verifica que OpenF1 sigue construyendo calendario cuando Jolpica falla
+     * @description Verifica que OpenF1 construye calendario sin llamar a Jolpica cuando devuelve datos
      */
     @Test
-    void calendarUsesOpenF1WhenJolpicaFails() throws Exception {
+    void calendarUsesOpenF1WithoutCallingJolpicaWhenAvailable() throws Exception {
         when(openF1Service.getMeetings(2026)).thenReturn(array("""
                 [{"meeting_key":321,"meeting_name":"Spanish Grand Prix","country_name":"Spain","location":"Montmelo","year":2026,"date_start":"2026-06-12T00:00:00+00:00","date_end":"2026-06-14T23:59:00+00:00"}]
                 """));
-        when(jolpicaService.getRacesByYear(2026)).thenThrow(new RuntimeException("Jolpica caido"));
         when(f1DbService.getCircuits(2026)).thenReturn(objectMapper.createArrayNode());
 
         ArrayNode meetings = (ArrayNode) service.getCalendarMeetingsByYear(2026);
@@ -164,6 +233,7 @@ class F1ScheduleServiceTest {
         assertThat(meetings).isNotEmpty();
         assertThat(meetings.get(0).path("meeting_key").asInt()).isEqualTo(321);
         assertThat(meetings.get(0).path("meeting_name").asText()).isEqualTo("Spanish Grand Prix");
+        verify(jolpicaService, never()).getRacesByYear(2026);
     }
 
     /**
@@ -191,15 +261,13 @@ class F1ScheduleServiceTest {
      * @since 1.0
      * @version 1.0.0
      * @created 12-05-2026
-     * @description Verifica que getMeetingByKey recupera un meeting ya enriquecido si OpenF1 devuelve vacío
+     * @description Verifica que getMeetingByKey reutiliza calendario cargado y evita una llamada extra
      */
     @Test
     void meetingByKeyFallsBackToEnrichedCalendar() throws Exception {
         when(openF1Service.getMeetings(2026)).thenReturn(array("""
                 [{"meeting_key":654,"meeting_name":"Italian Grand Prix","country_name":"Italy","location":"Monza","year":2026,"date_start":"2026-09-04T00:00:00+00:00","date_end":"2026-09-06T23:59:00+00:00"}]
                 """));
-        when(openF1Service.getMeeting(654)).thenReturn(objectMapper.createArrayNode());
-        when(jolpicaService.getRacesByYear(2026)).thenReturn(objectMapper.createArrayNode());
         when(f1DbService.getCircuits(2026)).thenReturn(objectMapper.createArrayNode());
         service.getCalendarMeetingsByYear(2026);
 
@@ -207,6 +275,7 @@ class F1ScheduleServiceTest {
 
         assertThat(meeting.path("meeting_key").asInt()).isEqualTo(654);
         assertThat(meeting.path("meeting_name").asText()).isEqualTo("Italian Grand Prix");
+        verify(openF1Service, never()).getMeeting(654);
     }
 
     /**

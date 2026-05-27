@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.3.3
+ * @version 1.3.4
  * @created 05-05-2026
- * @modified 22-05-2026
+ * @modified 26-05-2026
  * @description Gestiona cuenta, borrado, favoritos, preferencias, notificaciones de GP, foro y contacto sin avisos duplicados de ADMIN
  */
 document.addEventListener('DOMContentLoaded', () => {
@@ -13,10 +13,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const SAME_PASSWORD_MESSAGE = 'La contraseña introducida es la registrada actualmente';
 
     const api = async (url, options = {}) => {
+        const headers = window.RaceStreamCsrf.headers({
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            ...(options.headers || {})
+        });
         const response = await fetch(url, {
             ...options,
             cache: 'no-store',
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', ...(options.headers || {}) }
+            headers
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {

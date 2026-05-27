@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.4.1
+ * @version 1.4.2
  * @created 30-04-2026
- * @modified 19-05-2026
+ * @modified 26-05-2026
  * @description Estilos responsive de Inicio con offset de cabecera, última
  *              carrera, estadísticas de temporada, rankings e imágenes F1
  */
@@ -17,7 +17,7 @@
     display: flex;
     align-items: stretch;
     background:
-        línear-gradient(90deg, rgba(6, 8, 13, .98) 0%, rgba(6, 8, 13, .88) 45%, rgba(6, 8, 13, .70) 100%),
+        linear-gradient(90deg, rgba(6, 8, 13, .98) 0%, rgba(6, 8, 13, .88) 45%, rgba(6, 8, 13, .70) 100%),
         url("/assets/img/Fondo.png") center/cover,
         radial-gradient(circle at 82% 24%, rgba(229, 57, 53, .28), transparent 32%),
         #06080d;
@@ -70,7 +70,7 @@
 
 .rs-home-hero__actions .rs-button--primary {
     border-color: rgba(248, 113, 113, .58);
-    background: línear-gradient(135deg, rgba(229, 57, 53, .36), rgba(248, 113, 113, .22));
+    background: linear-gradient(135deg, rgba(229, 57, 53, .36), rgba(248, 113, 113, .22));
 }
 
 .rs-home-hero__actions .rs-button--primary {
@@ -85,7 +85,7 @@
 .rs-home-panel {
     border: 1px solid var(--rs-border);
     border-radius: 8px;
-    background: línear-gradient(180deg, rgba(17, 24, 39, .94), rgba(12, 18, 30, .94));
+    background: linear-gradient(180deg, rgba(17, 24, 39, .94), rgba(12, 18, 30, .94));
     box-shadow: var(--rs-shadow-md);
 }
 
@@ -188,7 +188,7 @@
     padding: 14px 16px;
     border: 1px solid var(--rs-border);
     border-radius: 8px;
-    background: línear-gradient(180deg, rgba(17, 24, 39, .96), rgba(12, 18, 30, .96));
+    background: linear-gradient(180deg, rgba(17, 24, 39, .96), rgba(12, 18, 30, .96));
     box-shadow: var(--rs-shadow-md);
 }
 
@@ -304,8 +304,8 @@
 
 .rs-home-panel--season-stats {
     background:
-        línear-gradient(135deg, rgba(229, 57, 53, .18), rgba(56, 189, 248, .08)),
-        línear-gradient(180deg, rgba(17, 24, 39, .96), rgba(12, 18, 30, .96));
+        linear-gradient(135deg, rgba(229, 57, 53, .18), rgba(56, 189, 248, .08)),
+        linear-gradient(180deg, rgba(17, 24, 39, .96), rgba(12, 18, 30, .96));
     display: flex;
     flex-direction: column;
 }
@@ -483,7 +483,7 @@
     border: 2px solid rgba(255, 255, 255, .18);
     border-top-color: #fff;
     border-radius: 999px;
-    animation: rs-spin .8s línear infinite;
+    animation: rs-spin .8s linear infinite;
 }
 
 .rs-home-ranking__media--loading img:not([src]) {

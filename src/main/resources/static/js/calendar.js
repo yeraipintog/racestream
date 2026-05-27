@@ -1,10 +1,10 @@
 ﻿/**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.4.1
+ * @version 1.6.0
  * @created 21-04-2026
- * @modified 22-05-2026
- * @description Lógica principal del calendario F1 RaceStream con fechas compactas, límite público, imágenes seguras y carga reforzada
+ * @modified 27-05-2026
+ * @description Lógica principal del calendario F1 RaceStream con fechas compactas, histórico autenticado, imágenes seguras y carga reforzada
  */
 class RaceStreamCalendarPage {
 
@@ -35,12 +35,12 @@ class RaceStreamCalendarPage {
         this.params = new URLSearchParams(window.location.search);
         const requestedYear = Number(this.params.get('year'));
         this.currentSeason = Number.isInteger(requestedYear) && requestedYear >= 1950 ? requestedYear : new Date().getFullYear();
-        this.publicLimited = false;
         const requestedMeetingKey = Number(this.params.get('meetingKey'));
         this.pendingMeetingKey = Number.isInteger(requestedMeetingKey) && requestedMeetingKey !== 0 ? requestedMeetingKey : null;
         this.selectedSessions = [];
         this.topMeetingSessions = [];
         this.ownsRaceStrip = !window.raceStreamRaceStrip;
+        this.seasonFilterLocked = false;
         this.loadRequestId = 0;
         this.selectionRequestId = 0;
         this.circuitImages = [
@@ -98,10 +98,8 @@ class RaceStreamCalendarPage {
      */
     bindEvents() {
         this.yearInput?.addEventListener('change', () => {
-            if (this.publicLimited) {
-                this.currentSeason = new Date().getFullYear();
+            if (this.seasonFilterLocked) {
                 this.yearInput.value = String(this.currentSeason);
-                this.updateUrl(null);
                 return;
             }
             this.currentSeason = Number(this.yearInput.value) || new Date().getFullYear();
@@ -117,13 +115,13 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.1.0
      * @created 21-04-2026
-     * @modified 08-05-2026
-     * @description Inicializa la página
+     * @modified 27-05-2026
+     * @description Inicializa acceso público, temporadas y calendario
      */
     async init() {
-        await this.resolvePublicAccess();
+        await this.applySeasonAccess();
         await this.loadSeasons();
         await this.loadCalendar();
         if (this.ownsRaceStrip) {
@@ -132,24 +130,6 @@ class RaceStreamCalendarPage {
                 this.updateCountdown();
             }, 30000);
         }
-    }
-
-    /**
-     * @author Yerai Pinto
-     * @since 1.0
-     * @version 1.0.1
-     * @created 20-05-2026
-     * @modified 20-05-2026
-     * @description Fuerza temporada actual cuando el visitante no ha iniciado sesión
-     */
-    async resolvePublicAccess() {
-        const user = await window.RaceStreamApi.getCurrentUser();
-        this.publicLimited = !user?.authenticated;
-        if (!this.publicLimited) return;
-        this.currentSeason = new Date().getFullYear();
-        this.pendingMeetingKey = null;
-        this.selectedMeetingKey = null;
-        this.updateUrl(null);
     }
 
     /**
@@ -171,19 +151,36 @@ class RaceStreamCalendarPage {
      * @author Yerai Pinto
      * @since 1.0
      * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Bloquea el filtro histórico para invitados y fuerza la temporada actual
+     * @returns {Promise<void>} Acceso aplicado
+     */
+    async applySeasonAccess() {
+        const access = await window.RaceStreamApi.resolveSeasonAccess(this.currentSeason);
+        this.seasonFilterLocked = access.locked;
+        this.currentSeason = access.year;
+        if (this.yearInput) {
+            this.yearInput.value = String(this.currentSeason);
+        }
+        if (access.locked && this.params.get('year') && Number(this.params.get('year')) !== access.currentYear) {
+            this.pendingMeetingKey = null;
+            this.updateUrl(null);
+        }
+        window.RaceStreamApi.setSeasonFilterLocked(this.yearInput, this.seasonFilterLocked);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.1
      * @created 13-05-2026
-     * @modified 13-05-2026
+     * @modified 27-05-2026
      * @description Carga temporadas disponibles para filtrar calendario
      */
     async loadSeasons() {
         if (!this.yearInput) return;
         const currentYear = new Date().getFullYear();
-        if (this.publicLimited) {
-            this.currentSeason = currentYear;
-            this.yearInput.innerHTML = `<option value="${currentYear}" selected>${currentYear}</option>`;
-            this.yearInput.disabled = true;
-            return;
-        }
         const seasons = await this.fetchJson('/api/f1/standings/seasons', []);
         const safeSeasons = Array.isArray(seasons) && seasons.length
             ? seasons
@@ -191,6 +188,7 @@ class RaceStreamCalendarPage {
         this.yearInput.innerHTML = safeSeasons
             .map((item) => `<option value="${item.season}" ${Number(item.season) === this.currentSeason ? 'selected' : ''}>${item.season}</option>`)
             .join('');
+        window.RaceStreamApi.setSeasonFilterLocked(this.yearInput, this.seasonFilterLocked);
     }
 
     /**
@@ -1057,8 +1055,9 @@ class RaceStreamCalendarPage {
                 return;
             }
             if (this.yearInput) {
-                this.yearInput.disabled = this.publicLimited;
+                this.yearInput.disabled = this.seasonFilterLocked;
                 this.yearInput.removeAttribute('aria-busy');
+                window.RaceStreamApi.setSeasonFilterLocked(this.yearInput, this.seasonFilterLocked);
             }
             this.allMeetings = Array.isArray(meetings) ? meetings : [];
 
@@ -1095,8 +1094,9 @@ class RaceStreamCalendarPage {
                 return;
             }
             if (this.yearInput) {
-                this.yearInput.disabled = this.publicLimited;
+                this.yearInput.disabled = this.seasonFilterLocked;
                 this.yearInput.removeAttribute('aria-busy');
+                window.RaceStreamApi.setSeasonFilterLocked(this.yearInput, this.seasonFilterLocked);
             }
             console.error('Error cargando calendario:', error);
             this.renderApiRetry(this.calendarGrid, 'Calendario');

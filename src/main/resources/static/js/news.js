@@ -68,7 +68,7 @@ class RaceStreamNewsPage {
      * @version 1.0.1
      * @created 30-04-2026
      * @modified 13-05-2026
-     * @description Obtiene noticias del backend, descarta temás ajenos a F1 y pinta el listado completo
+     * @description Obtiene noticias del backend, descarta temas ajenos a F1 y pinta el listado completo
      */
     async loadNews() {
         const news = await this.fetchJson(this.newsApi, []);

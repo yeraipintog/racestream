@@ -72,7 +72,7 @@ public class AdminController {
      * @version 1.0.2
      * @created 06-05-2026
      * @modified 11-05-2026
-     * @description Devuelve metricas internas solo visibles para admin
+     * @description Devuelve métricas internas solo visibles para admin
      * @return Totales de actividad privada
      */
     @GetMapping("/summary")
@@ -89,8 +89,8 @@ public class AdminController {
      * @since 1.0
      * @version 1.0.1
      * @created 06-05-2026
-     * @description Lista usuarios con busqueda directa por correo o nombre para revision administrativa
-     * @param query Texto de busqueda opcional
+     * @description Lista usuarios con búsqueda directa por correo o nombre para revisión administrativa
+     * @param query Texto de búsqueda opcional
      * @return Usuarios registrados
      */
     @GetMapping("/users")

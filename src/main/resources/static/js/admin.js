@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.0
+ * @version 1.2.1
  * @created 06-05-2026
- * @modified 19-05-2026
+ * @modified 26-05-2026
  * @description Gestiona usuarios protegidos, roles, bloqueos y mensajes de contacto desde el panel privado de administración
  */
 document.addEventListener('DOMContentLoaded', () => {
@@ -22,10 +22,12 @@ document.addEventListener('DOMContentLoaded', () => {
         .replace(/'/g, '&#039;');
 
     const api = async (url, options = {}) => {
+        const baseHeaders = options.body ? { 'Content-Type': 'application/json' } : {};
+        const headers = window.RaceStreamCsrf.headers({ ...baseHeaders, ...(options.headers || {}) });
         const response = await fetch(url, {
+            ...options,
             cache: 'no-store',
-            headers: options.body ? { 'Content-Type': 'application/json' } : undefined,
-            ...options
+            headers
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || 'No tienes permisos de administrador');

@@ -1,11 +1,32 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.6.5
+ * @version 1.6.6
  * @created 30-04-2026
- * @modified 23-05-2026
- * @description Pinta navbar, footer, estructura común, cookies, logout, aviso admin, race strip y centro persistente de notificaciones
+ * @modified 26-05-2026
+ * @description Pinta navbar, footer, estructura común, cookies, logout seguro,
+ *              aviso admin, race strip y centro persistente de notificaciones
  */
+/**
+ * @author Yerai Pinto
+ * @since 1.0
+ * @version 1.0.0
+ * @created 26-05-2026
+ * @modified 26-05-2026
+ * @description Helper global para adjuntar el token CSRF emitido por Spring
+ *              Security en peticiones JSON mutables
+ */
+window.RaceStreamCsrf = window.RaceStreamCsrf || {
+    token() {
+        const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : '';
+    },
+    headers(headers = {}) {
+        const token = this.token();
+        return token ? { ...headers, 'X-XSRF-TOKEN': token } : { ...headers };
+    }
+};
+
 class RaceStreamSharedLayout {
 
     constructor() {
@@ -193,7 +214,7 @@ class RaceStreamSharedLayout {
      * @version 1.0.2
      * @created 04-05-2026
      * @modified 22-05-2026
-     * @description Activa menus del navbar común y notificaciones evitando eventos duplicados
+     * @description Activa menús del navbar común y notificaciones evitando eventos duplicados
      */
     bindDropdowns() {
         const profileDropdown = document.getElementById('profileDropdown');
@@ -399,7 +420,7 @@ class RaceStreamSharedLayout {
                     await fetch('/api/auth/logout', {
                         method: 'POST',
                         cache: 'no-store',
-                        headers: { 'Cache-Control': 'no-cache' },
+                        headers: window.RaceStreamCsrf.headers({ 'Cache-Control': 'no-cache' }),
                         credentials: 'same-origin',
                         redirect: 'manual'
                     });
@@ -721,7 +742,7 @@ class RaceStreamSharedLayout {
         await fetch('/api/user/notifications/read', {
             method: 'POST',
             cache: 'no-store',
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+            headers: window.RaceStreamCsrf.headers({ 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' }),
             body: JSON.stringify({ ids })
         }).catch(() => {});
     }
@@ -744,7 +765,9 @@ class RaceStreamSharedLayout {
     }
 
     cssEscape(value) {
-        return window.CSSí.escape ? CSS.escape(`${value}`) : `${value}`.replace(/["\\]/g, '\\$&');
+        return window.CSS && typeof CSS.escape === 'function'
+            ? CSS.escape(`${value}`)
+            : `${value}`.replace(/["\\]/g, '\\$&');
     }
 
     renderCookieBanner() {
@@ -763,7 +786,7 @@ class RaceStreamSharedLayout {
         const save = async (status) => {
             await fetch('/api/auth/cookies', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: window.RaceStreamCsrf.headers({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ accepted: status === 'accepted' })
             }).catch(() => {});
             this.writeCookieConsent(status);
@@ -789,7 +812,7 @@ class RaceStreamSharedLayout {
                 const statusChoice = button.hasAttribute('data-cookie-accept') ? 'accepted' : 'rejected';
                 await fetch('/api/auth/cookies', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: window.RaceStreamCsrf.headers({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({ accepted: statusChoice === 'accepted' })
                 }).catch(() => {});
                 this.writeCookieConsent(statusChoice);
@@ -804,7 +827,7 @@ class RaceStreamSharedLayout {
      * @version 1.1.0
      * @created 12-05-2026
      * @modified 18-05-2026
-     * @description Guarda accepted o rejected aunque la sincronizacion remota falle
+     * @description Guarda accepted o rejected aunque la sincronización remota falle
      * @param {boolean|string} value Preferencia del usuario
      */
     writeCookieConsent(value) {

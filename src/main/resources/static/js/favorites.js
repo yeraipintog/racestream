@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.0
+ * @version 1.1.1
  * @created 05-05-2026
- * @modified 14-05-2026
+ * @modified 26-05-2026
  * @description Gestiona favoritos compartidos y activa notificaciones de sesiones al guardar un GP
  */
 class RaceStreamFavorites {
@@ -12,6 +12,20 @@ class RaceStreamFavorites {
     static authenticated = null;
     static loaded = false;
     static SESSION_NOTIFICATIONS_KEY = 'rs-session-notifications';
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 26-05-2026
+     * @modified 26-05-2026
+     * @description Adjunta el token CSRF a las peticiones mutables de favoritos
+     * @param {Object} headers Cabeceras base
+     * @returns {Object} Cabeceras con token CSRF cuando existe
+     */
+    static csrfHeaders(headers = {}) {
+        return window.RaceStreamCsrf ? window.RaceStreamCsrf.headers(headers) : { ...headers };
+    }
 
     static key(type, externalId, seasonYear = '') {
         return `${type || ''}`.toLowerCase().trim()
@@ -67,7 +81,10 @@ class RaceStreamFavorites {
         const key = this.key(button.dataset.favoriteType, button.dataset.favoriteId, button.dataset.favoriteSeasonYear);
         const current = this.favorites.get(key);
         if (current?.id) {
-            await fetch(`/api/favorites/${current.id}`, { method: 'DELETE' });
+            await fetch(`/api/favorites/${current.id}`, {
+                method: 'DELETE',
+                headers: this.csrfHeaders()
+            });
             this.favorites.delete(key);
             if (this.isGpFavorite(current)) {
                 this.clearGpSessionNotifications(this.getMeetingKey(current, button));
@@ -75,7 +92,7 @@ class RaceStreamFavorites {
         } else {
             const created = await fetch('/api/favorites', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: this.csrfHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     type: button.dataset.favoriteType,
                     externalId: button.dataset.favoriteId,

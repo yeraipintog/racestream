@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.0
+ * @version 1.0.1
  * @created 22-05-2026
- * @modified 22-05-2026
+ * @modified 27-05-2026
  * @description Verifica avisos reales de sesiones favoritas sin endpoints de prueba
  */
 package com.yerai.racestream.service;
@@ -131,10 +131,11 @@ class SessionNotificationServiceTest {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 22-05-2026
-     * @modified 22-05-2026
-     * @description Comprueba que un aviso ya creado reintenta el correo si SMTP falló antes
+     * @modified 27-05-2026
+     * @description Comprueba que un aviso ya creado reintenta el correo si SMTP
+     *              había fallado antes
      * @throws Exception Si falla la construcción JSON de datos simulados
      */
     @Test

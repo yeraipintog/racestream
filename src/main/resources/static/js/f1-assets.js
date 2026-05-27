@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.3.3
+ * @version 1.3.4
  * @created 04-05-2026
- * @modified 22-05-2026
+ * @modified 27-05-2026
  * @description Útilidades visuales de Fórmula 1 para pilotos, escuderías, nacionalidades, banderas e imágenes
  */
 class RaceStreamF1Assets {
@@ -370,8 +370,9 @@ class RaceStreamF1Assets {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 11-05-2026
+     * @modified 27-05-2026
      * @description Corrige equipos de assets oficiales cuando el piloto cambió de escudería esa temporada
      * @param {string} assetId Identificador oficial de piloto
      * @param {string} team Equipo calculado
@@ -380,7 +381,7 @@ class RaceStreamF1Assets {
      */
     static getDriverAssetTeam(assetId, team, year) {
         if (assetId === 'jacdoo01' && year === 2024) return 'alpine';
-        if (assetId === 'lialaw01' && year === 2025) return 'racingbulls';
+        if (assetId === 'lialaw01' && year === 2025) return 'redbullracing';
         return team;
     }
 

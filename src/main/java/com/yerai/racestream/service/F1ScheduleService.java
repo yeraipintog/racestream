@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.8
+ * @version 1.2.1
  * @created 21-04-2026
- * @modified 12-05-2026
+ * @modified 27-05-2026
  * @description Servicio para obtener calendario F1 con fallback Jolpica, caché y tolerancia a fallos externos
  */
 package com.yerai.racestream.service;
@@ -31,6 +31,8 @@ public class F1ScheduleService {
 
     private static final int CANCELLED_IMOLA_2023_KEY = -202306;
     private static final int SYNTHETIC_MEETING_FACTOR = 1000;
+    private static final int HISTORICAL_PRACTICE_FALLBACK_FIRST_YEAR = 2006;
+    private static final int HISTORICAL_PRACTICE_FALLBACK_LAST_YEAR = 2022;
 
     private final OpenF1Service openF1Service;
     private final JolpicaService jolpicaService;
@@ -98,25 +100,23 @@ public class F1ScheduleService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.2
+     * @version 1.1.0
      * @created 28-04-2026
-     * @modified 12-05-2026
-     * @description Construye el calendario enriquecido con APIs externas en
-     *              paralelo sin romper toda la temporada si una fuente falla
+     * @modified 27-05-2026
+     * @description Construye el calendario priorizando OpenF1 y deja Jolpica
+     *              solo como respaldo cuando OpenF1 no devuelve datos útiles
      * @param selectedYear Temporada
      * @return Meetings enriquecidos
      */
     private ArrayNode buildCalendarMeetings(Integer selectedYear) {
         CompletableFuture<ArrayNode> openMeetingsFuture = safeArrayFuture(
                 () -> asArrayNode(openF1Service.getMeetings(selectedYear)));
-        CompletableFuture<ArrayNode> jolpicaRacesFuture = safeArrayFuture(
-                () -> jolpicaService.getRacesByYear(selectedYear));
         CompletableFuture<ArrayNode> f1DbCircuitsFuture = safeArrayFuture(
                 () -> f1DbService.getCircuits(selectedYear));
 
         ArrayNode openMeetings = openMeetingsFuture.join();
-        ArrayNode jolpicaRaces = jolpicaRacesFuture.join();
         ArrayNode f1DbCircuits = f1DbCircuitsFuture.join();
+        ArrayNode noJolpicaRaces = objectMapper.createArrayNode();
         List<JsonNode> enrichedMeetings = new ArrayList<>();
 
         for (JsonNode meeting : openMeetings) {
@@ -128,14 +128,18 @@ public class F1ScheduleService {
                     : objectMapper.createObjectNode();
 
             normalizeOpenF1MeetingState(enrichedMeeting);
-            enrichMeeting(enrichedMeeting, jolpicaRaces, f1DbCircuits);
+            enrichMeeting(enrichedMeeting, noJolpicaRaces, f1DbCircuits);
             enrichedMeetings.add(enrichedMeeting);
         }
 
-        for (JsonNode jolpicaRace : jolpicaRaces) {
-            ObjectNode fallbackMeeting = buildSyntheticMeetingFromJolpicaRace(selectedYear, jolpicaRace, f1DbCircuits);
-            if (!containsEquivalentMeeting(enrichedMeetings, fallbackMeeting)) {
-                enrichedMeetings.add(fallbackMeeting);
+        if (enrichedMeetings.isEmpty()) {
+            ArrayNode jolpicaRaces = safeArray(() -> jolpicaService.getRacesByYear(selectedYear));
+            for (JsonNode jolpicaRace : jolpicaRaces) {
+                ObjectNode fallbackMeeting = buildSyntheticMeetingFromJolpicaRace(selectedYear, jolpicaRace,
+                        f1DbCircuits);
+                if (!containsEquivalentMeeting(enrichedMeetings, fallbackMeeting)) {
+                    enrichedMeetings.add(fallbackMeeting);
+                }
             }
         }
 
@@ -200,9 +204,9 @@ public class F1ScheduleService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.2
+     * @version 1.0.3
      * @created 21-04-2026
-     * @modified 12-05-2026
+     * @modified 27-05-2026
      * @description Obtener meeting real o sintético con fallback contra calendario enriquecido
      * @param meetingKey Clave del meeting
      * @return Meeting
@@ -220,6 +224,11 @@ public class F1ScheduleService {
             }
             return objectMapper.nullNode();
         }
+        JsonNode cachedMeeting = findMeetingInCachedCalendars(meetingKey);
+        if (cachedMeeting != null) {
+            return cachedMeeting;
+        }
+
         ArrayNode meetings = safeArray(() -> asArrayNode(openF1Service.getMeeting(meetingKey)));
         if (!meetings.isEmpty()) {
             return meetings.get(0).deepCopy();
@@ -295,11 +304,11 @@ public class F1ScheduleService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.5
+     * @version 1.1.0
      * @created 21-04-2026
-     * @modified 04-05-2026
-     * @description Obtener sesiones de OpenF1 completadas con Jolpica cuando falta
-     *              alguna sesión oficial
+     * @modified 27-05-2026
+     * @description Obtener sesiones desde OpenF1 y usar Jolpica solo si OpenF1 no
+     *              devuelve datos para el meeting
      * @param meetingKey Clave del meeting
      * @return Sesiones
      */
@@ -321,42 +330,38 @@ public class F1ScheduleService {
             return buildCancelledSessions(raceDate == null ? LocalDate.of(2023, 5, 21) : raceDate);
         }
 
-        ArrayNode openSessions = (ArrayNode) openF1Service.getSessions(meetingKey);
-        ArrayNode jolpicaSessions = getJolpicaSessionsByOpenF1Meeting(meetingKey);
-        return mergeSessions(openSessions, jolpicaSessions);
+        ArrayNode openSessions = safeArray(() -> asArrayNode(openF1Service.getSessions(meetingKey)));
+        if (!openSessions.isEmpty()) {
+            return sortSessions(openSessions);
+        }
+
+        return getJolpicaSessionsByOpenF1Meeting(meetingKey);
     }
 
     /**
      * @author Yerai Pinto
      * @since 1.0
      * @version 1.0.0
-     * @created 03-05-2026
-     * @description Fusiona OpenF1 y Jolpica conservando session_key real y
-     *              completando sesiones ausentes
-     * @param openSessions    Sesiones OpenF1
-     * @param jolpicaSessions Sesiones Jolpica
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Ordena sesiones reales de OpenF1 sin mezclar fuentes cuando
+     *              la API principal ya responde
+     * @param sessions Sesiones OpenF1
      * @return Sesiones ordenadas y sin duplicados
      */
-    private ArrayNode mergeSessions(ArrayNode openSessions, ArrayNode jolpicaSessions) {
-        List<ObjectNode> merged = new ArrayList<>();
-
-        for (JsonNode session : openSessions) {
+    private ArrayNode sortSessions(ArrayNode sessions) {
+        List<ObjectNode> ordered = new ArrayList<>();
+        for (JsonNode session : sessions) {
             if (session.isObject()) {
-                merged.add(((ObjectNode) session).deepCopy());
+                ordered.add(((ObjectNode) session).deepCopy());
             }
         }
 
-        for (JsonNode jolpicaSession : jolpicaSessions) {
-            if (jolpicaSession.isObject() && !containsEquivalentSession(merged, jolpicaSession)) {
-                merged.add(((ObjectNode) jolpicaSession).deepCopy());
-            }
-        }
-
-        merged.sort(Comparator.comparing(session -> parseDate(getText(session, "date_start")),
+        ordered.sort(Comparator.comparing(session -> parseDate(getText(session, "date_start")),
                 Comparator.nullsLast(Comparator.naturalOrder())));
 
         ArrayNode response = objectMapper.createArrayNode();
-        merged.forEach(response::add);
+        ordered.forEach(response::add);
         return response;
     }
 
@@ -762,8 +767,9 @@ public class F1ScheduleService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
+     * @version 1.0.1
      * @created 28-04-2026
+     * @modified 27-05-2026
      * @description Construye sesiones básicas desde Jolpica cuando OpenF1 no tiene
      *              meeting
      * @param race Carrera Jolpica
@@ -771,14 +777,17 @@ public class F1ScheduleService {
      */
     private ArrayNode buildJolpicaSessions(JsonNode race) {
         List<ObjectNode> sessions = new ArrayList<>();
-        addJolpicaSession(sessions, race.path("FirstPractice"), "Practice 1", "Practice", 1, "11:30:00Z");
-        addJolpicaSession(sessions, race.path("SecondPractice"), "Practice 2", "Practice", 1, "15:00:00Z");
-        addJolpicaSession(sessions, race.path("ThirdPractice"), "Practice 3", "Practice", 1, "10:30:00Z");
-        addJolpicaSession(sessions, race.path("SprintQualifying"), "Sprint Qualifying", "Qualifying", 1, "14:30:00Z");
-        addJolpicaSession(sessions, race.path("SprintShootout"), "Sprint Shootout", "Qualifying", 1, "12:00:00Z");
-        addJolpicaSession(sessions, race.path("Sprint"), "Sprint", "Sprint", 1, "18:00:00Z");
-        addJolpicaSession(sessions, race.path("Qualifying"), "Qualifying", "Qualifying", 1, "16:00:00Z");
-        addJolpicaSession(sessions, race, "Race", "Race", 2, "14:00:00Z");
+        int seasonYear = getRaceSeasonYear(race);
+        boolean hasQualifyingResults = seasonYear >= 2003;
+        addJolpicaSession(sessions, race.path("FirstPractice"), "Practice 1", "Practice", 1, "11:30:00Z", false);
+        addJolpicaSession(sessions, race.path("SecondPractice"), "Practice 2", "Practice", 1, "15:00:00Z", false);
+        addJolpicaSession(sessions, race.path("ThirdPractice"), "Practice 3", "Practice", 1, "10:30:00Z", false);
+        addInferredHistoricalPracticeSessions(sessions, race, seasonYear);
+        addJolpicaSession(sessions, race.path("SprintQualifying"), "Sprint Qualifying", "Qualifying", 1, "14:30:00Z", false);
+        addJolpicaSession(sessions, race.path("SprintShootout"), "Sprint Shootout", "Qualifying", 1, "12:00:00Z", false);
+        addJolpicaSession(sessions, race.path("Sprint"), "Sprint", "Sprint", 1, "18:00:00Z", true);
+        addJolpicaSession(sessions, race.path("Qualifying"), "Qualifying", "Qualifying", 1, "16:00:00Z", hasQualifyingResults);
+        addJolpicaSession(sessions, race, "Race", "Race", 2, "14:00:00Z", true);
         sessions.sort(Comparator.comparing(session -> parseDate(getText(session, "date_start")),
                 Comparator.nullsLast(Comparator.naturalOrder())));
         ArrayNode response = objectMapper.createArrayNode();
@@ -789,18 +798,41 @@ public class F1ScheduleService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.3
      * @created 28-04-2026
-     * @modified 12-05-2026
+     * @modified 27-05-2026
      * @description Añade una sesión sintética si Jolpica expone fecha
      * @param sessions      Lista editable
      * @param source        Nodo de Jolpica
      * @param name          Nombre de sesión
      * @param type          Tipo de sesión
      * @param durationHours Duración aproximada
+     * @param fallbackTime Hora de respaldo si Jolpica no expone hora
+     * @param hasOfficialResults Indica si existe endpoint de resultados para la sesión
      */
     private void addJolpicaSession(List<ObjectNode> sessions, JsonNode source, String name, String type,
-            int durationHours, String fallbackTime) {
+            int durationHours, String fallbackTime, boolean hasOfficialResults) {
+        addJolpicaSession(sessions, source, name, type, durationHours, fallbackTime, hasOfficialResults, false);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Añade una sesión sintética permitiendo marcar horarios inferidos
+     * @param sessions      Lista editable
+     * @param source        Nodo de Jolpica
+     * @param name          Nombre de sesión
+     * @param type          Tipo de sesión
+     * @param durationHours Duración aproximada
+     * @param fallbackTime  Hora de respaldo
+     * @param hasOfficialResults Indica si existe endpoint de resultados para la sesión
+     * @param inferredSchedule Indica si el horario se deduce desde calendario histórico
+     */
+    private void addJolpicaSession(List<ObjectNode> sessions, JsonNode source, String name, String type,
+            int durationHours, String fallbackTime, boolean hasOfficialResults, boolean inferredSchedule) {
         OffsetDateTime start = parseJolpicaDateTime(source, fallbackTime);
 
         if (start == null) {
@@ -815,8 +847,141 @@ public class F1ScheduleService {
         session.put("is_jolpica_fallback", true);
         session.put("source", "Jolpica");
         session.put("synthetic_session_id", getSessionIdentity(session));
-        session.put("has_official_results", "Race".equals(type));
+        session.put("has_official_results", hasOfficialResults);
+        if (inferredSchedule) {
+            session.put("is_inferred_schedule", true);
+        }
         sessions.add(session);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Completa Libres históricos 2006-2022 cuando Jolpica entrega solo clasificación y carrera
+     * @param sessions Sesiones ya detectadas
+     * @param race Carrera Jolpica
+     * @param seasonYear Temporada
+     */
+    private void addInferredHistoricalPracticeSessions(List<ObjectNode> sessions, JsonNode race, int seasonYear) {
+        if (!isHistoricalPracticeFallbackSeason(seasonYear)) {
+            return;
+        }
+
+        OffsetDateTime raceStart = parseJolpicaDateTime(race, "14:00:00Z");
+        if (raceStart == null) {
+            return;
+        }
+
+        OffsetDateTime qualifyingStart = parseJolpicaDateTime(race.path("Qualifying"), "16:00:00Z");
+        LocalDate raceDate = raceStart.toLocalDate();
+        LocalDate qualifyingDate = qualifyingStart == null ? raceDate.minusDays(1) : qualifyingStart.toLocalDate();
+        LocalDate firstPracticeDate = isHistoricalMonacoThursday(race, seasonYear)
+                ? raceDate.minusDays(3)
+                : qualifyingDate.minusDays(1);
+
+        addInferredPracticeSession(sessions, "Practice 1", firstPracticeDate, "11:30:00Z");
+        addInferredPracticeSession(sessions, "Practice 2", firstPracticeDate, "15:00:00Z");
+
+        if (!isSprintWeekend(race)) {
+            addInferredPracticeSession(sessions, "Practice 3", qualifyingDate, "10:30:00Z");
+        }
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Añade un Libre inferido evitando duplicados con sesiones oficiales
+     * @param sessions Sesiones ya detectadas
+     * @param name Nombre de sesión
+     * @param date Fecha calculada
+     * @param fallbackTime Hora estimada
+     */
+    private void addInferredPracticeSession(List<ObjectNode> sessions, String name, LocalDate date, String fallbackTime) {
+        ObjectNode candidate = objectMapper.createObjectNode();
+        candidate.put("session_name", name);
+        candidate.put("session_type", "Practice");
+        if (date == null || containsEquivalentSession(sessions, candidate)) {
+            return;
+        }
+
+        ObjectNode source = objectMapper.createObjectNode();
+        source.put("date", date.toString());
+        source.put("time", fallbackTime);
+        addJolpicaSession(sessions, source, name, "Practice", 1, fallbackTime, false, true);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Indica si una temporada necesita respaldo de Libres históricos
+     * @param seasonYear Temporada
+     * @return Resultado
+     */
+    private boolean isHistoricalPracticeFallbackSeason(int seasonYear) {
+        return seasonYear >= HISTORICAL_PRACTICE_FALLBACK_FIRST_YEAR
+                && seasonYear <= HISTORICAL_PRACTICE_FALLBACK_LAST_YEAR;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Detecta fines de semana sprint para no inventar FP3
+     * @param race Carrera Jolpica
+     * @return Resultado
+     */
+    private boolean isSprintWeekend(JsonNode race) {
+        return hasDate(race.path("Sprint"))
+                || hasDate(race.path("SprintQualifying"))
+                || hasDate(race.path("SprintShootout"));
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Conserva el jueves histórico de Mónaco hasta 2021
+     * @param race Carrera Jolpica
+     * @param seasonYear Temporada
+     * @return Resultado
+     */
+    private boolean isHistoricalMonacoThursday(JsonNode race, int seasonYear) {
+        if (seasonYear > 2021) {
+            return false;
+        }
+        String source = getText(race, "raceName") + " "
+                + getText(race.path("Circuit"), "circuitName") + " "
+                + getText(race.path("Circuit").path("Location"), "locality");
+        String normalized = normalize(source);
+        return normalized.contains("monaco") || normalized.contains("monte carlo");
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Comprueba si un nodo de sesión expone fecha útil
+     * @param node Nodo Jolpica
+     * @return Resultado
+     */
+    private boolean hasDate(JsonNode node) {
+        String date = getText(node, "date");
+        return date != null && !date.isBlank();
     }
 
     /**
@@ -1578,6 +1743,30 @@ public class F1ScheduleService {
             return value == null || value.isBlank() ? fallback : Integer.parseInt(value);
         } catch (NumberFormatException ex) {
             return fallback;
+        }
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Obtiene la temporada de una carrera Jolpica con respaldo a la fecha
+     * @param race Carrera Jolpica
+     * @return Temporada o 0 si no se puede calcular
+     */
+    private int getRaceSeasonYear(JsonNode race) {
+        int seasonYear = parsePositiveInt(getText(race, "season"), 0);
+        if (seasonYear > 0) {
+            return seasonYear;
+        }
+
+        try {
+            String date = getText(race, "date");
+            return date == null || date.isBlank() ? 0 : LocalDate.parse(date).getYear();
+        } catch (RuntimeException ex) {
+            return 0;
         }
     }
 

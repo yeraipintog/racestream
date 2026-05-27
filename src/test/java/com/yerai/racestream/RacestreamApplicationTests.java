@@ -6,9 +6,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
 
@@ -37,15 +42,16 @@ class RacestreamApplicationTests {
 	/**
 	 * @author Yerai Pinto
 	 * @since 1.0
-	 * @version 1.0.0
+	 * @version 1.0.1
 	 * @created 06-05-2026
+	 * @modified 26-05-2026
 	 * @description Verifica el acceso especial admin/admin con rol ADMIN
 	 */
 	@Test
 	void adminAliasLoginReturnsAdminRole() {
 		ResponseEntity<Map> response = restTemplate.postForEntity(
 				"/api/auth/login",
-				Map.of("email", "admin", "password", "admin"),
+				csrfJson(Map.of("email", "admin", "password", "admin")),
 				Map.class);
 
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -56,9 +62,9 @@ class RacestreamApplicationTests {
 	/**
 	 * @author Yerai Pinto
 	 * @since 1.0
-	 * @version 1.0.1
+	 * @version 1.0.2
 	 * @created 06-05-2026
-	 * @modified 12-05-2026
+	 * @modified 26-05-2026
 	 * @description Verifica que el nombre de usuario visible también permite
 	 *              iniciar sesión
 	 */
@@ -70,19 +76,19 @@ class RacestreamApplicationTests {
 
 		ResponseEntity<Map> registerResponse = restTemplate.postForEntity(
 				"/api/auth/register",
-				Map.of(
+				csrfJson(Map.of(
 						"name", username,
 						"email", email,
 						"password", "RaceStream1!",
 						"confirmPassword", "RaceStream1!",
-						"acceptPolicies", true),
+						"acceptPolicies", true)),
 				Map.class);
 
 		assertThat(registerResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
 		ResponseEntity<Map> loginResponse = restTemplate.postForEntity(
 				"/api/auth/login",
-				Map.of("email", username, "password", "RaceStream1!"),
+				csrfJson(Map.of("email", username, "password", "RaceStream1!")),
 				Map.class);
 
 		assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -93,9 +99,9 @@ class RacestreamApplicationTests {
 	/**
 	 * @author Yerai Pinto
 	 * @since 1.0
-	 * @version 1.0.1
+	 * @version 1.0.2
 	 * @created 06-05-2026
-	 * @modified 12-05-2026
+	 * @modified 26-05-2026
 	 * @description Verifica que un correo bloqueado no pueda registrarse de nuevo
 	 */
 	@Test
@@ -110,12 +116,12 @@ class RacestreamApplicationTests {
 
 		ResponseEntity<Map> response = restTemplate.postForEntity(
 				"/api/auth/register",
-				Map.of(
+				csrfJson(Map.of(
 						"name", "UsuarioBloqueado" + suffix,
 						"email", email,
 						"password", "RaceStream1!",
 						"confirmPassword", "RaceStream1!",
-						"acceptPolicies", true),
+						"acceptPolicies", true)),
 				Map.class);
 
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
@@ -128,10 +134,36 @@ class RacestreamApplicationTests {
 	 * @version 1.0.0
 	 * @created 12-05-2026
 	 * @modified 12-05-2026
-	 * @description Genera sufijos validos para que las pruebas de registro no
+	 * @description Genera sufijos válidos para que las pruebas de registro no
 	 *              dependan de datos previos
 	 */
 	private String uniqueSuffix() {
 		return UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+	}
+
+	/**
+	 * @author Yerai Pinto
+	 * @since 1.0
+	 * @version 1.0.0
+	 * @created 26-05-2026
+	 * @modified 26-05-2026
+	 * @description Construye una petición JSON con el token CSRF que recibe el
+	 *              navegador al abrir una página pública
+	 * @param body Cuerpo JSON
+	 * @return Petición HTTP con cookie y cabecera CSRF
+	 */
+	private HttpEntity<?> csrfJson(Map<String, ?> body) {
+		ResponseEntity<String> page = restTemplate.getForEntity("/login.html", String.class);
+		String csrfCookie = page.getHeaders().getOrEmpty(HttpHeaders.SET_COOKIE).stream()
+				.filter(cookie -> cookie.startsWith("XSRF-TOKEN="))
+				.findFirst()
+				.orElseThrow(() -> new AssertionError("No se ha emitido XSRF-TOKEN"));
+		String csrfCookiePair = csrfCookie.split(";", 2)[0];
+		String csrfToken = URLDecoder.decode(csrfCookiePair.substring("XSRF-TOKEN=".length()), StandardCharsets.UTF_8);
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		headers.add(HttpHeaders.COOKIE, csrfCookiePair);
+		headers.add("X-XSRF-TOKEN", csrfToken);
+		return new HttpEntity<>(body, headers);
 	}
 }

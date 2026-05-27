@@ -1,10 +1,12 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.17
+ * @version 1.0.22
  * @created 21-04-2026
- * @modified 23-05-2026
- * @description Layout global responsive de RaceStream con footer amplio, avisos, race strip estable y títulos D-DIN legibles
+ * @modified 27-05-2026
+ * @description Layout global responsive de RaceStream con footer amplio,
+ *              avisos, race strip estable, horarios siempre visibles y títulos
+ *              D-DIN legibles
  */
 
 /* =========================
@@ -101,7 +103,7 @@ html {
     left: 0;
     right: 0;
     z-index: 1100;
-    background: línear-gradient(90deg, rgba(18, 27, 43, .98), rgba(10, 16, 28, .98));
+    background: linear-gradient(90deg, rgba(18, 27, 43, .98), rgba(10, 16, 28, .98));
     border-bottom: 1px solid rgba(255,255,255,.08);
 }
 
@@ -441,14 +443,15 @@ html {
     .rs-navbar__inner {
         grid-template-columns: auto minmax(0, 1fr) auto;
         grid-template-areas: "brand nav actions";
-        gap: 12px;
+        gap: 14px;
         min-height: 68px;
-        padding: 0;
+        padding: 0 2px;
     }
 
     .rs-navbar__brand {
         grid-area: brand;
         justify-content: flex-start;
+        margin-left: 0;
     }
 
     .rs-navbar__logo {
@@ -460,7 +463,7 @@ html {
         grid-area: nav;
         width: 100%;
         justify-content: flex-start;
-        overflow: hidden;
+        overflow-x: auto;
         padding-bottom: 0;
         scrollbar-width: none;
     }
@@ -520,6 +523,19 @@ html {
 
     .rs-race-strip__title {
         font-size: 15px;
+    }
+
+    .rs-race-strip__inner {
+        grid-template-columns: minmax(0, 1fr) minmax(108px, max-content);
+        grid-template-areas:
+            "label clocks"
+            "main clocks";
+        gap: 6px 8px;
+        align-items: center;
+    }
+
+    .rs-race-strip__action {
+        display: none;
     }
 
     .rs-footer__inner {

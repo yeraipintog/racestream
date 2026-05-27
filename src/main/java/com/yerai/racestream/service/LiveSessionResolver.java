@@ -1,11 +1,11 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.2
+ * @version 1.3.0
  * @created 23-05-2026
- * @modified 24-05-2026
+ * @modified 26-05-2026
  * @description Resuelve la sesión real de En Vivo sin depender solo del horario
- *              teórico, contemplando retrasos, latest y datos parciales
+ *              teórico, contemplando retrasos, latest, datos parciales y caché ligera
  */
 package com.yerai.racestream.service;
 
@@ -20,6 +20,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class LiveSessionResolver {
@@ -28,6 +30,7 @@ public class LiveSessionResolver {
 
     private final OpenF1Service openF1Service;
     private final ObjectMapper objectMapper;
+    private final Map<String, DataPresenceCacheEntry> presenceCache = new ConcurrentHashMap<>();
     private volatile LiveSessionResolution lastResolved;
 
     public LiveSessionResolver(OpenF1Service openF1Service, ObjectMapper objectMapper) {
@@ -218,27 +221,76 @@ public class LiveSessionResolver {
         return presence.hasLiveSignal() ? "En directo" : "Esperando datos";
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.1.0
+     * @created 23-05-2026
+     * @modified 26-05-2026
+     * @description Detecta si una sesión tiene datos útiles reutilizando una caché
+     *              breve para no saturar OpenF1 con cada refresco de estado
+     * @param sessionKey Clave de sesión OpenF1
+     * @return Presencia de datos útil para resolver estado live
+     */
     private DataPresence detectUsefulLiveData(String sessionKey) {
-        if (clean(sessionKey).isBlank()) {
+        String key = clean(sessionKey);
+        if (key.isBlank()) {
             return DataPresence.empty();
         }
-        JsonNode carData = openF1Service.getLatestCarDataByDriver(sessionKey);
-        JsonNode location = openF1Service.getLatestLocationByDriver(sessionKey);
+
+        DataPresenceCacheEntry cached = presenceCache.get(key);
+        if (cached != null && cached.isFresh()) {
+            return cached.presence();
+        }
+
+        DataPresence presence = loadDataPresence(key);
+        presenceCache.put(key, new DataPresenceCacheEntry(
+                presence,
+                Instant.now(),
+                Duration.ofSeconds(presence.hasLiveSignal() ? 2 : 8)));
+        return presence;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 26-05-2026
+     * @modified 26-05-2026
+     * @description Consulta primero endpoints ligeros y solo pide telemetría si ya
+     *              hay señales de sesión para reducir latencia y rate limit
+     * @param sessionKey Clave de sesión OpenF1
+     * @return Presencia de datos calculada
+     */
+    private DataPresence loadDataPresence(String sessionKey) {
+        JsonNode drivers = openF1Service.getDrivers(sessionKey);
+        JsonNode position = openF1Service.getPosition(sessionKey);
+        JsonNode laps = openF1Service.getLaps(sessionKey);
         JsonNode raceControl = openF1Service.getRaceControl(sessionKey);
         JsonNode sessionResult = openF1Service.getSessionResults(sessionKey);
+        JsonNode weather = openF1Service.getWeather(sessionKey);
+        boolean hasBaseData = hasItems(drivers) || hasItems(position) || hasItems(laps)
+                || hasItems(raceControl) || hasItems(sessionResult) || hasItems(weather);
+        boolean finishedSignal = hasFinishSignal(raceControl);
+        JsonNode carData = objectMapper.createArrayNode();
+        JsonNode location = objectMapper.createArrayNode();
+        if (hasBaseData && !finishedSignal) {
+            carData = openF1Service.getLatestCarDataByDriver(sessionKey);
+            location = openF1Service.getLatestLocationByDriver(sessionKey);
+        }
         boolean hasSessionResult = hasItems(sessionResult);
         boolean freshTelemetry = hasFreshDatedItems(carData, 150) || hasFreshDatedItems(location, 150);
         return new DataPresence(
-                hasItems(openF1Service.getDrivers(sessionKey)),
-                hasItems(openF1Service.getPosition(sessionKey)),
-                hasItems(openF1Service.getLaps(sessionKey)),
+                hasItems(drivers),
+                hasItems(position),
+                hasItems(laps),
                 hasItems(carData),
                 hasItems(location),
                 hasItems(raceControl),
-                hasItems(openF1Service.getWeather(sessionKey)),
+                hasItems(weather),
                 hasSessionResult,
                 freshTelemetry,
-                hasFinishSignal(raceControl));
+                finishedSignal);
     }
 
     private boolean hasItems(JsonNode node) {
@@ -337,6 +389,12 @@ public class LiveSessionResolver {
 
         private static DataPresence empty() {
             return new DataPresence(false, false, false, false, false, false, false, false, false, false);
+        }
+    }
+
+    private record DataPresenceCacheEntry(DataPresence presence, Instant fetchedAt, Duration ttl) {
+        private boolean isFresh() {
+            return Instant.now().isBefore(fetchedAt.plus(ttl));
         }
     }
 }

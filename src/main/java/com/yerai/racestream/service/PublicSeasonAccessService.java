@@ -1,16 +1,15 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.0
+ * @version 1.2.0
  * @created 20-05-2026
- * @modified 20-05-2026
- * @description Aplica el límite de temporada actual para visitantes sin sesión
+ * @modified 27-05-2026
+ * @description Resuelve la temporada permitida: los usuarios anónimos solo
+ *              acceden a la temporada actual y los autenticados pueden usar
+ *              filtros históricos
  */
 package com.yerai.racestream.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -22,12 +21,13 @@ public class PublicSeasonAccessService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.2.0
      * @created 20-05-2026
-     * @modified 20-05-2026
-     * @description Devuelve la temporada solicitada solo si hay sesión; en público fuerza la actual
+     * @modified 27-05-2026
+     * @description Devuelve la temporada actual para usuarios anónimos y respeta
+     *              la solicitada solo cuando hay sesión iniciada
      * @param requestedYear Temporada pedida por el cliente
-     * @param principal Usuario autenticado o anonimo
+     * @param principal Usuario autenticado o anónimo, conservado por compatibilidad con controladores
      * @return Temporada permitida
      */
     public Integer resolveYear(Integer requestedYear, Object principal) {
@@ -42,21 +42,20 @@ public class PublicSeasonAccessService {
      * @author Yerai Pinto
      * @since 1.0
      * @version 1.0.0
-     * @created 20-05-2026
-     * @modified 20-05-2026
-     * @description Devuelve un listado de temporadas limitado a la actual para usuarios anonimos
-     * @return Nodo JSON compatible con el selector existente
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Distingue usuarios reales del principal anónimo de Spring
+     *              Security
+     * @param principal Principal recibido en el controlador
+     * @return true si corresponde a un usuario autenticado
      */
-    public JsonNode currentSeasonOnly() {
-        ArrayNode seasons = JsonNodeFactory.instance.arrayNode();
-        seasons.addObject().put("season", Year.now().getValue());
-        return seasons;
-    }
-
-    public boolean isAuthenticated(Object principal) {
+    private boolean isAuthenticated(Object principal) {
         if (principal instanceof UserDetails) {
             return true;
         }
-        return principal instanceof String value && !value.isBlank() && !"anonymousUser".equals(value);
+        if (principal instanceof String value) {
+            return !value.isBlank() && !"anonymousUser".equals(value);
+        }
+        return principal != null;
     }
 }

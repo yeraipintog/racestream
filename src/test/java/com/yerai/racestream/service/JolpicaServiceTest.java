@@ -1,9 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.1
+ * @version 1.0.3
  * @created 12-05-2026
- * @description Tests de Jolpica con RestTemplate mockeado para standings, resultados y participantes históricos
+ * @modified 27-05-2026
+ * @description Tests de Jolpica con RestTemplate mockeado para standings, resultados, clasificación, sprint y participantes históricos
  */
 package com.yerai.racestream.service;
 
@@ -134,6 +135,47 @@ class JolpicaServiceTest {
      * @author Yerai Pinto
      * @since 1.0
      * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Verifica que qualifying histórico se pagina y fusiona por carrera
+     */
+    @Test
+    void qualifyingResultsArePagedAndMergedByRound() {
+        mockJson("/2022/qualifying.json?limit=100&offset=0", mrData("\"total\":\"101\"", "\"RaceTable\":{\"Races\":[{\"round\":\"1\",\"QualifyingResults\":[{\"position\":\"1\",\"Driver\":{\"driverId\":\"driver_a\"}}]}]}"));
+        mockJson("/2022/qualifying.json?limit=100&offset=100", mrData("\"total\":\"101\"", "\"RaceTable\":{\"Races\":[{\"round\":\"1\",\"QualifyingResults\":[{\"position\":\"2\",\"Driver\":{\"driverId\":\"driver_b\"}}]}]}"));
+
+        ArrayNode results = service.getQualifyingResultsByYear(2022);
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).path("QualifyingResults")).hasSize(2);
+        assertThat(results.get(0).path("QualifyingResults").findValuesAsText("driverId")).contains("driver_a", "driver_b");
+        server.verify();
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Verifica que los resultados sprint se devuelven desde Jolpica
+     */
+    @Test
+    void sprintResultsAreReturnedByYear() {
+        mockJson("/2022/sprint.json?limit=100&offset=0", mrData("\"total\":\"1\"", "\"RaceTable\":{\"Races\":[{\"round\":\"4\",\"SprintResults\":[{\"position\":\"1\",\"Driver\":{\"driverId\":\"verstappen\"}}]}]}"));
+
+        ArrayNode results = service.getSprintResultsByYear(2022);
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).path("round").asText()).isEqualTo("4");
+        assertThat(results.get(0).path("SprintResults").get(0).path("Driver").path("driverId").asText()).isEqualTo("verstappen");
+        server.verify();
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
      * @created 12-05-2026
      * @description Verifica que una temporada ya cacheada no se sustituye por llamadas posteriores vacías o fallidas
      */
@@ -255,9 +297,10 @@ class JolpicaServiceTest {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 12-05-2026
-     * @description Construye una respuesta MRData minima
+     * @modified 27-05-2026
+     * @description Construye una respuesta MRData mínima
      * @param totalPart Campo total
      * @param bodyPart  Nodo interno
      * @return JSON

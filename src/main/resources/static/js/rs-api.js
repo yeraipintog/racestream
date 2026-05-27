@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.2.0
+ * @version 1.3.0
  * @created 12-05-2026
- * @modified 13-05-2026
- * @description Cliente común RaceStream para fetch, reintentos, estados de carga, sesión pública y caché local segura
+ * @modified 27-05-2026
+ * @description Cliente común RaceStream para fetch, reintentos, estados de carga, sesión pública, bloqueo de filtros y caché local segura
  */
 class RaceStreamApiClient {
 
@@ -134,7 +134,7 @@ class RaceStreamApiClient {
      * @created 20-05-2026
      * @modified 20-05-2026
      * @description Devuelve la sesión actual reutilizando una única llamada por carga de página
-     * @returns {Promise<Object>} Usuario autenticado o estado anonimo
+     * @returns {Promise<Object>} Usuario autenticado o estado anónimo
      */
     async getCurrentUser() {
         if (!this.currentUserPromise) {
@@ -148,8 +148,65 @@ class RaceStreamApiClient {
         return this.currentUserPromise;
     }
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Devuelve la temporada actual del calendario del cliente
+     * @returns {number} Temporada actual
+     */
     currentSeason() {
         return new Date().getFullYear();
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Resuelve el acceso de temporada para bloquear históricos en
+     *              sesiones públicas sin esperar a un error del backend
+     * @param {number|null} requestedYear Temporada solicitada en URL o selector
+     * @returns {Promise<Object>} Estado de acceso y temporada permitida
+     */
+    async resolveSeasonAccess(requestedYear = null) {
+        const user = await this.getCurrentUser();
+        const currentYear = this.currentSeason();
+        const requested = Number(requestedYear);
+        const validRequested = Number.isInteger(requested) && requested >= 1950 ? requested : currentYear;
+        const authenticated = Boolean(user?.authenticated);
+        return {
+            authenticated,
+            locked: !authenticated,
+            currentYear,
+            year: authenticated ? validRequested : currentYear
+        };
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Aplica estado visual y accesible a un selector de temporada
+     *              bloqueado para invitados
+     * @param {HTMLSelectElement|null} select Selector de temporada
+     * @param {boolean} locked Indica si el usuario es público
+     */
+    setSeasonFilterLocked(select, locked) {
+        if (!select) return;
+        select.disabled = Boolean(locked);
+        if (locked) {
+            select.setAttribute('aria-disabled', 'true');
+        } else {
+            select.removeAttribute('aria-disabled');
+        }
+        select.title = locked ? 'Inicia sesión para consultar temporadas históricas.' : '';
+        select.closest('.rs-select-wrap')?.classList.toggle('rs-select-wrap--locked', Boolean(locked));
     }
 
     /**

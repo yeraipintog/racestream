@@ -21,7 +21,7 @@ public class RacestreamApplication {
 	 * @version 1.1.0
 	 * @created 09-03-2026
 	 * @modified 18-05-2026
-	 * @description Arranca la aplicacion Spring Boot de RaceStream
+	 * @description Arranca la aplicación Spring Boot de RaceStream
 	 * @param args Argumentos de la línea de comandos
 	 */
 	public static void main(String[] args) {

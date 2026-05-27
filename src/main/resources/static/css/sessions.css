@@ -1,7 +1,7 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.4.8
+ * @version 1.4.9
  * @created 30-04-2026
  * @modified 22-05-2026
  * @description Estilos responsive de Sesiones con título compacto legible, podios, placeholder de pilotos y tarjetas desplegables
@@ -56,6 +56,17 @@
     align-items: center;
     row-gap: 0;
     cursor: pointer;
+    transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.rs-session-row:not(.rs-session-row--disabled):hover {
+    transform: translateY(-1px);
+    border-color: rgba(255, 255, 255, .16);
+    background: rgba(255, 255, 255, .045);
+}
+
+.rs-session-row--disabled {
+    cursor: default;
 }
 
 .rs-session-row__summary {
@@ -70,6 +81,31 @@
 
 .rs-session-row__pending {
     color: var(--rs-text-muted);
+    max-width: 240px;
+    text-align: justify;
+}
+
+.rs-session-row__meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.rs-session-row__source {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 2px 8px;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .06);
+    color: #d7deea;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    white-space: nowrap;
 }
 
 .rs-session-podium {
@@ -217,6 +253,10 @@
         justify-content: flex-start;
         min-width: 0;
         flex-wrap: wrap;
+    }
+
+    .rs-session-row__pending {
+        max-width: 100%;
     }
 
     .rs-session-podium {

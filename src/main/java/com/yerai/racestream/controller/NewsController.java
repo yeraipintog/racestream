@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.1
+ * @version 1.0.2
  * @created 30-04-2026
- * @description Controlador REST de noticias externas en espanol para RaceStream
+ * @description Controlador REST de noticias externas en español para RaceStream
  */
 package com.yerai.racestream.controller;
 
@@ -37,10 +37,11 @@ public class NewsController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 30-04-2026
-     * @description Devuelve noticias reales de Fórmula 1 en espanol
-     * @param limit Limite de noticias
+     * @modified 27-05-2026
+     * @description Devuelve noticias reales de Fórmula 1 en español
+     * @param limit Límite de noticias
      * @return Noticias externas
      */
     @GetMapping("/f1")

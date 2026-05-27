@@ -1,10 +1,11 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.3
+ * @version 1.0.4
  * @created 12-05-2026
- * @modified 24-05-2026
- * @description Controlador de diagnóstico para revisar disponibilidad de datos F1 por temporada en desarrollo
+ * @modified 26-05-2026
+ * @description Controlador de diagnóstico ADMIN para revisar disponibilidad de
+ *              datos F1 por temporada
  */
 package com.yerai.racestream.controller;
 
@@ -15,7 +16,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.yerai.racestream.service.F1DbService;
 import com.yerai.racestream.service.F1ScheduleService;
 import com.yerai.racestream.service.JolpicaService;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -26,7 +26,6 @@ import java.util.function.Supplier;
 
 @RestController
 @RequestMapping("/api/f1/diagnostics")
-@CrossOrigin(origins = "*")
 public class F1DiagnosticsController {
 
     private final F1ScheduleService f1ScheduleService;
@@ -65,7 +64,7 @@ public class F1DiagnosticsController {
      * @modified 24-05-2026
      * @description Devuelve conteos, estados y avisos de disponibilidad por fuente
      * @param year Temporada
-     * @return Diagnostico JSON
+     * @return Diagnóstico JSON
      */
     @GetMapping("/season")
     public JsonNode getSeasonDiagnostics(@RequestParam(required = false) Integer year) {

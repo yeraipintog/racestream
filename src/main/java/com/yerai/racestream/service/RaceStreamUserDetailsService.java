@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.3
+ * @version 1.0.4
  * @created 05-05-2026
- * @modified 06-05-2026
+ * @modified 27-05-2026
  * @description Servicio de carga de usuarios locales, alias admin y bloqueo administrativo para Spring Security
  */
 package com.yerai.racestream.service;
@@ -33,10 +33,11 @@ public class RaceStreamUserDetailsService implements UserDetailsService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.3
+     * @version 1.0.4
      * @created 05-05-2026
-     * @modified 06-05-2026
-     * @description Carga el usuario por email, nombre visible o alias admin, válida bloqueo y adapta su rol a Spring Security
+     * @modified 27-05-2026
+     * @description Carga el usuario por email, nombre visible o alias admin,
+     *              valida el bloqueo y adapta su rol a Spring Security
      * @param username Email, nombre visible o alias del usuario
      * @return Usuario autenticable
      */

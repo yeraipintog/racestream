@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.3
+ * @version 1.1.6
  * @created 28-04-2026
- * @modified 13-05-2026
- * @description Servicio para consultar Jolpica F1 con caché por temporada, calendario, clasificaciones y resultados
+ * @modified 27-05-2026
+ * @description Servicio para consultar Jolpica F1 con caché por temporada, calendario, clasificaciones, resultados, clasificación, sprint, rate limit y cargas concurrentes controladas
  * @see https://github.com/jolpica/jolpica-f1
  */
 package com.yerai.racestream.service;
@@ -33,7 +33,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class JolpicaService {
 
-    private static final int MAX_ATTEMPTS = 3;
+    private static final int MAX_ATTEMPTS = 5;
+    private static final long JOLPICA_MIN_REQUEST_INTERVAL_MS = 950L;
     private static final int TITLE_BASELINE_LAST_YEAR = 2024;
     private static final TitleSeed[] DRIVER_TITLE_SEEDS = {
             new TitleSeed("farina", "farina", "Giuseppe Farina", 1950),
@@ -97,8 +98,12 @@ public class JolpicaService {
     private final Map<Integer, ArrayNode> driverTitleStandingsCache = new ConcurrentHashMap<>();
     private final Map<Integer, ArrayNode> constructorTitleStandingsCache = new ConcurrentHashMap<>();
     private final Map<Integer, ArrayNode> raceResultsCache = new ConcurrentHashMap<>();
+    private final Map<Integer, ArrayNode> qualifyingResultsCache = new ConcurrentHashMap<>();
+    private final Map<Integer, ArrayNode> sprintResultsCache = new ConcurrentHashMap<>();
     private final Map<Integer, ArrayNode> driverTitlesCache = new ConcurrentHashMap<>();
     private final Map<Integer, ArrayNode> constructorTitlesCache = new ConcurrentHashMap<>();
+    private final Object jolpicaRateLimitLock = new Object();
+    private long nextJolpicaRequestAt;
     private volatile boolean driverTitlesComplete;
     private volatile boolean constructorTitlesComplete;
 
@@ -137,7 +142,7 @@ public class JolpicaService {
         ArrayNode lastResult = objectMapper.createArrayNode();
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
-                JsonNode apiResponse = restTemplate.getForObject(url, JsonNode.class);
+                JsonNode apiResponse = getJolpicaJson(url);
                 JsonNode mrData = apiResponse == null ? null : apiResponse.path("MRData");
                 JsonNode races = apiResponse == null
                         ? null
@@ -169,11 +174,11 @@ public class JolpicaService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.2
+     * @version 1.0.3
      * @created 30-04-2026
-     * @modified 13-05-2026
+     * @modified 26-05-2026
      * @description Obtiene la clasificación de pilotos desde Jolpica sin cachear
-     *              respuestas vacías
+     *              respuestas vacías ni duplicar llamadas simultáneas
      * @param year Temporada
      * @return Clasificación de pilotos
      */
@@ -186,23 +191,31 @@ public class JolpicaService {
             return copy;
         }
 
-        ArrayNode standings = buildDriverStandingsByYear(selectedYear);
-        enrichDriverStandingsWithTitles(standings);
+        synchronized (driverStandingsCache) {
+            cachedStandings = driverStandingsCache.get(selectedYear);
+            if (cachedStandings != null) {
+                ArrayNode copy = cachedStandings.deepCopy();
+                enrichDriverStandingsWithTitles(copy);
+                return copy;
+            }
+            ArrayNode standings = buildDriverStandingsByYear(selectedYear);
+            enrichDriverStandingsWithTitles(standings);
 
-        if (!standings.isEmpty()) {
-            driverStandingsCache.put(selectedYear, standings.deepCopy());
+            if (!standings.isEmpty()) {
+                driverStandingsCache.put(selectedYear, standings.deepCopy());
+            }
+            return standings.deepCopy();
         }
-        return standings.deepCopy();
     }
 
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.2
+     * @version 1.0.3
      * @created 30-04-2026
-     * @modified 13-05-2026
+     * @modified 26-05-2026
      * @description Obtiene la clasificación de constructores desde Jolpica sin
-     *              cachear respuestas vacías
+     *              cachear respuestas vacías ni duplicar llamadas simultáneas
      * @param year Temporada
      * @return Clasificación de constructores
      */
@@ -215,13 +228,21 @@ public class JolpicaService {
             return copy;
         }
 
-        ArrayNode standings = buildConstructorStandingsByYear(selectedYear);
-        enrichConstructorStandingsWithTitles(standings);
+        synchronized (constructorStandingsCache) {
+            cachedStandings = constructorStandingsCache.get(selectedYear);
+            if (cachedStandings != null) {
+                ArrayNode copy = cachedStandings.deepCopy();
+                enrichConstructorStandingsWithTitles(copy);
+                return copy;
+            }
+            ArrayNode standings = buildConstructorStandingsByYear(selectedYear);
+            enrichConstructorStandingsWithTitles(standings);
 
-        if (!standings.isEmpty()) {
-            constructorStandingsCache.put(selectedYear, standings.deepCopy());
+            if (!standings.isEmpty()) {
+                constructorStandingsCache.put(selectedYear, standings.deepCopy());
+            }
+            return standings.deepCopy();
         }
-        return standings.deepCopy();
     }
 
     /**
@@ -415,11 +436,11 @@ public class JolpicaService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.3
+     * @version 1.0.4
      * @created 04-05-2026
-     * @modified 13-05-2026
-     * @description Obtiene resultados páginados y usa fallback por ronda para
-     *              detalles históricos de pilotos y escuderías
+     * @modified 26-05-2026
+     * @description Obtiene resultados paginados y usa fallback por ronda para
+     *              detalles históricos sin duplicar consultas simultáneas
      * @param year Temporada
      * @return Carreras con resultados oficiales
      */
@@ -430,33 +451,68 @@ public class JolpicaService {
             return cachedResults.deepCopy();
         }
 
-        ArrayNode lastResult = objectMapper.createArrayNode();
-        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-            try {
-                ArrayNode result = getPagedRaceResults(selectedYear);
-                if (result.isEmpty()) {
-                    ArrayNode races = getRacesByYear(selectedYear);
-                    if (races.isEmpty()) {
+        synchronized (raceResultsCache) {
+            cachedResults = raceResultsCache.get(selectedYear);
+            if (cachedResults != null) {
+                return cachedResults.deepCopy();
+            }
+
+            ArrayNode lastResult = objectMapper.createArrayNode();
+            for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+                try {
+                    ArrayNode result = getPagedRaceResults(selectedYear);
+                    if (result.isEmpty()) {
+                        ArrayNode races = getRacesByYear(selectedYear);
+                        if (races.isEmpty()) {
+                            return result.deepCopy();
+                        }
+                        result = getRoundRaceResults(selectedYear, races);
+                    }
+                    if (!result.isEmpty()) {
+                        raceResultsCache.put(selectedYear, result.deepCopy());
                         return result.deepCopy();
                     }
-                    result = getRoundRaceResults(selectedYear, races);
-                }
-                if (!result.isEmpty()) {
-                    raceResultsCache.put(selectedYear, result.deepCopy());
-                    return result.deepCopy();
-                }
-                lastResult = result;
-                if (attempt < MAX_ATTEMPTS) {
-                    sleepBeforeRetry(attempt);
-                }
-            } catch (RuntimeException ex) {
-                if (attempt < MAX_ATTEMPTS) {
-                    sleepAfterExternalFailure(ex, attempt);
+                    lastResult = result;
+                    if (attempt < MAX_ATTEMPTS) {
+                        sleepBeforeRetry(attempt);
+                    }
+                } catch (RuntimeException ex) {
+                    if (attempt < MAX_ATTEMPTS) {
+                        sleepAfterExternalFailure(ex, attempt);
+                    }
                 }
             }
-        }
 
-        return lastResult.deepCopy();
+            return lastResult.deepCopy();
+        }
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Obtiene resultados de clasificación por temporada desde Jolpica para sesiones históricas
+     * @param year Temporada
+     * @return Carreras con resultados de clasificación
+     */
+    public ArrayNode getQualifyingResultsByYear(Integer year) {
+        return getSessionResultsByYear(year, "qualifying.json", "QualifyingResults", qualifyingResultsCache);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Obtiene resultados sprint por temporada desde Jolpica para sesiones históricas
+     * @param year Temporada
+     * @return Carreras con resultados sprint
+     */
+    public ArrayNode getSprintResultsByYear(Integer year) {
+        return getSessionResultsByYear(year, "sprint.json", "SprintResults", sprintResultsCache);
     }
 
     /**
@@ -1058,7 +1114,7 @@ public class JolpicaService {
                     .queryParam("limit", 100)
                     .toUriString();
             try {
-                JsonNode apiResponse = restTemplate.getForObject(url, JsonNode.class);
+                JsonNode apiResponse = getJolpicaJson(url);
                 JsonNode roundRaces = apiResponse == null
                         ? null
                         : apiResponse.path("MRData").path("RaceTable").path("Races");
@@ -1072,6 +1128,62 @@ public class JolpicaService {
         ArrayNode result = objectMapper.createArrayNode();
         racesByRound.values().forEach(result::add);
         return result;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Obtiene una tabla de resultados de sesión Jolpica con caché y fallback por ronda
+     * @param year Temporada
+     * @param resource Recurso Jolpica
+     * @param resultNode Nombre del array de resultados
+     * @param cache Caché por temporada
+     * @return Carreras con resultados de la sesión solicitada
+     */
+    private ArrayNode getSessionResultsByYear(Integer year, String resource, String resultNode,
+            Map<Integer, ArrayNode> cache) {
+        int selectedYear = year == null ? LocalDate.now().getYear() : year;
+        ArrayNode cachedResults = cache.get(selectedYear);
+        if (cachedResults != null) {
+            return cachedResults.deepCopy();
+        }
+
+        synchronized (cache) {
+            cachedResults = cache.get(selectedYear);
+            if (cachedResults != null) {
+                return cachedResults.deepCopy();
+            }
+
+            ArrayNode lastResult = objectMapper.createArrayNode();
+            for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+                try {
+                    ArrayNode result = getPagedSessionResults(selectedYear, resource, resultNode);
+                    if (result.isEmpty()) {
+                        ArrayNode races = getRacesByYear(selectedYear);
+                        result = races.isEmpty()
+                                ? objectMapper.createArrayNode()
+                                : getRoundSessionResults(selectedYear, races, resource, resultNode);
+                    }
+                    if (!result.isEmpty()) {
+                        cache.put(selectedYear, result.deepCopy());
+                        return result.deepCopy();
+                    }
+                    lastResult = result;
+                    if (attempt < MAX_ATTEMPTS) {
+                        sleepBeforeRetry(attempt);
+                    }
+                } catch (RuntimeException ex) {
+                    if (attempt < MAX_ATTEMPTS) {
+                        sleepAfterExternalFailure(ex, attempt);
+                    }
+                }
+            }
+
+            return lastResult.deepCopy();
+        }
     }
 
     /**
@@ -1097,7 +1209,7 @@ public class JolpicaService {
                     .queryParam("limit", pageSize)
                     .queryParam("offset", offset)
                     .toUriString();
-            JsonNode apiResponse = restTemplate.getForObject(url, JsonNode.class);
+            JsonNode apiResponse = getJolpicaJson(url);
             JsonNode mrData = apiResponse == null ? null : apiResponse.path("MRData");
             JsonNode races = mrData == null ? null : mrData.path("RaceTable").path("Races");
 
@@ -1124,6 +1236,96 @@ public class JolpicaService {
      * @author Yerai Pinto
      * @since 1.0
      * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Recorre la paginación de Jolpica para resultados de qualifying o sprint
+     * @param selectedYear Temporada
+     * @param resource Recurso Jolpica
+     * @param resultNode Nombre del array de resultados
+     * @return Carreras agrupadas con resultados de sesión
+     */
+    private ArrayNode getPagedSessionResults(Integer selectedYear, String resource, String resultNode) {
+        final int pageSize = 100;
+        int offset = 0;
+        int total = Integer.MAX_VALUE;
+        Map<String, ObjectNode> racesByRound = new LinkedHashMap<>();
+
+        while (offset < total) {
+            String url = UriComponentsBuilder
+                    .fromUriString(jolpicaBaseUrl)
+                    .pathSegment(String.valueOf(selectedYear), resource)
+                    .queryParam("limit", pageSize)
+                    .queryParam("offset", offset)
+                    .toUriString();
+            JsonNode apiResponse = getJolpicaJson(url);
+            JsonNode mrData = apiResponse == null ? null : apiResponse.path("MRData");
+            JsonNode races = mrData == null ? null : mrData.path("RaceTable").path("Races");
+
+            if (mrData != null) {
+                total = parseInteger(mrData.path("total").asText(), offset);
+            }
+            if (races == null || !races.isArray() || races.isEmpty()) {
+                if (total > offset + pageSize) {
+                    offset += pageSize;
+                    continue;
+                }
+                break;
+            }
+            mergeSessionResults(racesByRound, (ArrayNode) races, resultNode);
+            offset += pageSize;
+        }
+
+        ArrayNode result = objectMapper.createArrayNode();
+        racesByRound.values().forEach(result::add);
+        return result;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Recupera resultados de sesión carrera a carrera cuando Jolpica no entrega la página agregada
+     * @param selectedYear Temporada
+     * @param races Carreras oficiales de la temporada
+     * @param resource Recurso Jolpica
+     * @param resultNode Nombre del array de resultados
+     * @return Carreras agrupadas con resultados de sesión
+     */
+    private ArrayNode getRoundSessionResults(Integer selectedYear, ArrayNode races, String resource, String resultNode) {
+        Map<String, ObjectNode> racesByRound = new LinkedHashMap<>();
+        for (JsonNode race : races) {
+            String round = race.path("round").asText();
+            if (round.isBlank()) {
+                continue;
+            }
+            String url = UriComponentsBuilder
+                    .fromUriString(jolpicaBaseUrl)
+                    .pathSegment(String.valueOf(selectedYear), round, resource)
+                    .queryParam("limit", 100)
+                    .toUriString();
+            try {
+                JsonNode apiResponse = getJolpicaJson(url);
+                JsonNode roundRaces = apiResponse == null
+                        ? null
+                        : apiResponse.path("MRData").path("RaceTable").path("Races");
+                if (roundRaces != null && roundRaces.isArray()) {
+                    mergeSessionResults(racesByRound, (ArrayNode) roundRaces, resultNode);
+                }
+            } catch (RestClientException ex) {
+                sleepAfterExternalFailure(ex, 1);
+            }
+        }
+        ArrayNode result = objectMapper.createArrayNode();
+        racesByRound.values().forEach(result::add);
+        return result;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
      * @created 04-05-2026
      * @description Fusiona carreras repetidas si la páginación parte sus resultados
      * @param racesByRound Carreras acumuladas
@@ -1139,6 +1341,33 @@ public class JolpicaService {
             });
             ArrayNode storedResults = (ArrayNode) storedRace.path("Results");
             JsonNode pageResults = race.path("Results");
+            if (pageResults.isArray()) {
+                pageResults.forEach((result) -> storedResults.add(result.deepCopy()));
+            }
+        }
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Fusiona resultados de qualifying o sprint cuando la paginación parte una carrera
+     * @param racesByRound Carreras acumuladas
+     * @param pageRaces Carreras de la página actual
+     * @param resultNode Nombre del array de resultados
+     */
+    private void mergeSessionResults(Map<String, ObjectNode> racesByRound, ArrayNode pageRaces, String resultNode) {
+        for (JsonNode race : pageRaces) {
+            String round = race.path("round").asText();
+            ObjectNode storedRace = racesByRound.computeIfAbsent(round, key -> {
+                ObjectNode copy = race.isObject() ? ((ObjectNode) race).deepCopy() : objectMapper.createObjectNode();
+                copy.set(resultNode, objectMapper.createArrayNode());
+                return copy;
+            });
+            ArrayNode storedResults = (ArrayNode) storedRace.path(resultNode);
+            JsonNode pageResults = race.path(resultNode);
             if (pageResults.isArray()) {
                 pageResults.forEach((result) -> storedResults.add(result.deepCopy()));
             }
@@ -1239,7 +1468,7 @@ public class JolpicaService {
 
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
-                return restTemplate.getForObject(url, JsonNode.class);
+                return getJolpicaJson(url);
             } catch (RestClientException ex) {
                 if (attempt < MAX_ATTEMPTS) {
                     sleepAfterExternalFailure(ex, attempt);
@@ -1765,8 +1994,47 @@ public class JolpicaService {
      * @author Yerai Pinto
      * @since 1.0
      * @version 1.0.0
+     * @created 26-05-2026
+     * @modified 26-05-2026
+     * @description Ejecuta una consulta a Jolpica dosificando peticiones para evitar respuestas 429 en cargas históricas
+     * @param url URL completa de Jolpica
+     * @return Respuesta JSON
+     */
+    private JsonNode getJolpicaJson(String url) {
+        waitForJolpicaSlot();
+        return restTemplate.getForObject(url, JsonNode.class);
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 26-05-2026
+     * @modified 26-05-2026
+     * @description Mantiene una cadencia estable entre llamadas externas a Jolpica
+     */
+    private void waitForJolpicaSlot() {
+        long waitMillis = 0L;
+        synchronized (jolpicaRateLimitLock) {
+            long now = System.currentTimeMillis();
+            if (now < nextJolpicaRequestAt) {
+                waitMillis = nextJolpicaRequestAt - now;
+                nextJolpicaRequestAt += JOLPICA_MIN_REQUEST_INTERVAL_MS;
+            } else {
+                nextJolpicaRequestAt = now + JOLPICA_MIN_REQUEST_INTERVAL_MS;
+            }
+        }
+        if (waitMillis > 0L) {
+            sleepMillis(waitMillis);
+        }
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.1
      * @created 13-05-2026
-     * @modified 13-05-2026
+     * @modified 26-05-2026
      * @description Aplica una espera mayor si Jolpica limita temporalmente las peticiones
      * @param ex Error externo
      * @param attempt Intento actual
@@ -1774,7 +2042,7 @@ public class JolpicaService {
     private void sleepAfterExternalFailure(RuntimeException ex, int attempt) {
         if (ex instanceof HttpStatusCodeException statusException
                 && statusException.getStatusCode().value() == 429) {
-            sleepMillis(Math.min(1800L * attempt, 6000L));
+            sleepMillis(Math.min(4500L * attempt, 15000L));
             return;
         }
         sleepBeforeRetry(attempt);

@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.5.0
+ * @version 1.5.1
  * @created 03-05-2026
- * @modified 23-05-2026
+ * @modified 26-05-2026
  * @description Estilos responsive de Fórmula 1 En Vivo por bloques, mapa
  *              principal, timing y carrera
  */
@@ -122,7 +122,7 @@
     padding: 16px;
     border: 1px solid rgba(255, 255, 255, .10);
     border-radius: 14px;
-    background: línear-gradient(180deg, rgba(17, 24, 39, .96), rgba(12, 18, 30, .96));
+    background: linear-gradient(180deg, rgba(17, 24, 39, .96), rgba(12, 18, 30, .96));
     box-shadow: var(--rs-shadow-md);
 }
 
@@ -541,7 +541,7 @@
     border-radius: 14px;
     overflow: hidden;
     background:
-        línear-gradient(180deg, rgba(9, 16, 28, .98), rgba(7, 11, 20, .98)),
+        linear-gradient(180deg, rgba(9, 16, 28, .98), rgba(7, 11, 20, .98)),
         radial-gradient(circle at 20% 30%, rgba(229, 57, 53, .12), transparent 32%);
 }
 
@@ -810,7 +810,7 @@
 .rs-live-skeleton {
     min-height: 84px;
     border-radius: 12px;
-    background: línear-gradient(90deg, rgba(255,255,255,.05), rgba(255,255,255,.11), rgba(255,255,255,.05));
+    background: linear-gradient(90deg, rgba(255,255,255,.05), rgba(255,255,255,.11), rgba(255,255,255,.05));
     background-size: 220% 100%;
     animation: rs-live-skeleton 1.2s ease-in-out infinite;
 }

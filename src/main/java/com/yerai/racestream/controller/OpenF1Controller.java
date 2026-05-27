@@ -1,10 +1,11 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.1
+ * @version 1.2.0
  * @created 17-04-2026
- * @modified 23-05-2026
- * @description Controlador de OpenF1 con límite público de temporada
+ * @modified 27-05-2026
+ * @description Controlador de OpenF1 con temporada actual pública y filtros
+ *              históricos reservados a usuarios autenticados
  * @see https://openf1.org
  */
 package com.yerai.racestream.controller;
@@ -25,6 +26,16 @@ public class OpenF1Controller {
     private final OpenF1Service openF1Service;
     private final PublicSeasonAccessService publicSeasonAccessService;
 
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 27-05-2026
+     * @modified 27-05-2026
+     * @description Inyecta el cliente OpenF1 y el control de acceso por temporada
+     * @param openF1Service Servicio OpenF1
+     * @param publicSeasonAccessService Servicio de bloqueo de históricos para invitados
+     */
     public OpenF1Controller(OpenF1Service openF1Service, PublicSeasonAccessService publicSeasonAccessService) {
         this.openF1Service = openF1Service;
         this.publicSeasonAccessService = publicSeasonAccessService;
@@ -36,9 +47,10 @@ public class OpenF1Controller {
      * @version 1.0.1
      * @created 17-04-2026
      * @modified 13-05-2026
-     * @description Obtener meetings
-     * @param year
-     * @return
+     * @description Obtener meetings respetando temporada pública o autenticada
+     * @param year Temporada solicitada
+     * @param principal Usuario autenticado o anónimo
+     * @return Meetings permitidos
      */
     @GetMapping("/meetings")
     public JsonNode getMeetings(@RequestParam(required = false) Integer year, @AuthenticationPrincipal Object principal) {
@@ -51,8 +63,8 @@ public class OpenF1Controller {
      * @version 1.0
      * @created 17-04-2026
      * @description Obtener sesiones
-     * @param meetingKey
-     * @return
+     * @param meetingKey Clave del meeting
+     * @return Sesiones OpenF1
      */
     @GetMapping("/sessions")
     public JsonNode getSessions(@RequestParam Integer meetingKey) {
@@ -80,8 +92,8 @@ public class OpenF1Controller {
      * @version 1.0
      * @created 17-04-2026
      * @description Obtener resultados de la sesión
-     * @param sessionKey
-     * @return
+     * @param sessionKey Clave OpenF1
+     * @return Resultados de la sesión
      */
     @GetMapping("/session-results")
     public JsonNode getSessionResults(@RequestParam String sessionKey) {
