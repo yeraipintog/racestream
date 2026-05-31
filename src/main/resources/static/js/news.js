@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.8
+ * @version 1.0.10
  * @created 30-04-2026
- * @modified 11-05-2026
- * @description Carga y renderiza noticias completas de Fórmula 1 desde el backend RaceStream con filtro estricto
+ * @modified 31-05-2026
+ * @description Carga y renderiza noticias completas de Fórmula 1 desde el backend RaceStream con filtro estricto, lectura estructurada y acción única de lectura
  */
 class RaceStreamNewsPage {
 
@@ -65,14 +65,14 @@ class RaceStreamNewsPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 30-04-2026
-     * @modified 13-05-2026
-     * @description Obtiene noticias del backend, descarta temas ajenos a F1 y pinta el listado completo
+     * @modified 31-05-2026
+     * @description Obtiene noticias del backend, descarta temas ajenos a F1 y pinta el listado completo estructurado
      */
     async loadNews() {
         const news = await this.fetchJson(this.newsApi, []);
-        const f1News = (Array.isArray(news) ? news : []).filter((item) => this.isFormulaOneNews(`${item.title || ''} ${item.description || ''} ${item.content || ''}`));
+        const f1News = (Array.isArray(news) ? news : []).filter((item) => this.isFormulaOneNews(`${item.title || ''} ${item.description || ''} ${item.content || ''} ${item.source?.name || ''}`));
         if (!f1News.length) {
             this.newsList.innerHTML = '<p class="empty-state">No hay noticias de Fórmula 1 disponibles ahora mismo.</p>';
             return;
@@ -85,16 +85,20 @@ class RaceStreamNewsPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.2
      * @created 30-04-2026
-     * @description Renderiza una noticia con todos los campos útiles de GNews
+     * @modified 31-05-2026
+     * @description Renderiza una noticia con resumen, contenido completo y enlace único a la noticia original
      * @param {Object} item Noticia GNews
      * @param {number} index Posicion de la noticia
      * @returns {string} HTML de la noticia
      */
     renderArticle(item, index) {
         const title = this.escapeHtml(item.title || 'Noticia de Fórmula 1');
-        const content = this.escapeHtml(item.content || 'GNews no ha incluido contenido ampliado para esta noticia.');
+        const description = this.cleanArticleText(item.description || '');
+        const content = this.cleanArticleText(item.content || '');
+        const lead = this.escapeHtml(description || content || 'GNews no ha incluido contenido ampliado para esta noticia.');
+        const body = this.renderArticleBody(content, description);
         const image = this.escapeAttribute(item.image || '/assets/img/LogoRS2.png');
         const url = this.escapeAttribute(item.url || '#');
         const sourceName = this.escapeHtml(item.source?.name || 'GNews');
@@ -111,13 +115,114 @@ class RaceStreamNewsPage {
                     <div class="rs-news-card__meta">
                         <span>${date}</span>
                     </div>
+                    <p class="rs-news-card__lead">${lead}</p>
                     <div class="rs-news-card__content">
-                        <p>${content}</p>
+                        ${body}
                     </div>
-                    <a class="rs-button rs-button--primary rs-news-card__original" href="${url}" target="_blank" rel="noopener noreferrer">Leer noticia original</a>
+                    <div class="rs-news-card__actions">
+                        <a class="rs-button rs-button--primary rs-news-card__original" href="${url}" target="_blank" rel="noopener noreferrer">Leer noticia original</a>
+                    </div>
                 </div>
             </article>
         `;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 31-05-2026
+     * @modified 31-05-2026
+     * @description Limpia contenido largo de GNews conservando saltos de párrafo útiles
+     * @param {string} value Texto recibido desde GNews
+     * @returns {string} Texto limpio
+     */
+    cleanArticleText(value) {
+        return `${value || ''}`
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<\/p>/gi, '\n\n')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/\[\+\d+\s+chars?\]$/i, '')
+            .replace(/\r/g, '')
+            .split('\n')
+            .map((line) => line.replace(/\s+/g, ' ').trim())
+            .join('\n')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 31-05-2026
+     * @modified 31-05-2026
+     * @description Convierte el contenido completo de GNews en párrafos legibles
+     * @param {string} content Contenido completo
+     * @param {string} description Resumen de la noticia
+     * @returns {string} HTML de párrafos
+     */
+    renderArticleBody(content, description) {
+        const baseText = content || description || 'Contenido no disponible.';
+        const cleanDescription = this.normalizeText(description);
+        const explicitParagraphs = baseText
+            .split(/\n{2,}/)
+            .map((paragraph) => paragraph.trim())
+            .filter(Boolean);
+        const paragraphs = explicitParagraphs.length > 1
+            ? explicitParagraphs
+            : this.buildParagraphsFromSentences(baseText);
+
+        const html = paragraphs
+            .filter((paragraph, index) => index !== 0 || this.normalizeText(paragraph) !== cleanDescription)
+            .map((paragraph) => `<p>${this.escapeHtml(paragraph)}</p>`)
+            .join('');
+        return html || `<p>${this.escapeHtml(baseText)}</p>`;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 31-05-2026
+     * @modified 31-05-2026
+     * @description Agrupa frases largas para evitar un único bloque de texto en noticias completas
+     * @param {string} value Texto limpio
+     * @returns {string[]} Párrafos
+     */
+    buildParagraphsFromSentences(value) {
+        const sentences = value.match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g) || [value];
+        const paragraphs = [];
+        let current = '';
+
+        sentences.map((sentence) => sentence.trim()).filter(Boolean).forEach((sentence) => {
+            const next = current ? `${current} ${sentence}` : sentence;
+            if (current && next.length > 520) {
+                paragraphs.push(current);
+                current = sentence;
+            } else {
+                current = next;
+            }
+        });
+
+        if (current) {
+            paragraphs.push(current);
+        }
+        return paragraphs;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 31-05-2026
+     * @modified 31-05-2026
+     * @description Normaliza texto para comparar resumen y primer párrafo sin duplicados
+     * @param {string} value Texto
+     * @returns {string} Texto normalizado
+     */
+    normalizeText(value) {
+        return `${value || ''}`.replace(/\s+/g, ' ').trim().toLowerCase();
     }
 
     /**

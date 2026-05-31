@@ -1,12 +1,12 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.5.3
+ * @version 1.5.4
  * @created 21-04-2026
- * @modified 27-05-2026
+ * @modified 31-05-2026
  * @description Estilos de componentes RaceStream con navbar activo, favoritos,
  *              notificaciones, formularios, cookies, filtros bloqueados,
- *              próximo GP, horarios móviles y títulos legibles
+ *              próximo GP, horarios móviles, títulos legibles y calendario compacto
  */
 
 /* =========================
@@ -557,7 +557,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
 
 .rs-calendar-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 6px;
 }
 
@@ -576,6 +576,7 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
 }
 
 .rs-calendar-day {
+    min-width: 0;
     min-height: 54px;
     border-radius: 12px;
     border: 1px solid var(--rs-border);
@@ -2239,11 +2240,12 @@ button:not(.rs-profile-dropdown__trigger):not(.rs-navbar__menu-trigger):hover {
     }
 
     .rs-calendar-grid {
-        gap: 4px;
+        gap: 3px;
     }
 
     .rs-calendar-day {
         min-height: 46px;
+        border-radius: 10px;
         padding: 4px 2px;
     }
 

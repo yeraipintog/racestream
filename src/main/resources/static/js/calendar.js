@@ -1,10 +1,10 @@
 ﻿/**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.6.0
+ * @version 1.6.1
  * @created 21-04-2026
- * @modified 27-05-2026
- * @description Lógica principal del calendario F1 RaceStream con fechas compactas, histórico autenticado, imágenes seguras y carga reforzada
+ * @modified 31-05-2026
+ * @description Lógica principal del calendario F1 RaceStream con fechas compactas, histórico autenticado, imágenes seguras, carga reforzada y rango visual máximo de tres días
  */
 class RaceStreamCalendarPage {
 
@@ -380,18 +380,74 @@ class RaceStreamCalendarPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0
+     * @version 1.0.1
      * @created 22-04-2026
-     * @modified 22-04-2026
+     * @modified 31-05-2026
      * @description Devuelve fecha normalizada del cliente para pintar calendario
      * @param {string} value Fecha ISO
-     * @param {string} gmtOffset Offset
      * @returns {Date} Fecha
      */
     getClientCalendarDate(value) {
         const date = new Date(value);
         date.setHours(0, 0, 0, 0);
         return date;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 31-05-2026
+     * @modified 31-05-2026
+     * @description Devuelve el rango visual del GP en hora del cliente limitado a tres días de calendario
+     * @param {Object} meeting GP
+     * @returns {{start: Date, end: Date}} Rango visual
+     */
+    getCalendarWeekendRange(meeting) {
+        const rawStart = this.getClientCalendarDate(meeting?.date_start);
+        const rawEnd = this.getClientCalendarDate(meeting?.date_end);
+
+        if (Number.isNaN(rawStart.getTime()) && Number.isNaN(rawEnd.getTime())) {
+            const fallback = new Date(this.currentSeason, 0, 1);
+            return { start: fallback, end: fallback };
+        }
+        if (Number.isNaN(rawStart.getTime())) {
+            return { start: rawEnd, end: rawEnd };
+        }
+        if (Number.isNaN(rawEnd.getTime()) || rawEnd < rawStart) {
+            return { start: rawStart, end: rawStart };
+        }
+
+        const spanDays = Math.round((rawEnd - rawStart) / 86400000) + 1;
+        if (spanDays <= 3) {
+            return { start: rawStart, end: rawEnd };
+        }
+
+        const end = new Date(meeting.date_end);
+        const endMinutes = end.getHours() * 60 + end.getMinutes();
+        if (endMinutes <= 240) {
+            return { start: rawStart, end: this.addCalendarDays(rawStart, 2) };
+        }
+
+        return { start: this.addCalendarDays(rawEnd, -2), end: rawEnd };
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 31-05-2026
+     * @modified 31-05-2026
+     * @description Suma días a una fecha de calendario sin mutar el valor original
+     * @param {Date} date Fecha base
+     * @param {number} days Días a sumar
+     * @returns {Date} Fecha resultante
+     */
+    addCalendarDays(date, days) {
+        const result = new Date(date);
+        result.setDate(result.getDate() + days);
+        result.setHours(0, 0, 0, 0);
+        return result;
     }
 
     /**
@@ -409,8 +465,7 @@ class RaceStreamCalendarPage {
             return '-';
         }
 
-        const start = this.getClientCalendarDate(meeting.date_start);
-        const end = this.getClientCalendarDate(meeting.date_end);
+        const { start, end } = this.getCalendarWeekendRange(meeting);
         return this.formatDateRange(start, end);
     }
 
@@ -1075,7 +1130,7 @@ class RaceStreamCalendarPage {
 
             const meetingToSelect = this.selectInitialMeeting();
             this.currentMonthIndex = meetingToSelect
-                ? this.getClientCalendarDate(meetingToSelect.date_start).getMonth()
+                ? this.getCalendarWeekendRange(meetingToSelect).start.getMonth()
                 : 0;
 
             this.renderMiniCalendar();
@@ -1164,8 +1219,7 @@ class RaceStreamCalendarPage {
      */
     getMeetingForCalendarDay(currentDate) {
         return this.allMeetings.find(meeting => {
-            const start = this.getClientCalendarDate(meeting.date_start);
-            const end = this.getClientCalendarDate(meeting.date_end);
+            const { start, end } = this.getCalendarWeekendRange(meeting);
             return currentDate >= start && currentDate <= end;
         }) || null;
     }
@@ -1210,8 +1264,7 @@ class RaceStreamCalendarPage {
                 continue;
             }
 
-            const start = this.getClientCalendarDate(meeting.date_start);
-            const end = this.getClientCalendarDate(meeting.date_end);
+            const { start, end } = this.getCalendarWeekendRange(meeting);
             const monthStart = new Date(year, this.currentMonthIndex, 1);
             const monthEnd = new Date(year, this.currentMonthIndex, totalDays);
             const visibleStart = start < monthStart ? monthStart : start;
@@ -1247,8 +1300,7 @@ class RaceStreamCalendarPage {
      * @returns {string} Texto
      */
     formatGpDateRange(meeting) {
-        const start = this.getClientCalendarDate(meeting.date_start);
-        const end = this.getClientCalendarDate(meeting.date_end);
+        const { start, end } = this.getCalendarWeekendRange(meeting);
         return this.formatDateRange(start, end);
     }
 
@@ -1298,8 +1350,7 @@ class RaceStreamCalendarPage {
         const monthStart = new Date(year, this.currentMonthIndex, 1);
         const monthEnd = new Date(year, this.currentMonthIndex + 1, 0);
         const meetingsOfMonth = this.allMeetings.filter(meeting => {
-            const start = this.getClientCalendarDate(meeting.date_start);
-            const end = this.getClientCalendarDate(meeting.date_end);
+            const { start, end } = this.getCalendarWeekendRange(meeting);
             return start <= monthEnd && end >= monthStart;
         });
         this.renderCalendarInsight(meetingsOfMonth);

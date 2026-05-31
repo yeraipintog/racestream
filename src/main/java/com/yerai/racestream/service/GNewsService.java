@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.2
+ * @version 1.1.4
  * @created 30-04-2026
- * @modified 27-05-2026
- * @description Servicio para obtener noticias de Fórmula 1 en español desde GNews con búsqueda robusta y filtro temático
+ * @modified 31-05-2026
+ * @description Servicio para obtener noticias de Fórmula 1 en español desde GNews con contenido completo, búsqueda robusta y filtro temático estricto
  */
 package com.yerai.racestream.service;
 
@@ -38,6 +38,14 @@ public class GNewsService {
             "f[oó]rmula\\s*1|formula\\s*one|\\bf1\\b|grand prix|gran premio|fia|verstappen|hamilton|alonso|sainz|norris|leclerc|piastri|russell|antonelli|bearman|bortoleto|lindblad|lawson|tsunoda|ocon|gasly|albon|hulkenberg|hülkenberg|stroll|colapinto|ferrari|mclaren|mercedes|red bull|racing bulls|aston martin|williams|alpine|haas|sauber|cadillac|audi",
             Pattern.CASE_INSENSITIVE
     );
+    private static final Pattern TITLE_FORMULA_ONE_PATTERN = Pattern.compile(
+            "f[oó]rmula\\s*1|formula\\s*one|\\bf1\\b|verstappen|hamilton|alonso|sainz|norris|leclerc|piastri|russell|colapinto|ferrari|mclaren|mercedes|red bull|aston martin|williams|alpine",
+            Pattern.CASE_INSENSITIVE
+    );
+    private static final Pattern NON_FORMULA_ONE_MOTORSPORT_PATTERN = Pattern.compile(
+            "motogp|moto\\s*gp|moto2|moto3|motociclismo|aprilia|ducati|mugello|bezzecchi|m[aá]rquez|marquez|motegi|superbike|nascar|indycar|formula\\s*e|f[eé]rmula\\s*e|rally|wec|wrc",
+            Pattern.CASE_INSENSITIVE
+    );
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -58,10 +66,10 @@ public class GNewsService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.3
+     * @version 1.0.4
      * @created 30-04-2026
-     * @modified 30-04-2026
-     * @description Busca noticias actuales de Fórmula 1 en español con una sola petición cacheada para proteger la cuota diaria
+     * @modified 31-05-2026
+     * @description Busca noticias actuales de Fórmula 1 en español pidiendo margen extra a GNews para compensar falsos positivos
      * @param limit Número máximo de noticias
      * @return Noticias de GNews
      */
@@ -76,12 +84,13 @@ public class GNewsService {
             return copyLimited(cached, max);
         }
 
-        ArrayNode freshNews = copyLimited(fetchArticles("Formula 1", max), max);
+        int requestMax = Math.min(30, Math.max(max, max * 3));
+        ArrayNode freshNews = copyLimited(fetchArticles("Formula 1", requestMax), max);
         if (freshNews.size() == 0) {
-            freshNews = copyLimited(fetchArticles("Fórmula 1", max), max);
+            freshNews = copyLimited(fetchArticles("Fórmula 1", requestMax), max);
         }
         if (freshNews.size() == 0) {
-            freshNews = copyLimited(fetchArticles("F1", max), max);
+            freshNews = copyLimited(fetchArticles("F1", requestMax), max);
         }
         cachedNews.set(freshNews.deepCopy());
         cachedAt = Instant.now();
@@ -91,10 +100,10 @@ public class GNewsService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 30-04-2026
-     * @modified 27-05-2026
-     * @description Ejecuta una búsqueda GNews sin propagar errores a la vista de Inicio
+     * @modified 31-05-2026
+     * @description Ejecuta una búsqueda GNews con contenido completo sin propagar errores a la vista de Inicio
      * @param query Consulta simple comprobada contra GNews
      * @param max Máximo solicitado a GNews
      * @return Artículos recibidos
@@ -105,6 +114,8 @@ public class GNewsService {
                 .pathSegment("search")
                 .queryParam("q", query)
                 .queryParam("lang", "es")
+                .queryParam("in", "title,description,content")
+                .queryParam("nullable", "image")
                 .queryParam("max", max)
                 .queryParam("sortby", "publishedAt")
                 .queryParam("apikey", gNewsApiKey.trim())
@@ -158,21 +169,24 @@ public class GNewsService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.0
+     * @version 1.0.1
      * @created 03-05-2026
-     * @description Comprueba que la noticia contenga señales claras de Fórmula 1
+     * @modified 31-05-2026
+     * @description Comprueba que la noticia contenga señales claras de Fórmula 1 sin colar otras competiciones por menciones secundarias
      * @param article Artículo de GNews
      * @return true si pertenece a Fórmula 1
      */
     private boolean isFormulaOneArticle(JsonNode article) {
+        String title = text(article, "title");
+        String description = text(article, "description");
         String source = text(article == null ? null : article.path("source"), "name");
-        String searchable = String.join(" ",
-                text(article, "title"),
-                text(article, "description"),
-                text(article, "content"),
-                source
-        );
-        return FORMULA_ONE_PATTERN.matcher(searchable).find();
+        String primary = String.join(" ", title, description, source);
+
+        if (!FORMULA_ONE_PATTERN.matcher(primary).find()) {
+            return false;
+        }
+        return !NON_FORMULA_ONE_MOTORSPORT_PATTERN.matcher(primary).find()
+                || TITLE_FORMULA_ONE_PATTERN.matcher(title).find();
     }
 
     /**

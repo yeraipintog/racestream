@@ -1,10 +1,10 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.6
+ * @version 1.0.7
  * @created 30-04-2026
- * @modified 03-05-2026
- * @description Estilos responsive de la página de Noticias con título compacto, artículos completos y fuente GNews
+ * @modified 31-05-2026
+ * @description Estilos responsive de la página de Noticias con título compacto, contenido completo estructurado y fuente GNews
  */
 
 .rs-news-head {
@@ -37,6 +37,8 @@
     grid-template-columns: 324px minmax(0, 1fr);
     gap: 18px;
     align-items: start;
+    min-width: 0;
+    max-width: 100%;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, .08);
     border-radius: 14px;
@@ -71,6 +73,8 @@
 .rs-news-card h2 {
     margin: 8px 0 10px;
     font-size: clamp(22px, 3vw, 30px);
+    line-height: 1.15;
+    overflow-wrap: anywhere;
 }
 
 .rs-news-card__meta {
@@ -82,25 +86,47 @@
     font-weight: 800;
 }
 
+.rs-news-card__lead {
+    margin: 12px 0 0;
+    color: var(--rs-text-soft);
+    overflow-wrap: anywhere;
+}
+
 .rs-news-card__content,
-.rs-news-card__original {
+.rs-news-card__actions {
     display: none;
 }
 
-.rs-news-card--expanded .rs-news-card__content,
-.rs-news-card--expanded .rs-news-card__original {
-    display: inline-flex;
+.rs-news-card--expanded .rs-news-card__content {
+    display: grid;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.rs-news-card--expanded .rs-news-card__actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
 }
 
 .rs-news-card__content {
     color: var(--rs-text-soft);
 }
 
+.rs-news-card__content p {
+    margin: 0;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
 .rs-news-card__original {
     width: fit-content;
+    max-width: 100%;
     margin-top: 16px;
     text-align: center;
     align-self: center;
+    white-space: normal;
 }
 
 .rs-news-source-note {
@@ -113,7 +139,12 @@
 
 @media (max-width: 820px) {
     .rs-news-card {
+        width: 100%;
         grid-template-columns: 1fr;
+    }
+
+    .rs-news-card__body {
+        padding: 16px;
     }
 
     .rs-news-card__image {
