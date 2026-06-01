@@ -1,8 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.2
+ * @version 1.0.3
  * @created 30-04-2026
+ * @modified 01-06-2026
  * @description Controlador REST de noticias externas en español para RaceStream
  */
 package com.yerai.racestream.controller;
@@ -37,15 +38,15 @@ public class NewsController {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.1
+     * @version 1.0.2
      * @created 30-04-2026
-     * @modified 27-05-2026
+     * @modified 01-06-2026
      * @description Devuelve noticias reales de Fórmula 1 en español
      * @param limit Límite de noticias
      * @return Noticias externas
      */
     @GetMapping("/f1")
-    public JsonNode getFormulaOneNews(@RequestParam(defaultValue = "6") Integer limit) {
+    public JsonNode getFormulaOneNews(@RequestParam(defaultValue = "10") Integer limit) {
         return gNewsService.getFormulaOneNews(limit);
     }
 }

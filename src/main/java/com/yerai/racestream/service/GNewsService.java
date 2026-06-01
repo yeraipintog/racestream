@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.1.4
+ * @version 1.1.5
  * @created 30-04-2026
- * @modified 31-05-2026
+ * @modified 01-06-2026
  * @description Servicio para obtener noticias de Fórmula 1 en español desde GNews con contenido completo, búsqueda robusta y filtro temático estricto
  */
 package com.yerai.racestream.service;
@@ -23,8 +23,12 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.net.URI;
+import java.text.Normalizer;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
@@ -66,9 +70,9 @@ public class GNewsService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.4
+     * @version 1.0.5
      * @created 30-04-2026
-     * @modified 31-05-2026
+     * @modified 01-06-2026
      * @description Busca noticias actuales de Fórmula 1 en español pidiendo margen extra a GNews para compensar falsos positivos
      * @param limit Número máximo de noticias
      * @return Noticias de GNews
@@ -78,19 +82,21 @@ public class GNewsService {
             return objectMapper.createArrayNode();
         }
 
-        int max = Math.max(1, Math.min(limit == null ? 6 : limit, 10));
+        int max = Math.max(1, Math.min(limit == null ? 10 : limit, 10));
         ArrayNode cached = cachedNews.get();
         if (cached != null && cachedAt.plus(cached.size() == 0 ? EMPTY_CACHE_TTL : CACHE_TTL).isAfter(Instant.now())) {
             return copyLimited(cached, max);
         }
 
         int requestMax = Math.min(30, Math.max(max, max * 3));
-        ArrayNode freshNews = copyLimited(fetchArticles("Formula 1", requestMax), max);
-        if (freshNews.size() == 0) {
-            freshNews = copyLimited(fetchArticles("Fórmula 1", requestMax), max);
+        ArrayNode freshNews = objectMapper.createArrayNode();
+        Set<String> seenArticles = new HashSet<>();
+        appendUniqueArticles(fetchArticles("Formula 1", requestMax), freshNews, seenArticles, max);
+        if (freshNews.size() < max) {
+            appendUniqueArticles(fetchArticles("Fórmula 1", requestMax), freshNews, seenArticles, max);
         }
-        if (freshNews.size() == 0) {
-            freshNews = copyLimited(fetchArticles("F1", requestMax), max);
+        if (freshNews.size() < max) {
+            appendUniqueArticles(fetchArticles("F1", requestMax), freshNews, seenArticles, max);
         }
         cachedNews.set(freshNews.deepCopy());
         cachedAt = Instant.now();
@@ -145,25 +151,112 @@ public class GNewsService {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.2
+     * @version 1.0.3
      * @created 30-04-2026
-     * @modified 27-05-2026
-     * @description Copia artículos válidos de Fórmula 1 hasta el límite pedido
+     * @modified 01-06-2026
+     * @description Copia artículos válidos de Fórmula 1 hasta el límite pedido sin duplicados
      * @param articles Artículos recibidos de GNews
      * @param max Límite final
      * @return Artículos filtrados
      */
     private ArrayNode copyLimited(JsonNode articles, int max) {
         ArrayNode target = objectMapper.createArrayNode();
+        appendUniqueArticles(articles, target, new HashSet<>(), max);
+        return target;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 01-06-2026
+     * @modified 01-06-2026
+     * @description Añade noticias válidas descartando repeticiones por URL limpia o título normalizado
+     * @param articles Artículos recibidos de GNews
+     * @param target Listado final
+     * @param seenArticles Firmas ya incluidas
+     * @param max Límite final
+     */
+    private void appendUniqueArticles(JsonNode articles, ArrayNode target, Set<String> seenArticles, int max) {
+        if (articles == null || !articles.isArray()) {
+            return;
+        }
         for (JsonNode article : articles) {
             String title = text(article, "title");
             String url = text(article, "url");
             if (target.size() >= max || title.isBlank() || url.isBlank() || !isFormulaOneArticle(article)) {
                 continue;
             }
+            if (isRepeatedArticle(article, seenArticles)) {
+                continue;
+            }
             target.add(article);
         }
-        return target;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 01-06-2026
+     * @modified 01-06-2026
+     * @description Comprueba si una noticia ya se ha añadido usando URL y título como claves estables
+     * @param article Artículo candidato
+     * @param seenArticles Firmas acumuladas
+     * @return true si la noticia está repetida
+     */
+    private boolean isRepeatedArticle(JsonNode article, Set<String> seenArticles) {
+        String urlKey = normalizeArticleUrl(text(article, "url"));
+        String titleKey = normalizeComparable(text(article, "title"));
+        boolean repeated = (!urlKey.isBlank() && seenArticles.contains("url:" + urlKey))
+                || (!titleKey.isBlank() && seenArticles.contains("title:" + titleKey));
+        if (repeated) {
+            return true;
+        }
+        if (!urlKey.isBlank()) {
+            seenArticles.add("url:" + urlKey);
+        }
+        if (!titleKey.isBlank()) {
+            seenArticles.add("title:" + titleKey);
+        }
+        return false;
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 01-06-2026
+     * @modified 01-06-2026
+     * @description Normaliza una URL quitando parámetros, anclas y barras finales para detectar duplicados
+     * @param value URL original
+     * @return URL comparable
+     */
+    private String normalizeArticleUrl(String value) {
+        return value.replaceFirst("#.*$", "")
+                .replaceFirst("\\?.*$", "")
+                .replaceAll("/+$", "")
+                .toLowerCase(Locale.ROOT)
+                .trim();
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 01-06-2026
+     * @modified 01-06-2026
+     * @description Normaliza texto para comparar titulares aunque cambien acentos o signos
+     * @param value Texto original
+     * @return Texto comparable
+     */
+    private String normalizeComparable(String value) {
+        return Normalizer.normalize(value, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", " ")
+                .trim()
+                .replaceAll("\\s+", " ");
     }
 
     /**

@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.6.6
+ * @version 1.6.7
  * @created 30-04-2026
- * @modified 26-05-2026
+ * @modified 01-06-2026
  * @description Pinta navbar, footer, estructura común, cookies, logout seguro,
  *              aviso admin, race strip y centro persistente de notificaciones
  */
@@ -93,7 +93,7 @@ class RaceStreamSharedLayout {
                         <a class="rs-navbar__icon-link" href="/favorites.html" title="Favoritos" aria-label="Favoritos">&#9733;</a>
                         <div class="rs-notification-dropdown" id="notificationDropdown">
                             <button class="rs-navbar__icon-link rs-notification-dropdown__trigger rs-profile-dropdown__trigger" type="button" title="Notificaciones" aria-label="Notificaciones" aria-expanded="false">
-                                🕭
+                                <img class="rs-notification-dropdown__icon" src="/assets/img/Notificaciones.png" alt="" aria-hidden="true" onerror="this.onerror=null;this.src='/assets/img/LogoRS2.png';">
                                 <span class="rs-notification-dropdown__badge" id="notificationBadge" hidden>0</span>
                             </button>
                             <div class="rs-notification-dropdown__panel" id="notificationPanel">

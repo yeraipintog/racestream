@@ -703,7 +703,7 @@ class RaceStreamSessionsPage {
         if (unavailable) return 'Sin resultados oficiales';
         if (canOpen) return 'Pulsa para cargar resultados';
         if (/practice/i.test(`${session?.session_name || ''} ${session?.session_type || ''}`)) {
-            return session?.is_inferred_schedule ? 'Horario estimado' : 'Horario histórico disponible';
+            return session?.is_inferred_schedule ? 'Horario estimado sin resultados' : 'Horario histórico sin resultados';
         }
         return 'Sin resultados oficiales';
     }

@@ -1,9 +1,9 @@
 /**
  * @author Yerai Pinto
  * @since 1.0
- * @version 1.0.10
+ * @version 1.0.11
  * @created 30-04-2026
- * @modified 31-05-2026
+ * @modified 01-06-2026
  * @description Carga y renderiza noticias completas de Fórmula 1 desde el backend RaceStream con filtro estricto, lectura estructurada y acción única de lectura
  */
 class RaceStreamNewsPage {
@@ -65,14 +65,14 @@ class RaceStreamNewsPage {
     /**
      * @author Yerai Pinto
      * @since 1.0
-     * @version 1.0.2
+     * @version 1.0.3
      * @created 30-04-2026
-     * @modified 31-05-2026
-     * @description Obtiene noticias del backend, descarta temas ajenos a F1 y pinta el listado completo estructurado
+     * @modified 01-06-2026
+     * @description Obtiene noticias del backend, descarta duplicados y pinta 10 noticias como máximo
      */
     async loadNews() {
         const news = await this.fetchJson(this.newsApi, []);
-        const f1News = (Array.isArray(news) ? news : []).filter((item) => this.isFormulaOneNews(`${item.title || ''} ${item.description || ''} ${item.content || ''} ${item.source?.name || ''}`));
+        const f1News = this.uniqueArticles(Array.isArray(news) ? news : []).slice(0, 10);
         if (!f1News.length) {
             this.newsList.innerHTML = '<p class="empty-state">No hay noticias de Fórmula 1 disponibles ahora mismo.</p>';
             return;
@@ -80,6 +80,75 @@ class RaceStreamNewsPage {
 
         this.newsList.innerHTML = f1News.map((item, index) => this.renderArticle(item, index)).join('');
         this.bindArticleClicks();
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 01-06-2026
+     * @modified 01-06-2026
+     * @description Filtra noticias de F1 y elimina repeticiones por URL limpia o título normalizado
+     * @param {Array} items Noticias recibidas
+     * @returns {Array} Noticias únicas
+     */
+    uniqueArticles(items) {
+        const seen = new Set();
+        return items.filter((item) => {
+            if (!this.isFormulaOneNews(`${item.title || ''} ${item.description || ''} ${item.content || ''} ${item.source?.name || ''}`)) {
+                return false;
+            }
+            const urlKey = this.normalizeArticleUrl(item.url);
+            const titleKey = this.normalizeComparable(item.title);
+            const repeated = (urlKey && seen.has(`url:${urlKey}`)) || (titleKey && seen.has(`title:${titleKey}`));
+            if (repeated) {
+                return false;
+            }
+            if (urlKey) seen.add(`url:${urlKey}`);
+            if (titleKey) seen.add(`title:${titleKey}`);
+            return true;
+        });
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 01-06-2026
+     * @modified 01-06-2026
+     * @description Normaliza URL de noticia quitando parámetros y anclas para detectar duplicados visuales
+     * @param {string} value URL original
+     * @returns {string} URL comparable
+     */
+    normalizeArticleUrl(value) {
+        const raw = `${value || ''}`.trim();
+        if (!raw) return '';
+        try {
+            const url = new URL(raw, window.location.origin);
+            return `${url.origin}${url.pathname}`.replace(/\/+$/, '').toLowerCase();
+        } catch {
+            return raw.replace(/[#?].*$/, '').replace(/\/+$/, '').toLowerCase();
+        }
+    }
+
+    /**
+     * @author Yerai Pinto
+     * @since 1.0
+     * @version 1.0.0
+     * @created 01-06-2026
+     * @modified 01-06-2026
+     * @description Normaliza texto para comparar titulares aunque cambien acentos o signos
+     * @param {string} value Texto original
+     * @returns {string} Texto comparable
+     */
+    normalizeComparable(value) {
+        return `${value || ''}`
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, ' ')
+            .trim()
+            .replace(/\s+/g, ' ');
     }
 
     /**
