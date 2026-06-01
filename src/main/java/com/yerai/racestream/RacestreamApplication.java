@@ -8,6 +8,7 @@
  */
 package com.yerai.racestream;
 
+import com.yerai.racestream.config.RailwayEnvironmentBootstrap;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -25,6 +26,7 @@ public class RacestreamApplication {
 	 * @param args Argumentos de la línea de comandos
 	 */
 	public static void main(String[] args) {
+		RailwayEnvironmentBootstrap.configure();
 		SpringApplication.run(RacestreamApplication.class, args);
 	}
 }
